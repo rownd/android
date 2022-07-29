@@ -11,7 +11,11 @@ import android.webkit.*
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
 import io.rownd.android.Rownd
+import io.rownd.android.models.AuthenticationMessage
+import io.rownd.android.models.MessageType
 import io.rownd.android.models.RowndHubInteropMessage
+import io.rownd.android.models.domain.AuthState
+import io.rownd.android.util.Constants
 import kotlinx.serialization.json.Json
 
 val json = Json { ignoreUnknownKeys = true }
@@ -25,6 +29,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     init {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
+        settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
         this.addJavascriptInterface(RowndJavascriptInterface(this), "rowndAndroidSDK")
         this.webViewClient = RowndWebViewClient()
 
@@ -67,8 +72,21 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
     fun postMessage(message: String) {
         Log.i("Rownd.hub", "postMessage: $message")
 
-        var interopMessage = json.decodeFromString(RowndHubInteropMessage.serializer(), message)
+        val interopMessage = json.decodeFromString(RowndHubInteropMessage.serializer(), message)
         Log.d("Rownd.hub", interopMessage.toString())
+
+        when(interopMessage.type) {
+            MessageType.authentication -> Rownd.state.auth._authState.value = AuthState(
+                accessToken = (interopMessage as AuthenticationMessage).payload.accessToken,
+                refreshToken = (interopMessage as AuthenticationMessage).payload.refreshToken
+            )
+            MessageType.signOut -> {
+                Rownd.state.auth._authState.value = AuthState()
+            }
+            else -> {
+                Log.w("RowndHub", "An unknown message was received")
+            }
+        }
         parentWebView.dialog.dismiss()
     }
 }

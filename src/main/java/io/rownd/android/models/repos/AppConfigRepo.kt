@@ -23,7 +23,7 @@ class AppConfigRepo {
     private fun fetchAppConfig() {
         CoroutineScope(Dispatchers.IO).launch {
             AppConfigApi.client.getAppConfig().onSuccess {
-                _appConfigState.value = it?.app?.asDomainModel() ?: AppConfigState()
+                _appConfigState.value = it.app.asDomainModel() ?: AppConfigState()
             }
                 .onFailure {
                     Log.e("Rownd", "Oh no! Request failed! ${it.message}")

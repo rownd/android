@@ -10,6 +10,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.fragment.app.FragmentTransaction
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.repos.AppConfigRepo
+import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.views.BottomSheet
 import io.rownd.android.views.RowndWebView
@@ -19,14 +20,14 @@ object Rownd {
     internal lateinit var appHandleWrapper: AppLifecycleListener
 
     lateinit var config: RowndConfig
-    lateinit var appConfigRepo: AppConfigRepo
+    var state = StateRepo()
 
     @JvmStatic
     fun configure(app: Application, appKey: String) {
         appHandleWrapper = AppLifecycleListener(app)
         config = RowndConfig(appKey)
 
-        appConfigRepo = AppConfigRepo()
+        state.start()
         System.out.println("Configuring Rownd!")
     }
 
