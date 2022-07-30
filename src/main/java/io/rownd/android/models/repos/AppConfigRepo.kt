@@ -14,7 +14,7 @@ import retrofit2.http.Header
 
 class AppConfigRepo {
     private val _appConfigState = MutableStateFlow<AppConfigState>(AppConfigState())
-    val appConfigState: StateFlow<AppConfigState> get() = _appConfigState
+    val state: StateFlow<AppConfigState> get() = _appConfigState
 
     init {
         fetchAppConfig()
@@ -23,7 +23,7 @@ class AppConfigRepo {
     private fun fetchAppConfig() {
         CoroutineScope(Dispatchers.IO).launch {
             AppConfigApi.client.getAppConfig().onSuccess {
-                _appConfigState.value = it.app.asDomainModel() ?: AppConfigState()
+                _appConfigState.value = it.app.asDomainModel()
             }
                 .onFailure {
                     Log.e("Rownd", "Oh no! Request failed! ${it.message}")

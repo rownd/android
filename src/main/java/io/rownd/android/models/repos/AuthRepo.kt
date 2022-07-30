@@ -13,14 +13,14 @@ import kotlinx.coroutines.launch
 
 class AuthRepo {
     internal val _authState = MutableStateFlow<AuthState>(AuthState())
-    val authState: StateFlow<AuthState> get() = _authState
+    val state: StateFlow<AuthState> get() = _authState
 
     // TODO: Can this method be synchronized or do we need an actual queue?
     @Synchronized
     private fun fetchToken() {
         CoroutineScope(Dispatchers.IO).launch {
             AuthApi.client.exchangeToken().onSuccess {
-                _authState.value = it?.asDomainModel() ?: AuthState()
+                _authState.value = it.asDomainModel() ?: AuthState()
             }
                 .onFailure {
                     Log.e("RowndApi", "Oh no! Request failed! ${it.message}")
