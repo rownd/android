@@ -17,18 +17,20 @@ class AppConfigRepo {
     val state: StateFlow<AppConfigState> get() = _appConfigState
 
     init {
-        fetchAppConfig()
+//        fetchAppConfig()
     }
 
-    private fun fetchAppConfig() {
-        CoroutineScope(Dispatchers.IO).launch {
-            AppConfigApi.client.getAppConfig().onSuccess {
-                _appConfigState.value = it.app.asDomainModel()
-            }
-                .onFailure {
-                    Log.e("Rownd", "Oh no! Request failed! ${it.message}")
+    companion object {
+        internal fun fetchAppConfig() {
+            CoroutineScope(Dispatchers.IO).launch {
+                AppConfigApi.client.getAppConfig().onSuccess {
+                    Rownd.store.dispatch(StateAction.SetAppConfig(it.app.asDomainModel()))
                 }
+                    .onFailure {
+                        Log.e("Rownd", "Oh no! Request failed! ${it.message}")
+                    }
 
+            }
         }
     }
 }

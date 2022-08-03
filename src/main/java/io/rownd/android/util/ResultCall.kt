@@ -9,7 +9,7 @@ import retrofit2.HttpException
 import retrofit2.Response
 import java.io.IOException
 
-class ResultCall<T>(val delegate: Call<T>) :
+class ResultCall<T>(private val delegate: Call<T>) :
     Call<Result<T>> {
 
     override fun enqueue(callback: Callback<Result<T>>) {

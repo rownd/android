@@ -4,26 +4,26 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class AppConfigState(
-    var isErrored: Boolean = false,
-    var isLoading: Boolean = false,
-    var id: String = "",
-    var icon: String = "",
-    var userVerificationFields: List<String> = listOf(),
-    var schema: Map<String, AppSchemaField> = HashMap<String, AppSchemaField>(),
+    val isErrored: Boolean = false,
+    val isLoading: Boolean = false,
+    val id: String = "",
+    val icon: String = "",
+    val userVerificationFields: List<String> = listOf(),
+    val schema: Map<String, AppSchemaField> = HashMap<String, AppSchemaField>(),
 )
 
 @Serializable
 data class AppSchemaField(
-    var displayName: String?,
-    var type: String?,
-    var required: Boolean?,
-    var ownedBy: String?,
-    var encryption: AppSchemaFieldEncryption?
+    val displayName: String?,
+    val type: String?,
+    val required: Boolean?,
+    val ownedBy: String?,
+    val encryption: AppSchemaFieldEncryption?
 )
 
 @Serializable
 data class AppSchemaFieldEncryption(
-    var state: AppSchemaEncryptionState?
+    val state: AppSchemaEncryptionState?
 )
 
 @Serializable

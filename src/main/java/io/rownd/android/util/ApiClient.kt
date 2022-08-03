@@ -2,6 +2,7 @@ package io.rownd.android.util
 
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import io.rownd.android.Rownd
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
 import okhttp3.MediaType
@@ -14,18 +15,23 @@ val json = Json { ignoreUnknownKeys = true }
 internal class DefaultHeadersInterceptor : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
         val request = chain.request()
-        var newRequest = request.newBuilder()
+        val newRequest = request.newBuilder()
 
         newRequest.addHeader("user-agent", Constants.DEFAULT_API_USER_AGENT)
 
-        if (Rownd.config.appKey != null) {
-            newRequest.addHeader("x-rownd-app-key", Rownd.config.appKey)
+        val appKey = Rownd.config.appKey
+        if (appKey != null) {
+            newRequest.addHeader("x-rownd-app-key", appKey)
         }
 
-        // TODO: Add authorization header
-//        if (someState.auth.accessToken) {
-//            newRequest.addHeader("Authorization", someState.auth.accessToken)
-//        }
+        // This will block the thread, but this should be ok since Retrofit will run this
+        // on a separate thread anyway (i.e., not main/ui)
+        runBlocking {
+            val accessToken = Rownd.getAccessToken()
+            if (accessToken != null) {
+                newRequest.addHeader("Authorization", "Bearer $accessToken")
+            }
+        }
 
         return chain.proceed(newRequest.build())
     }

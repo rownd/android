@@ -4,7 +4,9 @@ import io.rownd.android.models.domain.AuthState
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.POST
 
 @Serializable
 data class Auth(
@@ -24,11 +26,17 @@ data class Auth(
     }
 }
 
+@Serializable
+data class TokenRequestBody(
+    @SerialName("refresh_token")
+    val refreshToken: String
+)
+
 interface TokenService {
-    @GET("hub/auth/token")
-    suspend fun exchangeToken() : Result<Auth>
+    @POST("hub/auth/token")
+    suspend fun exchangeToken(@Body requestBody: TokenRequestBody) : Result<Auth>
 }
 
 object AuthApi {
-    val client: TokenService = ApiClient.getInstance().create(TokenService::class.java)
+    internal val client: TokenService = ApiClient.getInstance().create(TokenService::class.java)
 }
