@@ -27,24 +27,6 @@ import java.io.OutputStream
 
 val Context.dataStore by dataStore("rownd_state.json", GlobalStateSerializer)
 
-private object PreferencesKeys {
-    val SHOW_COMPLETED = booleanPreferencesKey("show_completed")
-    val ROWND_STATE = stringPreferencesKey("rownd_state")
-}
-
-//class StateRepo {
-//    lateinit var appConfig: AppConfigRepo
-//    var auth: AuthRepo = AuthRepo()
-//
-//    fun start() {
-//        appConfig = AppConfigRepo()
-//    }
-//
-//    private fun store() {
-//
-//    }
-//}
-
 @Serializable
 data class GlobalState(
     val appConfig: AppConfigState = AppConfigState(),
@@ -81,24 +63,6 @@ sealed class StateAction : Action {
 
 object StateRepo {
     private lateinit var dataStore: DataStore<GlobalState>
-
-//    init {
-////        this.context = context
-////        dataStore = context.dataStore
-//
-//        // TODO: Re-inflate store from persistence?
-//        CoroutineScope(Dispatchers.IO).async {
-//            val persistedState = dataStore.data.first()
-//            store.dispatch(StateAction.SetGlobalState(persistedState))
-//
-//            store.stateAsStateFlow().collect {
-//                val updatedState = it
-//                dataStore.updateData {
-//                    updatedState
-//                }
-//            }
-//        }
-//    }
 
     private val store = Store<GlobalState, StateAction>(GlobalState()) { state, action ->
         when (action) {

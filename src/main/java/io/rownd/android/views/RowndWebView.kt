@@ -23,11 +23,17 @@ import kotlinx.serialization.json.Json
 
 val json = Json { ignoreUnknownKeys = true }
 
+enum class HubPageSelector {
+    SignIn,
+    SignOut,
+    Unknown
+}
 
 @SuppressLint("SetJavaScriptEnabled")
 class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, attrs), DialogChild {
 
     override lateinit var dialog: DialogFragment
+    internal var targetPage: HubPageSelector = HubPageSelector.Unknown
 
     init {
         settings.javaScriptEnabled = true
@@ -42,7 +48,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         }
 
         this.addJavascriptInterface(RowndJavascriptInterface(this), "rowndAndroidSDK")
-        this.webViewClient = RowndWebViewClient()
+        this.webViewClient = RowndWebViewClient(this)
 
         if (0 != (Rownd.appHandleWrapper.app?.applicationInfo?.flags?.and(ApplicationInfo.FLAG_DEBUGGABLE)
                 ?: false)
@@ -53,19 +59,27 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     }
 }
 
-class RowndWebViewClient : WebViewClient() {
+class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
+    private val webView: RowndWebView
+
+    init {
+        this.webView = webView
+    }
+
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(view, url, favicon)
-
         Log.d("Rownd.hub", "Started loading $url")
+        // TODO: Need to display a loading indicator
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
 
-        view?.evaluateJavascript("rownd.requestSignIn()") { value ->
-            Log.d("Rownd.hub", value)
+        when((view as RowndWebView).targetPage) {
+            HubPageSelector.SignIn, HubPageSelector.Unknown -> view.evaluateJavascript("rownd.requestSignIn()") { handleScriptReturn(it) }
+            HubPageSelector.SignOut -> view.evaluateJavascript("rownd.signOut()") { handleScriptReturn(it) }
         }
+
     }
 
     override fun onReceivedError(
@@ -75,6 +89,10 @@ class RowndWebViewClient : WebViewClient() {
     ) {
         super.onReceivedError(view, request, error)
         Log.e("Rownd.hub", error?.description.toString())
+    }
+
+    private fun handleScriptReturn(value: String) {
+        Log.d("Rownd.hub", value)
     }
 }
 
@@ -87,18 +105,28 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
         Log.d("Rownd.hub", interopMessage.toString())
 
         when(interopMessage.type) {
-            MessageType.authentication -> Rownd.store.dispatch(StateAction.SetAuth(AuthState(
-                accessToken = (interopMessage as AuthenticationMessage).payload.accessToken,
-                refreshToken = (interopMessage as AuthenticationMessage).payload.refreshToken
-            )))
+            MessageType.authentication ->  {
+                if (Rownd.store.currentState.auth.isAuthenticated) {
+                    // The Hub is open for something else, so just chill...
+                    return
+                }
+
+                Rownd.store.dispatch(StateAction.SetAuth(AuthState(
+                    accessToken = (interopMessage as AuthenticationMessage).payload.accessToken,
+                    refreshToken = (interopMessage as AuthenticationMessage).payload.refreshToken
+                )))
+                // TODO: Fetch user data
+
+                parentWebView.dialog.dismiss()
+            }
+
             MessageType.signOut -> {
                 Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
-//                Rownd.state.auth._authState.value = AuthState()
+                parentWebView.dialog.dismiss()
             }
             else -> {
                 Log.w("RowndHub", "An unknown message was received")
             }
         }
-        parentWebView.dialog.dismiss()
     }
 }

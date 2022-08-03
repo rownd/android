@@ -38,11 +38,16 @@ data class AuthenticationPayload(
     var refreshToken: String,
 )
 
+@Serializable
+data class SignOutMessage(
+    override var type: MessageType = MessageType.signOut
+) : RowndHubInteropMessage()
+
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
         return when (element.jsonObject["type"]?.jsonPrimitive?.content) {
             "authentication" -> AuthenticationMessage.serializer()
-//            "sign_out" -> OrgModule.serializer()
+            "sign_out" -> SignOutMessage.serializer()
             else -> throw Exception("Unknown Module: key 'type' not found or does not matches any module type")
         }
     }

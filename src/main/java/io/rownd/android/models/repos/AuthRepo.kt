@@ -10,9 +10,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class AuthRepo {
-//    internal val _authState = MutableStateFlow(AuthState())
-//    val state: StateFlow<AuthState> get() = _authState
-
     companion object {
         internal suspend fun getAccessToken(): String? {
             var accessToken = StateRepo.getStore().currentState.auth.accessToken

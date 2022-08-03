@@ -13,13 +13,6 @@ import kotlinx.coroutines.launch
 import retrofit2.http.Header
 
 class AppConfigRepo {
-    private val _appConfigState = MutableStateFlow<AppConfigState>(AppConfigState())
-    val state: StateFlow<AppConfigState> get() = _appConfigState
-
-    init {
-//        fetchAppConfig()
-    }
-
     companion object {
         internal fun fetchAppConfig() {
             CoroutineScope(Dispatchers.IO).launch {

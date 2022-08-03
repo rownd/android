@@ -14,6 +14,7 @@ import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.*
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.views.BottomSheet
+import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndWebView
 import kotlinx.coroutines.flow.StateFlow
 import java.lang.ref.WeakReference
@@ -39,26 +40,14 @@ object Rownd {
 
     @JvmStatic
     fun requestSignIn() {
-        var activity = appHandleWrapper.activity as AppCompatActivity
-
-        var subView = RowndWebView(appHandleWrapper.app.applicationContext, null)
-
-        var bottomSheet = BottomSheet(subView)
-        bottomSheet.show(activity.supportFragmentManager, BottomSheet.TAG)
-
-//        bottomSheet.addView(subView)
-
-        var url = Rownd.config.hubLoaderUrl()
-        subView.loadUrl(url)
-        subView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        displayHub(HubPageSelector.SignIn)
     }
 
     @JvmStatic
     fun signOut() {
-//        state.auth._authState.value = AuthState()
+        displayHub(HubPageSelector.SignOut)
+//        store.dispatch(StateAction.SetAuth(AuthState()))
 
-        store.dispatch(StateAction.SetAuth(AuthState()))
-        // TODO: Trigger hub signout
     }
 
     @JvmStatic
@@ -68,7 +57,19 @@ object Rownd {
     }
 
     // Internal stuff
-    internal fun displayHub() {
+    internal fun displayHub(targetPage: HubPageSelector): RowndWebView {
+        val activity = appHandleWrapper.activity as AppCompatActivity
 
+        val hubView = RowndWebView(appHandleWrapper.app.applicationContext, null)
+        hubView.targetPage = targetPage
+
+        var bottomSheet = BottomSheet(hubView)
+        bottomSheet.show(activity.supportFragmentManager, BottomSheet.TAG)
+
+        var url = Rownd.config.hubLoaderUrl()
+        hubView.loadUrl(url)
+        hubView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+
+        return hubView
     }
 }
