@@ -48,19 +48,22 @@ android {
 
 dependencies {
     implementation 'androidx.datastore:datastore-preferences:1.0.0'
-    def lifecycle_version = "2.5.0"
+    def lifecycle_version = "2.5.1"
 
     implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2"
+    implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5"
 
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'com.google.android.material:material:1.6.1'
 
+    implementation "androidx.lifecycle:lifecycle-common:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
-    implementation "androidx.room:room-ktx:2.4.2"
-    implementation "androidx.compose.foundation:foundation:1.1.1"
-    implementation "androidx.compose.material:material:1.1.1"
+    implementation "androidx.room:room-ktx:2.4.3"
+    implementation "androidx.compose.foundation:foundation:1.2.0"
+    implementation "androidx.compose.material:material:1.2.0"
+    implementation "androidx.fragment:fragment-ktx:1.5.1"
 
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0'

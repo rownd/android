@@ -18,11 +18,13 @@ import io.rownd.android.models.RowndHubInteropMessage
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.util.Constants
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
 
 val json = Json { ignoreUnknownKeys = true }
 
+@Serializable
 enum class HubPageSelector {
     SignIn,
     SignOut,

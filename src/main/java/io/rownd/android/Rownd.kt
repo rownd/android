@@ -14,6 +14,7 @@ import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.*
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.views.BottomSheet
+import io.rownd.android.views.HubBottomSheet
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndWebView
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +25,6 @@ object Rownd {
 
     lateinit var config: RowndConfig
     internal lateinit var store: Store<GlobalState, StateAction>
-//    lateinit var state: StateFlow<GlobalState>
     var state = StateRepo.state
 
     @JvmStatic
@@ -34,7 +34,6 @@ object Rownd {
 
         store = StateRepo.setup(app.applicationContext.dataStore)
 
-//        state.start()
         System.out.println("Configuring Rownd!")
     }
 
@@ -46,8 +45,6 @@ object Rownd {
     @JvmStatic
     fun signOut() {
         displayHub(HubPageSelector.SignOut)
-//        store.dispatch(StateAction.SetAuth(AuthState()))
-
     }
 
     @JvmStatic
@@ -57,19 +54,10 @@ object Rownd {
     }
 
     // Internal stuff
-    internal fun displayHub(targetPage: HubPageSelector): RowndWebView {
+    private fun displayHub(targetPage: HubPageSelector) {
         val activity = appHandleWrapper.activity as AppCompatActivity
 
-        val hubView = RowndWebView(appHandleWrapper.app.applicationContext, null)
-        hubView.targetPage = targetPage
-
-        var bottomSheet = BottomSheet(hubView)
+        val bottomSheet = HubBottomSheet.newInstance(targetPage)
         bottomSheet.show(activity.supportFragmentManager, BottomSheet.TAG)
-
-        var url = Rownd.config.hubLoaderUrl()
-        hubView.loadUrl(url)
-        hubView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-
-        return hubView
     }
 }
