@@ -3,7 +3,9 @@ package io.rownd.android.models.repos
 import android.util.Log
 import com.auth0.android.jwt.JWT
 import io.rownd.android.models.domain.AuthState
+import io.rownd.android.models.network.Auth
 import io.rownd.android.models.network.AuthApi
+import io.rownd.android.models.network.RowndAPIException
 import io.rownd.android.models.network.TokenRequestBody
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -12,7 +14,7 @@ import kotlinx.coroutines.flow.StateFlow
 class AuthRepo {
     companion object {
         internal suspend fun getAccessToken(): String? {
-            var accessToken = StateRepo.getStore().currentState.auth.accessToken
+            val accessToken = StateRepo.getStore().currentState.auth.accessToken
                 ?: // TODO: Throw error because there is no access token?
                 return null
 
@@ -29,19 +31,15 @@ class AuthRepo {
         @Synchronized
         private fun fetchTokenAsync(tokenRequest: TokenRequestBody): Deferred<String?> {
             return CoroutineScope(Dispatchers.IO).async {
-                val result = AuthApi.client.exchangeToken(tokenRequest)
-                    .onSuccess {
-                        StateRepo.getStore().dispatch(StateAction.SetAuth(it.asDomainModel()))
-                    }
-                    .onFailure {
-                        Log.e("RowndApi", "Oh no! Request failed! ${it.message}")
-                    }
-
-                if (result.isSuccess) {
-                    val authState = result.getOrNull()
-                    return@async authState?.accessToken
+                val resp = AuthApi.client.exchangeToken(tokenRequest)
+                if (resp.isSuccessful) {
+                    val authBody = resp.body() as Auth
+                    StateRepo.getStore().dispatch(StateAction.SetAuth(authBody.asDomainModel()))
+                    authBody.accessToken
                 } else {
-                    return@async null
+                    val error = RowndAPIException(resp)
+                    Log.e("RowndAuthApi", "Fetching token failed: ${error.message}")
+                    null
                 }
             }
         }
