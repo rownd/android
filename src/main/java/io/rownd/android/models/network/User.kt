@@ -4,8 +4,7 @@ import io.rownd.android.models.domain.User as DomainUser
 import io.rownd.android.util.AnyValueSerializer
 import io.rownd.android.util.ApiClient
 import io.rownd.android.util.RequireAccessToken
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.serialization.SerialName
+import kotlinx.collections.immutable.toPersistentList
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -15,12 +14,12 @@ import retrofit2.http.Path
 @Serializable
 data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?>,
-    val redacted: PersistentList<String>
+    val redacted: List<String>
 ) {
     fun asDomainModel() : DomainUser {
         return DomainUser(
             data = data,
-            redacted = redacted
+            redacted = redacted.toPersistentList()
         )
     }
 }
