@@ -2,16 +2,30 @@ plugins {
     id 'com.android.library'
     id 'org.jetbrains.kotlin.android'
     id 'kotlinx-serialization'
+    id 'maven-publish'
 }
 
 android {
+    namespace "io.rownd.android"
     compileSdk 32
 
     defaultConfig {
         minSdk 26
         targetSdk 32
 
+        versionName '1.0.0'
+
+        aarMetadata {
+            minCompileSdk 26
+        }
+
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
+        }
     }
 
     buildTypes {
@@ -42,6 +56,10 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion compose_version
     }
+
+    testFixtures {
+        enable = true
+    }
 }
 
 dependencies {
@@ -71,10 +89,23 @@ dependencies {
 
     implementation "com.goterl:lazysodium-android:5.0.2@aar"
     implementation "net.java.dev.jna:jna:5.8.0@aar"
+    implementation "androidx.security:security-crypto:1.0.0"
 
     testImplementation 'junit:junit:4.13.2'
-//    testImplementation "net.java.dev.jna:jna:5.8.0"
-//    testImplementation "com.goterl:lazysodium-java::5.1.2"
+
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            release(MavenPublication) {
+                from components.release
+                groupId 'io.rownd'
+                artifactId 'android'
+                version = android.defaultConfig.versionName
+            }
+        }
+    }
 }

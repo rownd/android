@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import io.rownd.android.Rownd
+import io.rownd.android.util.RowndException
 
 
 enum class HubBottomSheetBundleKeys(val key: String) {
@@ -22,7 +23,11 @@ class HubBottomSheet : BottomSheet() {
         val targetPage: HubPageSelector =
             (bundle?.getSerializable(HubBottomSheetBundleKeys.TargetPage.key) ?: HubPageSelector.Unknown) as HubPageSelector
 
-        val hubView = RowndWebView(Rownd.appHandleWrapper.app.applicationContext, null)
+        val context = context
+            ?: Rownd.appHandleWrapper.app.get()?.applicationContext
+            ?: throw RowndException("Unable to locate context. Did you forget to call Rownd.configure()?")
+
+        val hubView = RowndWebView(context, null)
         hubView.targetPage = targetPage
         val url = Rownd.config.hubLoaderUrl()
         hubView.loadUrl(url)

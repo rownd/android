@@ -13,6 +13,8 @@ import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.*
 import io.rownd.android.util.AppLifecycleListener
+import io.rownd.android.util.Encryption
+import io.rownd.android.util.RowndException
 import io.rownd.android.views.BottomSheet
 import io.rownd.android.views.HubBottomSheet
 import io.rownd.android.views.HubPageSelector
@@ -49,13 +51,12 @@ object Rownd {
 
     @JvmStatic
     suspend fun getAccessToken(): String? {
-//        return state.auth.getAccessToken()
         return AuthRepo.getAccessToken()
     }
 
     // Internal stuff
     private fun displayHub(targetPage: HubPageSelector) {
-        val activity = appHandleWrapper.activity as AppCompatActivity
+        val activity = appHandleWrapper.activity.get() as AppCompatActivity
 
         val bottomSheet = HubBottomSheet.newInstance(targetPage)
         bottomSheet.show(activity.supportFragmentManager, BottomSheet.TAG)

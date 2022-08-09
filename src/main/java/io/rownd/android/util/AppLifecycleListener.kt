@@ -3,24 +3,31 @@ package io.rownd.android.util
 import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
+import android.content.Context
 import android.os.Bundle
 import androidx.annotation.Nullable
+import java.lang.ref.WeakReference
+
+enum class ContextType {
+    APP, ACTIVITY
+}
 
 class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks {
-    var app: Application
-    lateinit var activity: Activity
+    var app: WeakReference<Application>
+        private set
+    lateinit var activity: WeakReference<Activity>
         private set
 
     override fun onActivityCreated(activity: Activity, @Nullable bundle: Bundle?) {
-        this.activity = activity
+        this.activity = WeakReference(activity)
     }
 
     override fun onActivityStarted(activity: Activity) {
-        this.activity = activity
+        this.activity = WeakReference(activity)
     }
 
     override fun onActivityResumed(activity: Activity) {
-        this.activity = activity
+        this.activity = WeakReference(activity)
     }
 
     override fun onActivityPaused(activity: Activity) {}
@@ -29,7 +36,7 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
     override fun onActivityDestroyed(activity: Activity) {}
 
     init {
-        app = parentApp
+        app = WeakReference(parentApp)
         parentApp.registerActivityLifecycleCallbacks(this)
     }
 }
