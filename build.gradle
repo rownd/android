@@ -22,12 +22,6 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    publishing {
-        singleVariant("release") {
-            withSourcesJar()
-        }
-    }
-
     buildTypes {
         debug {
             buildConfigField "String", "VERSION_CODE", "\"${defaultConfig.versionCode}\""
@@ -97,15 +91,11 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
 
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                from components.release
-                groupId 'io.rownd'
-                artifactId 'android'
-                version = android.defaultConfig.versionName
-            }
-        }
-    }
+ext {
+    // Provide your own coordinates here
+    PUBLISH_GROUP_ID = 'io.rownd'
+    PUBLISH_VERSION = android.defaultConfig.versionName
+    PUBLISH_ARTIFACT_ID = 'android'
 }
+
+apply from: "${rootProject.projectDir}/scripts/publish-module.gradle"
