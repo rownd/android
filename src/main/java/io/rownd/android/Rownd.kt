@@ -54,6 +54,10 @@ object Rownd {
         return AuthRepo.getAccessToken()
     }
 
+    fun isEncryptionPossible() : Boolean {
+        return UserRepo.isEncryptionPossible()
+    }
+
     // Internal stuff
     private fun displayHub(targetPage: HubPageSelector) {
         val activity = appHandleWrapper.activity.get() as AppCompatActivity

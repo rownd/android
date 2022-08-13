@@ -95,6 +95,13 @@ class EncryptionInstrumentedTest {
 
         val storedKey = Encryption.loadKey(KEY_ID)
 
-        assertEquals(key.asBase64String, storedKey.asBase64String)
+        assertEquals(key.asBase64String, storedKey?.asBase64String)
+    }
+
+    @Test
+    fun load_nonexistant_key() {
+        val storedKey = Encryption.loadKey(KEY_ID)
+
+        assertNull(storedKey)
     }
 }

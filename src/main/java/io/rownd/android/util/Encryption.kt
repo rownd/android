@@ -1,6 +1,7 @@
 package io.rownd.android.util
 
 import android.content.Context
+import android.util.Log
 import androidx.security.crypto.EncryptedFile
 import androidx.security.crypto.MasterKeys
 import com.goterl.lazysodium.LazySodiumAndroid
@@ -12,6 +13,7 @@ import com.goterl.lazysodium.utils.Key
 import io.rownd.android.Rownd
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import java.util.*
 
 
@@ -52,20 +54,31 @@ object Encryption {
         }
     }
 
-    fun loadKey(keyId: String): Key {
+    fun storeKey(key: String, keyId: String) {
+        storeKey(Key.fromBase64String(key), keyId)
+    }
+
+    fun loadKey(keyId: String): Key? {
         val keyFile = getKeyFile(keyName(keyId))
 
-        val inputStream = keyFile.openFileInput()
-        val byteArrayOutputStream = ByteArrayOutputStream()
-        var nextByte: Int = inputStream.read()
-        while (nextByte != -1) {
-            byteArrayOutputStream.write(nextByte)
-            nextByte = inputStream.read()
+        try {
+            val inputStream = keyFile.openFileInput()
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            var nextByte: Int = inputStream.read()
+            while (nextByte != -1) {
+                byteArrayOutputStream.write(nextByte)
+                nextByte = inputStream.read()
+            }
+
+            val keyBytes = byteArrayOutputStream.toByteArray()
+
+            return Key.fromBytes(keyBytes)
+        } catch (error: IOException) {
+            return null
+        } catch (error: Exception) {
+            Log.e("Rownd", "Failed to load encryption key: ${error.message}")
+            return null
         }
-
-        val keyBytes = byteArrayOutputStream.toByteArray()
-
-        return Key.fromBytes(keyBytes)
     }
 
     fun deleteKey(keyId: String) {
@@ -85,11 +98,24 @@ object Encryption {
         return messageEncoder.encode(nonce + messageEncoder.decode(ciphertext))
     }
 
+    @Throws(SodiumException::class)
+    fun encrypt(plaintext: String, keyId: String): String {
+        val key = loadKey(keyId) ?: throw EncryptionException("The requested key '$keyId' could not be found")
+        return encrypt(plaintext, key)
+    }
+
+    @Throws(SodiumException::class)
     fun decrypt(ciphertext: String, withKey: Key): String {
         val noncedCipherByteArray = messageEncoder.decode(ciphertext)
         val nonce = noncedCipherByteArray.copyOfRange(0, SecretBox.NONCEBYTES)
         val cipherTextBytes = noncedCipherByteArray.copyOfRange(SecretBox.NONCEBYTES, noncedCipherByteArray.size)
         return ls.cryptoSecretBoxOpenEasy(messageEncoder.encode(cipherTextBytes), nonce, withKey)
+    }
+
+    @Throws(SodiumException::class)
+    fun decrypt(ciphertext: String, keyId: String): String {
+        val key = loadKey(keyId) ?: throw EncryptionException("The requested key '$keyId' could not be found")
+        return decrypt(ciphertext, key)
     }
 }
 
