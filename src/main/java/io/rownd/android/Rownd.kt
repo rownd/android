@@ -19,6 +19,7 @@ import io.rownd.android.views.BottomSheet
 import io.rownd.android.views.HubBottomSheet
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndWebView
+import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
 import kotlinx.coroutines.flow.StateFlow
 import java.lang.ref.WeakReference
 
@@ -50,10 +51,19 @@ object Rownd {
     }
 
     @JvmStatic
+    fun transferEncryptionKey() {
+        val activity = appHandleWrapper.activity.get() as AppCompatActivity
+
+        val bottomSheet = KeyTransferBottomSheet.newInstance()
+        bottomSheet.show(activity.supportFragmentManager, BottomSheet.TAG)
+    }
+
+    @JvmStatic
     suspend fun getAccessToken(): String? {
         return AuthRepo.getAccessToken()
     }
 
+    @JvmStatic
     fun isEncryptionPossible() : Boolean {
         return UserRepo.isEncryptionPossible()
     }

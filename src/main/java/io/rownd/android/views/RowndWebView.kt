@@ -8,8 +8,10 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
+import android.view.View
 import android.webkit.*
 import androidx.annotation.RequiresApi
+import androidx.compose.ui.graphics.Color
 import androidx.fragment.app.DialogFragment
 import io.rownd.android.Rownd
 import io.rownd.android.models.AuthenticationMessage
@@ -40,6 +42,8 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal var targetPage: HubPageSelector = HubPageSelector.Unknown
 
     init {
+        this.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null)
+        this.setBackgroundColor(0x00000000)
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
@@ -70,13 +74,18 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-        super.onPageStarted(view, url, favicon)
+        super.onPageStarted(webView, url, favicon)
         Log.d("Rownd.hub", "Started loading $url")
+        view?.visibility = View.INVISIBLE
         // TODO: Need to display a loading indicator
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
+        view?.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null)
+        view?.setBackgroundColor(0x00000000)
+
+        view?.visibility = View.VISIBLE
 
         when((view as RowndWebView).targetPage) {
             HubPageSelector.SignIn, HubPageSelector.Unknown -> view.evaluateJavascript("rownd.requestSignIn()") { handleScriptReturn(it) }

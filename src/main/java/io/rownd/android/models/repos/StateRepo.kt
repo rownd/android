@@ -80,11 +80,11 @@ object StateRepo {
             store.dispatch(StateAction.SetGlobalState(persistedState))
 
             // Fetch latest app config
-            AppConfigRepo.loadAppConfigAsync()
+            AppConfigRepo.loadAppConfigAsync().await()
 
             // Fetch latest user data if we're authenticated
             if (store.currentState.auth.isAuthenticated) {
-                UserRepo.loadUserAsync()
+                UserRepo.loadUserAsync().await()
             }
 
             store.stateAsStateFlow().collect {
