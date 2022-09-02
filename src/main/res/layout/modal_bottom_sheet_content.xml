@@ -5,8 +5,6 @@
     android:id="@+id/bottom_sheet_wrapper"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:padding="?dialogPreferredPadding"
-    android:background="?android:colorBackground"
     android:baselineAligned="false">
 
 <!--    <LinearLayout-->
@@ -18,7 +16,6 @@
         android:id="@+id/bottom_sheet_inner"
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:background="?android:colorBackground"
         android:layout_weight="1">
 
     </androidx.constraintlayout.widget.ConstraintLayout>

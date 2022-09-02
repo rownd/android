@@ -25,28 +25,31 @@ import io.rownd.android.util.Constants
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
-
 val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 enum class HubPageSelector {
     SignIn,
     SignOut,
+    QrCode,
     Unknown
 }
 
 @SuppressLint("SetJavaScriptEnabled")
 class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, attrs), DialogChild {
-
     override lateinit var dialog: DialogFragment
     internal var targetPage: HubPageSelector = HubPageSelector.Unknown
+    internal var jsFunctionArgsAsJson: String = "{}"
 
     init {
-        this.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null)
+        this.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
         this.setBackgroundColor(0x00000000)
+        this.isHorizontalScrollBarEnabled = false
+        this.isVerticalScrollBarEnabled = false
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
+
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
@@ -62,8 +65,9 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         if (0 != appFlags.and(ApplicationInfo.FLAG_DEBUGGABLE)) {
             setWebContentsDebuggingEnabled(true)
         }
-
     }
+
+
 }
 
 class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
@@ -71,6 +75,24 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
 
     init {
         this.webView = webView
+    }
+
+    private fun evaluateJavascript(code: String) {
+        val wrappedJs = """
+            if (typeof rownd !== 'undefined') {
+                $code
+            } else {
+                _rphConfig.push(['onLoaded', () => {
+                    $code
+                }]);
+            }
+        """
+
+        Log.d("Rownd.hub", "Evaluating script: $code")
+
+        webView.evaluateJavascript(wrappedJs) {
+            Log.d("Rownd.hub", "Hub js evaluation response: $it")
+        }
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -82,14 +104,15 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
-        view?.setLayerType(WebView.LAYER_TYPE_SOFTWARE, null)
+        view?.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
         view?.setBackgroundColor(0x00000000)
 
         view?.visibility = View.VISIBLE
 
         when((view as RowndWebView).targetPage) {
-            HubPageSelector.SignIn, HubPageSelector.Unknown -> view.evaluateJavascript("rownd.requestSignIn()") { handleScriptReturn(it) }
-            HubPageSelector.SignOut -> view.evaluateJavascript("rownd.signOut()") { handleScriptReturn(it) }
+            HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
+            HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut()")
+            HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson}")
         }
 
     }
@@ -111,13 +134,14 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
 class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
     @JavascriptInterface
     fun postMessage(message: String) {
-        Log.i("Rownd.hub", "postMessage: $message")
+        Log.d("Rownd.hub", "postMessage: $message")
 
         val interopMessage = json.decodeFromString(RowndHubInteropMessage.serializer(), message)
         Log.d("Rownd.hub", interopMessage.toString())
 
         when(interopMessage.type) {
             MessageType.authentication ->  {
+                // FIXME: Check which page was loaded, not the auth state
                 if (Rownd.store.currentState.auth.isAuthenticated) {
                     // The Hub is open for something else, so just chill...
                     return

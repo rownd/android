@@ -107,36 +107,36 @@ open class BottomSheet() : BottomSheetDialogFragment() {
 //            set2.connect(spinner.id, ConstraintSet.BOTTOM, constraintLayout.id, ConstraintSet.BOTTOM, 0)
 //            set2.applyTo(constraintLayout)
 
-            val dialog = (dialog as BottomSheetDialog)
-            val behavior = dialog.behavior
+//            val dialog = (dialog as BottomSheetDialog)
+//            val behavior = dialog.behavior
 
-            val rootView = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-
-            rootView?.post {
-                val bottomSheetVisibleHeight = rootView.height - rootView.top
-//                constraintLayout.minHeight = bottomSheetVisibleHeight
-//                constraintLayout.maxHeight = bottomSheetVisibleHeight
-            }
-
-            behavior.apply {
-                addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-                    override fun onSlide(bottomSheet: View, slideOffset: Float) {
-
-                        // set the y coordinates of the bottom layout on bottom sheet slide
-//                        val bottomSheetVisibleHeight = bottomSheet.height - bottomSheet.top
-//                        constraintLayout.y =
-//                            (bottomSheetVisibleHeight - constraintLayout.height).toFloat()
-//                        constraintLayout.minHeight = bottomSheetVisibleHeight
-//                        constraintLayout.maxHeight = bottomSheetVisibleHeight
-                    }
-
-                    override fun onStateChanged(bottomSheet: View, newState: Int) {
-//                        val bottomSheetVisibleHeight = bottomSheet.height - bottomSheet.top
-//                        constraintLayout.maxHeight = bottomSheetVisibleHeight
-//                        println("bottomSheetHeight: ${bottomSheet.height}")
-                    }
-                })
-            }
+//            val rootView = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
+//
+//            rootView?.post {
+//                val bottomSheetVisibleHeight = rootView.height - rootView.top
+////                constraintLayout.minHeight = bottomSheetVisibleHeight
+////                constraintLayout.maxHeight = bottomSheetVisibleHeight
+//            }
+//
+//            behavior.apply {
+//                addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+//                    override fun onSlide(bottomSheet: View, slideOffset: Float) {
+//
+//                        // set the y coordinates of the bottom layout on bottom sheet slide
+////                        val bottomSheetVisibleHeight = bottomSheet.height - bottomSheet.top
+////                        constraintLayout.y =
+////                            (bottomSheetVisibleHeight - constraintLayout.height).toFloat()
+////                        constraintLayout.minHeight = bottomSheetVisibleHeight
+////                        constraintLayout.maxHeight = bottomSheetVisibleHeight
+//                    }
+//
+//                    override fun onStateChanged(bottomSheet: View, newState: Int) {
+////                        val bottomSheetVisibleHeight = bottomSheet.height - bottomSheet.top
+////                        constraintLayout.maxHeight = bottomSheetVisibleHeight
+////                        println("bottomSheetHeight: ${bottomSheet.height}")
+//                    }
+//                })
+//            }
         }
     }
 
