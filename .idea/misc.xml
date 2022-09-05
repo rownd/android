@@ -11,6 +11,7 @@
         <entry key="android/src/main/res/layout/fragment_key_transfer_progress.xml" value="0.1984375" />
         <entry key="android/src/main/res/layout/fragment_key_transfer_scanner.xml" value="0.1984375" />
         <entry key="android/src/main/res/layout/fragment_key_transfer_start.xml" value="0.17552083333333332" />
+        <entry key="android/src/main/res/layout/hub_view_layout.xml" value="0.12409420289855072" />
         <entry key="android/src/main/res/layout/key_transfer_layout.xml" value="0.17447916666666666" />
         <entry key="android/src/main/res/layout/modal_bottom_sheet_content.xml" value="0.17552083333333332" />
         <entry key="app/src/main/res/layout/activity_main.xml" value="0.22563985188802083" />

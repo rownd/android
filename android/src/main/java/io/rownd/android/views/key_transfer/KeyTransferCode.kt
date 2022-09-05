@@ -19,9 +19,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidViewBinding
 import io.rownd.android.R
+import io.rownd.android.Rownd
+import io.rownd.android.databinding.HubViewLayoutBinding
 import io.rownd.android.ui.theme.IconCopy
 import io.rownd.android.ui.theme.RowndButton
+import io.rownd.android.views.HubPageSelector
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -110,6 +114,17 @@ fun KeyTransferCode(
             )
 
             // QRCodeWebView
+            AndroidViewBinding(HubViewLayoutBinding::inflate) {
+                val url = Rownd.config.hubLoaderUrl()
+//                this.hubWebview.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
+                this.hubWebview.layoutParams.height = 500
+                this.hubWebview.minimumHeight = 500
+//                this.hubWebview.height = 300
+                this.hubWebview.progressBar = this.hubProgressBar
+                this.hubWebview.targetPage = HubPageSelector.QrCode
+                this.hubWebview.jsFunctionArgsAsJson = "{\"data\": \"https://rownd.io\"}"
+                this.hubWebview.loadUrl(url)
+            }
 
             RowndButton(
                 onClick = {},
@@ -121,6 +136,12 @@ fun KeyTransferCode(
                 )
                 IconCopy()
             }
+
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                lineHeight = 24.sp,
+                text = "You can also copy your account's secret encryption key in case you need to recover it later. Be sure to store it in a safe, secure location."
+            )
         }
     }
 }

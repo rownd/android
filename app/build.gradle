@@ -43,8 +43,8 @@ android {
 }
 
 dependencies {
-//    implementation project(':android')
-    implementation 'io.rownd:android:1.2.0'
+    implementation project(':android')
+//    implementation 'io.rownd:android:1.2.0'
 
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.4.2'

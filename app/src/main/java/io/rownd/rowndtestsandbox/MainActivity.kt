@@ -32,7 +32,6 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         Rownd.configure(this.application, "b60bc454-c45f-47a2-8f8a-12b2062f5a77")
         Rownd.config.apiUrl = "https://api.us-east-2.dev.rownd.io"
-//        Rownd.config.baseUrl = "https://hub.rownd.workers.dev"
         Rownd.config.baseUrl = "https://hub.rownd.workers.dev"
         val binding: ActivityMainBinding =
             DataBindingUtil.setContentView(this, R.layout.activity_main)
@@ -143,7 +142,7 @@ class MainActivity : AppCompatActivity() {
                                     onClick = {
                                         if (state.value.auth.isAuthenticated) Rownd.signOut()
                                         else Rownd.requestSignIn(RowndSignInOptions(
-                                            postSignInRedirect = "http://dev-links.thestardustapp.com/?apn=com.stardust.app.qa&ibi=com.stardust.stardustapp.dev"
+                                            postSignInRedirect = "rowndtestapp://test"
                                         ))
                                     }
                                 ) {
