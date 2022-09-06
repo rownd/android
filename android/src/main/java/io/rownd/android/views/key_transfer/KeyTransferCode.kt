@@ -13,8 +13,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -24,6 +29,7 @@ import io.rownd.android.R
 import io.rownd.android.Rownd
 import io.rownd.android.databinding.HubViewLayoutBinding
 import io.rownd.android.ui.theme.IconCopy
+import io.rownd.android.ui.theme.IconFilledCircleCheck
 import io.rownd.android.ui.theme.RowndButton
 import io.rownd.android.views.HubPageSelector
 
@@ -80,9 +86,13 @@ private const val ARG_PARAM2 = "param2"
 //}
 
 @Composable
-fun KeyTransferCode(
-    onNavBack: () -> Unit
+internal fun KeyTransferCode(
+    onNavBack: () -> Unit,
+    viewModel: KeyTransferViewModel
 ) {
+    val clipboardManager: ClipboardManager = LocalClipboardManager.current
+    val didCopyToClipboard = remember { mutableStateOf(false) }
+
     Column() {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(
@@ -116,25 +126,25 @@ fun KeyTransferCode(
             // QRCodeWebView
             AndroidViewBinding(HubViewLayoutBinding::inflate) {
                 val url = Rownd.config.hubLoaderUrl()
-//                this.hubWebview.layoutParams.height = ViewGroup.LayoutParams.WRAP_CONTENT
                 this.hubWebview.layoutParams.height = 500
-                this.hubWebview.minimumHeight = 500
-//                this.hubWebview.height = 300
                 this.hubWebview.progressBar = this.hubProgressBar
                 this.hubWebview.targetPage = HubPageSelector.QrCode
-                this.hubWebview.jsFunctionArgsAsJson = "{\"data\": \"https://rownd.io\"}"
+                this.hubWebview.jsFunctionArgsAsJson = viewModel.keyState.qrCodeData()
                 this.hubWebview.loadUrl(url)
             }
 
             RowndButton(
-                onClick = {},
+                onClick = {
+                    clipboardManager.setText(AnnotatedString(viewModel.keyState.key))
+                    didCopyToClipboard.value = true
+                },
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
             ) {
                 Text(
-                    "Copy to clipboard",
+                    text = if (didCopyToClipboard.value) "Copied!" else "Copy to clipboard",
                     modifier = Modifier.padding(end = 10.dp)
                 )
-                IconCopy()
+                if (didCopyToClipboard.value) IconFilledCircleCheck() else IconCopy()
             }
 
             Text(

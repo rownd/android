@@ -4,6 +4,7 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="../../../../layout/custom_preview.xml" value="0.1" />
+        <entry key="android/src/main/res/drawable/ic_baseline_check_circle_24.xml" value="0.1" />
         <entry key="android/src/main/res/drawable/ic_baseline_content_copy.xml" value="0.1" />
         <entry key="android/src/main/res/drawable/ic_content_copy_night.xml" value="0.1" />
         <entry key="android/src/main/res/layout/fragment_item_list_dialog_list_dialog.xml" value="0.17552083333333332" />

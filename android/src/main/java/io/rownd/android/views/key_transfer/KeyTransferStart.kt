@@ -12,12 +12,16 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.*
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
@@ -27,89 +31,38 @@ import androidx.navigation.navOptions
 import io.rownd.android.R
 import io.rownd.android.ui.theme.RowndButton
 import io.rownd.android.ui.theme.RowndTheme
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
+data class KeyTransferState(
+    val key: String = "Loading...",
+    val signInLink: String = "",
+    val isReceivingKey: Boolean = false,
+    val operationError: String? = null
+) {
+    internal fun qrCodeData(): String {
+        val jsonObj = buildJsonObject {
+            put("data", "${signInLink}#${key}")
+        }
 
-/**
- * A simple [Fragment] subclass.
- * Use the [KeyTransferStart.newInstance] factory method to
- * create an instance of this fragment.
- */
-//class KeyTransferStart : Fragment() {
-//    // TODO: Rename and change types of parameters
-//    private var param1: String? = null
-//    private var param2: String? = null
-//    private var navController: NavHostController? = null
-//
-//    override fun onAttach(context: Context) {
-//        super.onAttach(context)
-//        val callback: OnBackPressedCallback = object : OnBackPressedCallback(
-//            true // default to enabled
-//        ) {
-//            override fun handleOnBackPressed() {
-////                navController?.setOnBackPressedDispatcher()
-//                // TODO: This doesn't work currently. Need to capture event prior to dismiss
-//                navController?.enableOnBackPressed(true)
-//            }
-//        }
-//
-//        requireActivity().onBackPressedDispatcher.addCallback(
-//            this,
-//            callback
-//        )
-//    }
-//
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        arguments?.let {
-//            param1 = it.getString(ARG_PARAM1)
-//            param2 = it.getString(ARG_PARAM2)
-//        }
-//    }
-//
-//    override fun onCreateView(
-//        inflater: LayoutInflater, container: ViewGroup?,
-//        savedInstanceState: Bundle?
-//    ): View? {
-//
-//        // Inflate the layout for this fragment
-//        return inflater.inflate(R.layout.fragment_key_transfer_start, container, false).apply {
-//            val composeView = findViewById<ComposeView>(R.id.key_transfer_start_compose_view)
-//
-//            composeView.setContent {
-//                KeyTransferNavHost()
-//            }
-//        }
-//    }
-//
-//    companion object {
-//        /**
-//         * Use this factory method to create a new instance of
-//         * this fragment using the provided parameters.
-//         *
-//         * @param param1 Parameter 1.
-//         * @param param2 Parameter 2.
-//         * @return A new instance of fragment KeyTransferStart.
-//         */
-//        // TODO: Rename and change types and number of parameters
-//        @JvmStatic
-//        fun newInstance(param1: String, param2: String) =
-//            KeyTransferStart().apply {
-//                arguments = Bundle().apply {
-//                    putString(ARG_PARAM1, param1)
-//                    putString(ARG_PARAM2, param2)
-//                }
-//            }
-//    }
-//}
+        return jsonObj.toString()
+    }
+}
+
+internal class KeyTransferViewModel : ViewModel() {
+    internal var keyState by mutableStateOf(KeyTransferState())
+        private set
+}
 
 @Composable
-fun KeyTransferNavHost(
+internal fun KeyTransferNavHost(
     navController: NavHostController = rememberNavController(),
-    navStartPage: String = "key_transfer_start"
+    navStartPage: String = "key_transfer_start",
+    viewModel: KeyTransferViewModel = KeyTransferViewModel()
 ) {
     RowndTheme {
         Surface {
@@ -133,7 +86,8 @@ fun KeyTransferNavHost(
 
                 composable("key_transfer_code") {
                     KeyTransferCode(
-                        onNavBack = { backFn() }
+                        onNavBack = { backFn() },
+                        viewModel = viewModel
                     )
                 }
 

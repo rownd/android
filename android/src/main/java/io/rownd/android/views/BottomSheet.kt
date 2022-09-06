@@ -25,7 +25,6 @@ open class BottomSheet() : BottomSheetDialogFragment() {
 
     protected open var layoutId: Int = R.layout.modal_bottom_sheet_content
     protected var subView: View? = null
-    protected var spinner: ProgressBar? = null
 
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val inflater = super.onGetLayoutInflater(savedInstanceState)
@@ -80,13 +79,6 @@ open class BottomSheet() : BottomSheetDialogFragment() {
         val parent = this
 
         return inflater.inflate(layoutId, container, false).apply {
-            setStyle(STYLE_NORMAL, R.style.RowndBottomSheetDialog)
-
-//            val spinner = ProgressBar(context)
-//            parent.spinner = spinner
-//            spinner.id = View.generateViewId()
-//            spinner.layoutParams = ViewGroup.LayoutParams(, ViewGroup.LayoutParams.WRAP_CONTENT)
-//            spinner.foregroundGravity = Gravity.CENTER
 
             val subView = subView ?: return this
 
@@ -98,14 +90,6 @@ open class BottomSheet() : BottomSheetDialogFragment() {
             if (subView is DialogChild) {
                 subView.dialog = parent
             }
-
-            // Center the spinner
-//            val set2 = ConstraintSet()
-//            set2.connect(spinner.id, ConstraintSet.LEFT, constraintLayout.id, ConstraintSet.LEFT, 0)
-//            set2.connect(spinner.id, ConstraintSet.RIGHT, constraintLayout.id, ConstraintSet.RIGHT, 0)
-//            set2.connect(spinner.id, ConstraintSet.TOP, constraintLayout.id, ConstraintSet.TOP, 0)
-//            set2.connect(spinner.id, ConstraintSet.BOTTOM, constraintLayout.id, ConstraintSet.BOTTOM, 0)
-//            set2.applyTo(constraintLayout)
 
 //            val dialog = (dialog as BottomSheetDialog)
 //            val behavior = dialog.behavior
