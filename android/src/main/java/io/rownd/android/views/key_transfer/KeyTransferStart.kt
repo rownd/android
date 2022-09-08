@@ -29,20 +29,30 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navOptions
 import io.rownd.android.R
+import io.rownd.android.Rownd
+import io.rownd.android.models.network.SignInLinkApi
+import io.rownd.android.models.repos.StateRepo
+import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.ui.theme.RowndButton
 import io.rownd.android.ui.theme.RowndTheme
+import io.rownd.android.util.Encryption
+import io.rownd.android.util.asBase64String
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 data class KeyTransferState(
-    val key: String = "Loading...",
-    val signInLink: String = "",
+    var key: String = "Loading...",
+    var signInLink: String = "",
     val isReceivingKey: Boolean = false,
-    val operationError: String? = null
+    var operationError: String? = null
 ) {
     internal fun qrCodeData(): String {
         val jsonObj = buildJsonObject {
@@ -56,6 +66,24 @@ data class KeyTransferState(
 internal class KeyTransferViewModel : ViewModel() {
     internal var keyState by mutableStateOf(KeyTransferState())
         private set
+
+    fun setupKeyTransfer() {
+        val keyId = UserRepo.getKeyId(Rownd.state.value.user)
+        val key = Encryption.loadKey(keyId)
+        keyState.key = key?.asBase64String ?: "Error"
+
+        // Fetch sign-in link
+        CoroutineScope(Dispatchers.IO).launch {
+            val signInLink = SignInLinkApi.client.createSignInLink()
+
+            if (!signInLink.isSuccessful) {
+                keyState.operationError = "Failed to fetch sign-in link"
+            }
+
+            val signInLinkBody = signInLink.body()
+            keyState.signInLink = signInLinkBody?.link ?: ""
+        }
+    }
 }
 
 @Composable

@@ -27,25 +27,12 @@ class KeyTransferBottomSheet : BottomSheet() {
             KeyTransferNavHost()
         }
 
-//        val context = context
-//            ?: Rownd.appHandleWrapper.app.get()?.applicationContext
-//            ?: throw RowndException("Unable to locate context. Did you forget to call Rownd.configure()?")
-//
-//        val hubView = RowndWebView(context, null)
-//        hubView.targetPage = targetPage
-//        val url = Rownd.config.hubLoaderUrl()
-//        hubView.loadUrl(url)
-//        hubView.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-//
-//        subView = hubView
-
         return view
     }
 
     companion object {
         fun newInstance(): KeyTransferBottomSheet {
             val bundle = Bundle()
-//            bundle.putInt("subview_id", R.id.key_transfer_nav_host_fragment)
 
             val bottomSheet = KeyTransferBottomSheet()
             bottomSheet.arguments = bundle

@@ -29,11 +29,7 @@ class UserRepo {
         }
 
         internal fun saveUserAsync(user: User): Deferred<User?> {
-            // Get user data as encrypted
-            val userData = user.dataAsEncrypted()
-
             // Create network user based on domain user
-
             val networkUser = user.asNetworkModel()
             return CoroutineScope(Dispatchers.IO).async {
                 val result = UserApi.client.saveUser(Rownd.store.currentState.appConfig.id, networkUser)

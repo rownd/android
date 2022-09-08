@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -92,6 +93,10 @@ internal fun KeyTransferCode(
 ) {
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
     val didCopyToClipboard = remember { mutableStateOf(false) }
+
+    LaunchedEffect(viewModel.keyState.signInLink) {
+        viewModel.setupKeyTransfer()
+    }
 
     Column() {
         Row(verticalAlignment = Alignment.CenterVertically) {
