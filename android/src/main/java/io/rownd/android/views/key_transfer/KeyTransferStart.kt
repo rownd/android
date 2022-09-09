@@ -1,37 +1,28 @@
 package io.rownd.android.views.key_transfer
 
-import android.content.Context
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
-import androidx.fragment.app.Fragment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navOptions
-import io.rownd.android.R
 import io.rownd.android.Rownd
 import io.rownd.android.models.network.SignInLinkApi
-import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.ui.theme.RowndButton
 import io.rownd.android.ui.theme.RowndTheme
@@ -39,49 +30,43 @@ import io.rownd.android.util.Encryption
 import io.rownd.android.util.asBase64String
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-data class KeyTransferState(
-    var key: String = "Loading...",
-    var signInLink: String = "",
-    val isReceivingKey: Boolean = false,
-    var operationError: String? = null
-) {
-    internal fun qrCodeData(): String {
-        val jsonObj = buildJsonObject {
-            put("data", "${signInLink}#${key}")
-        }
-
-        return jsonObj.toString()
-    }
-}
 
 internal class KeyTransferViewModel : ViewModel() {
-    internal var keyState by mutableStateOf(KeyTransferState())
-        private set
+    var key = mutableStateOf("Loading...")
+    var signInLink = mutableStateOf("")
+    val isReceivingKey = mutableStateOf(true)
+    var operationError = mutableStateOf("")
+
+    val qrCodeData = derivedStateOf {
+        val jsonObj = buildJsonObject {
+            put("data", "${signInLink.value}#${key.value}")
+        }
+
+        jsonObj.toString()
+    }
 
     fun setupKeyTransfer() {
         val keyId = UserRepo.getKeyId(Rownd.state.value.user)
         val key = Encryption.loadKey(keyId)
-        keyState.key = key?.asBase64String ?: "Error"
+        this.key.value = key?.asBase64String ?: "Error"
 
         // Fetch sign-in link
+        val parent = this
         CoroutineScope(Dispatchers.IO).launch {
             val signInLink = SignInLinkApi.client.createSignInLink()
 
             if (!signInLink.isSuccessful) {
-                keyState.operationError = "Failed to fetch sign-in link"
+                parent.operationError.value = "Failed to fetch sign-in link"
+                isReceivingKey.value = false
+            } else {
+                val signInLinkBody = signInLink.body()
+                parent.signInLink.value = signInLinkBody?.link ?: ""
+                isReceivingKey.value = false
             }
-
-            val signInLinkBody = signInLink.body()
-            keyState.signInLink = signInLinkBody?.link ?: ""
         }
     }
 }
@@ -139,6 +124,8 @@ fun KeyTransferStartContent(
     onNavToShowCode: () -> Unit,
     onNavToShowScanner: () -> Unit
 ) {
+    val state = Rownd.state.collectAsState()
+
     Column(modifier = Modifier.padding(horizontal = 10.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -152,19 +139,21 @@ fun KeyTransferStartContent(
                 fontSize = 18.sp
             )
         }
-        Text(
-            lineHeight = 24.sp,
-            text = "To view your key or transfer your encryption key to another device, tap below."
-        )
-        RowndButton(
-            onClick = {
-                onNavToShowCode()
-            },
-            modifier = Modifier
-                .padding(horizontal = 0.dp, vertical = 10.dp)
-                .fillMaxWidth()
-        ) {
-            Text(text = "Show encryption key")
+        if (state.value.auth.isAuthenticated) {
+            Text(
+                lineHeight = 24.sp,
+                text = "To view your key or transfer your encryption key to another device, tap below."
+            )
+            RowndButton(
+                onClick = {
+                    onNavToShowCode()
+                },
+                modifier = Modifier
+                    .padding(horizontal = 0.dp, vertical = 10.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(text = "Show encryption key")
+            }
         }
 
         Text(

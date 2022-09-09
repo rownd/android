@@ -94,7 +94,7 @@ internal fun KeyTransferCode(
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
     val didCopyToClipboard = remember { mutableStateOf(false) }
 
-    LaunchedEffect(viewModel.keyState.signInLink) {
+    LaunchedEffect(Unit) {
         viewModel.setupKeyTransfer()
     }
 
@@ -134,13 +134,13 @@ internal fun KeyTransferCode(
                 this.hubWebview.layoutParams.height = 500
                 this.hubWebview.progressBar = this.hubProgressBar
                 this.hubWebview.targetPage = HubPageSelector.QrCode
-                this.hubWebview.jsFunctionArgsAsJson = viewModel.keyState.qrCodeData()
+                this.hubWebview.jsFunctionArgsAsJson = viewModel.qrCodeData.value
                 this.hubWebview.loadUrl(url)
             }
 
             RowndButton(
                 onClick = {
-                    clipboardManager.setText(AnnotatedString(viewModel.keyState.key))
+                    clipboardManager.setText(AnnotatedString(viewModel.key.value))
                     didCopyToClipboard.value = true
                 },
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
