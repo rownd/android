@@ -21,6 +21,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import io.rownd.android.Rownd
 import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.UserRepo
@@ -73,6 +74,7 @@ internal class KeyTransferViewModel : ViewModel() {
 
 @Composable
 internal fun KeyTransferNavHost(
+    hostController: KeyTransferBottomSheet,
     navController: NavHostController = rememberNavController(),
     navStartPage: String = "key_transfer_start",
     viewModel: KeyTransferViewModel = KeyTransferViewModel()
@@ -98,6 +100,7 @@ internal fun KeyTransferNavHost(
                 }
 
                 composable("key_transfer_code") {
+                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     KeyTransferCode(
                         onNavBack = { backFn() },
                         viewModel = viewModel

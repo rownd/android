@@ -30,9 +30,7 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterialApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Rownd.configure(this.application, "b60bc454-c45f-47a2-8f8a-12b2062f5a77")
-        Rownd.config.apiUrl = "https://api.us-east-2.dev.rownd.io"
-        Rownd.config.baseUrl = "https://hub.rownd.workers.dev"
+
         val binding: ActivityMainBinding =
             DataBindingUtil.setContentView(this, R.layout.activity_main)
 

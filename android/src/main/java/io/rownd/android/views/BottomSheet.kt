@@ -25,6 +25,7 @@ open class BottomSheet() : BottomSheetDialogFragment() {
 
     protected open var layoutId: Int = R.layout.modal_bottom_sheet_content
     protected var subView: View? = null
+    lateinit var sheetBehavior: BottomSheetBehavior<FrameLayout>
 
     override fun onGetLayoutInflater(savedInstanceState: Bundle?): LayoutInflater {
         val inflater = super.onGetLayoutInflater(savedInstanceState)
@@ -36,6 +37,7 @@ open class BottomSheet() : BottomSheetDialogFragment() {
         super.onStart()
         val containerID = com.google.android.material.R.id.design_bottom_sheet
         val bottomSheet: FrameLayout? = dialog?.findViewById(containerID)
+        sheetBehavior = (dialog as BottomSheetDialog).behavior
         bottomSheet?.let {
             BottomSheetBehavior.from<FrameLayout?>(it).state =
                 BottomSheetBehavior.STATE_HALF_EXPANDED

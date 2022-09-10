@@ -93,9 +93,13 @@ internal fun KeyTransferCode(
 ) {
     val clipboardManager: ClipboardManager = LocalClipboardManager.current
     val didCopyToClipboard = remember { mutableStateOf(false) }
+    val didInit = remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.setupKeyTransfer()
+        if (!didInit.value) {
+            viewModel.setupKeyTransfer()
+            didInit.value = true
+        }
     }
 
     Column() {
@@ -131,7 +135,7 @@ internal fun KeyTransferCode(
             // QRCodeWebView
             AndroidViewBinding(HubViewLayoutBinding::inflate) {
                 val url = Rownd.config.hubLoaderUrl()
-                this.hubWebview.layoutParams.height = 500
+                this.hubWebview.layoutParams.height = 700
                 this.hubWebview.progressBar = this.hubProgressBar
                 this.hubWebview.targetPage = HubPageSelector.QrCode
                 this.hubWebview.jsFunctionArgsAsJson = viewModel.qrCodeData.value

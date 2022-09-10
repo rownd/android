@@ -24,7 +24,7 @@ class KeyTransferBottomSheet : BottomSheet() {
         val composeView = view.findViewById<ComposeView>(R.id.key_transfer_start_compose_view)
 
         composeView.setContent {
-            KeyTransferNavHost()
+            KeyTransferNavHost(hostController = this)
         }
 
         return view
