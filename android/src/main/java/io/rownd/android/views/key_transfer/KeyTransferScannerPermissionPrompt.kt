@@ -27,7 +27,7 @@ fun KeyTransferScannerPermissionPrompt(
     onNavBack: () -> Unit,
     onNavToShowScanner: () -> Unit
 ) {
-    Column() {
+    Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()

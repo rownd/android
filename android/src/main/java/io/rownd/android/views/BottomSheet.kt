@@ -2,26 +2,20 @@ package io.rownd.android.views
 
 import android.app.Dialog
 import android.content.Context
-import android.content.res.Resources
 import android.graphics.Color
 import android.os.Bundle
-import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.ProgressBar
 import androidx.appcompat.view.ContextThemeWrapper
-import androidx.compose.ui.unit.Dp
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintSet
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import io.rownd.android.R
 
-open class BottomSheet() : BottomSheetDialogFragment() {
+open class BottomSheet : BottomSheetDialogFragment() {
 
     protected open var layoutId: Int = R.layout.modal_bottom_sheet_content
     protected var subView: View? = null
@@ -54,25 +48,6 @@ open class BottomSheet() : BottomSheetDialogFragment() {
         }
     }
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?){
-//        dialog?.setOnShowListener { dialog ->
-//            val d = dialog as BottomSheetDialog
-//            val bottomSheetInternal =
-//                d.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-//            bottomSheetInternal?.minimumHeight=
-//                Resources.getSystem().displayMetrics.heightPixels
-//        }
-
-//        dialog?.setOnShowListener {
-//            val dialog = it as BottomSheetDialog
-//            val bottomSheet = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-//            bottomSheet?.let { sheet ->
-//                dialog.behavior.peekHeight = sheet.height
-//                sheet.parent.parent.requestLayout()
-//            }
-//        }
-    }
-
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -92,37 +67,6 @@ open class BottomSheet() : BottomSheetDialogFragment() {
             if (subView is DialogChild) {
                 subView.dialog = parent
             }
-
-//            val dialog = (dialog as BottomSheetDialog)
-//            val behavior = dialog.behavior
-
-//            val rootView = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-//
-//            rootView?.post {
-//                val bottomSheetVisibleHeight = rootView.height - rootView.top
-////                constraintLayout.minHeight = bottomSheetVisibleHeight
-////                constraintLayout.maxHeight = bottomSheetVisibleHeight
-//            }
-//
-//            behavior.apply {
-//                addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
-//                    override fun onSlide(bottomSheet: View, slideOffset: Float) {
-//
-//                        // set the y coordinates of the bottom layout on bottom sheet slide
-////                        val bottomSheetVisibleHeight = bottomSheet.height - bottomSheet.top
-////                        constraintLayout.y =
-////                            (bottomSheetVisibleHeight - constraintLayout.height).toFloat()
-////                        constraintLayout.minHeight = bottomSheetVisibleHeight
-////                        constraintLayout.maxHeight = bottomSheetVisibleHeight
-//                    }
-//
-//                    override fun onStateChanged(bottomSheet: View, newState: Int) {
-////                        val bottomSheetVisibleHeight = bottomSheet.height - bottomSheet.top
-////                        constraintLayout.maxHeight = bottomSheetVisibleHeight
-////                        println("bottomSheetHeight: ${bottomSheet.height}")
-//                    }
-//                })
-//            }
         }
     }
 
@@ -130,11 +74,7 @@ open class BottomSheet() : BottomSheetDialogFragment() {
         val dialog = super.onCreateDialog(savedInstanceState)
         dialog.setContentView(View(context))
 
-//        val root = dialog.findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
-
         val behavior = (dialog as BottomSheetDialog).behavior
-
-//        val behavior = BottomSheetBehavior.from<View>(root)
 
         behavior.setPeekHeight(320, true)
         behavior.state = BottomSheetBehavior.STATE_HALF_EXPANDED

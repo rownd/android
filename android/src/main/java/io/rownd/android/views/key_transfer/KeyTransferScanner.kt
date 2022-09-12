@@ -33,7 +33,7 @@ internal fun KeyTransferScanner(
     onNavBack: () -> Unit,
     onNavToShowProgress: () -> Unit
 ) {
-    Column() {
+    Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()

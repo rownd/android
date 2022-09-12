@@ -28,7 +28,7 @@ internal fun KeyTransferProgress(
     onNavBack: () -> Unit,
     viewModel: KeyTransferViewModel
 ) {
-    Column() {
+    Column {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()

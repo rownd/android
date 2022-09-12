@@ -8,15 +8,10 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
-import android.view.Gravity
 import android.view.View
-import android.view.ViewGroup
 import android.webkit.*
 import android.widget.ProgressBar
-import androidx.annotation.RequiresApi
-import androidx.compose.ui.graphics.Color
 import androidx.fragment.app.DialogFragment
-import io.rownd.android.R
 import io.rownd.android.Rownd
 import io.rownd.android.models.AuthenticationMessage
 import io.rownd.android.models.MessageType
@@ -44,7 +39,6 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     override lateinit var dialog: DialogFragment
     internal var targetPage: HubPageSelector = HubPageSelector.Unknown
     internal var jsFunctionArgsAsJson: String = "{}"
-//    internal var progressBar = ProgressBar(context)
     internal var progressBar: ProgressBar? = null
 
     init {
@@ -102,8 +96,6 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(webView, url, favicon)
         Log.d("Rownd.hub", "Started loading $url")
-//        view?.visibility = View.INVISIBLE
-        // TODO: Need to display a loading indicator
         webView.progressBar?.visibility = View.VISIBLE
     }
 
@@ -111,18 +103,14 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
         super.onPageFinished(view, url)
         view?.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
         view?.setBackgroundColor(0x00000000)
-        webView.progressBar?.visibility = View.INVISIBLE
 
-//        view?.visibility = View.VISIBLE
-
-//        this.webView.overlay.remove(this.webView.progressBar)
-
-        when((view as RowndWebView).targetPage) {
+        when ((view as RowndWebView).targetPage) {
             HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
             HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut()")
             HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson})")
         }
 
+        webView.progressBar?.visibility = View.INVISIBLE
     }
 
     override fun onReceivedError(
@@ -147,21 +135,29 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
         val interopMessage = json.decodeFromString(RowndHubInteropMessage.serializer(), message)
         Log.d("Rownd.hub", interopMessage.toString())
 
-        when(interopMessage.type) {
-            MessageType.authentication ->  {
-                if (parentWebView.targetPage != HubPageSelector.SignIn) { return }
+        when (interopMessage.type) {
+            MessageType.authentication -> {
+                if (parentWebView.targetPage != HubPageSelector.SignIn) {
+                    return
+                }
 
-                Rownd.store.dispatch(StateAction.SetAuth(AuthState(
-                    accessToken = (interopMessage as AuthenticationMessage).payload.accessToken,
-                    refreshToken = (interopMessage as AuthenticationMessage).payload.refreshToken
-                )))
+                Rownd.store.dispatch(
+                    StateAction.SetAuth(
+                        AuthState(
+                            accessToken = (interopMessage as AuthenticationMessage).payload.accessToken,
+                            refreshToken = interopMessage.payload.refreshToken
+                        )
+                    )
+                )
                 UserRepo.loadUserAsync()
 
                 parentWebView.dialog.dismiss()
             }
 
             MessageType.signOut -> {
-                if (parentWebView.targetPage != HubPageSelector.SignOut) { return }
+                if (parentWebView.targetPage != HubPageSelector.SignOut) {
+                    return
+                }
                 Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
                 Rownd.store.dispatch(StateAction.SetUser(User()))
                 parentWebView.dialog.dismiss()

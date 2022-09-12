@@ -36,7 +36,7 @@ class RowndAPIException(response: Response<*>) : HttpException(response) {
         return if (apiError?.messages != null && apiError?.messages!!.isNotEmpty()) {
             message + "\n" + apiError?.messages!!.joinToString("\n")
         } else {
-            apiError?.message ?: message ?: "message unavailable"
+            apiError?.message ?: message
         }
     }
 }

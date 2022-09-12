@@ -84,5 +84,4 @@ private fun processImageProxy(
     }
 }
 
-class CodeScanProcessor {
-}
+class CodeScanProcessor
