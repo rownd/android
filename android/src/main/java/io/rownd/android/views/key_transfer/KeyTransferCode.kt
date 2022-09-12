@@ -13,15 +13,26 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ClipboardManager
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidViewBinding
 import io.rownd.android.R
+import io.rownd.android.Rownd
+import io.rownd.android.databinding.HubViewLayoutBinding
 import io.rownd.android.ui.theme.IconCopy
+import io.rownd.android.ui.theme.IconFilledCircleCheck
 import io.rownd.android.ui.theme.RowndButton
+import io.rownd.android.views.HubPageSelector
 
 // TODO: Rename parameter arguments, choose names that match
 // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
@@ -76,10 +87,22 @@ private const val ARG_PARAM2 = "param2"
 //}
 
 @Composable
-fun KeyTransferCode(
-    onNavBack: () -> Unit
+internal fun KeyTransferCode(
+    onNavBack: () -> Unit,
+    viewModel: KeyTransferViewModel
 ) {
-    Column() {
+    val clipboardManager: ClipboardManager = LocalClipboardManager.current
+    val didCopyToClipboard = remember { mutableStateOf(false) }
+    val didInit = remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!didInit.value) {
+            viewModel.setupKeyTransfer()
+            didInit.value = true
+        }
+    }
+
+    Column(modifier = Modifier.padding(bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(
                 onClick = onNavBack,
@@ -110,17 +133,34 @@ fun KeyTransferCode(
             )
 
             // QRCodeWebView
+            AndroidViewBinding(HubViewLayoutBinding::inflate) {
+                val url = Rownd.config.hubLoaderUrl()
+                this.hubWebview.layoutParams.height = 700
+                this.hubWebview.progressBar = this.hubProgressBar
+                this.hubWebview.targetPage = HubPageSelector.QrCode
+                this.hubWebview.jsFunctionArgsAsJson = viewModel.qrCodeData.value
+                this.hubWebview.loadUrl(url)
+            }
 
             RowndButton(
-                onClick = {},
+                onClick = {
+                    clipboardManager.setText(AnnotatedString(viewModel.key.value))
+                    didCopyToClipboard.value = true
+                },
                 modifier = Modifier.fillMaxWidth().padding(top = 10.dp)
             ) {
                 Text(
-                    "Copy to clipboard",
+                    text = if (didCopyToClipboard.value) "Copied!" else "Copy to clipboard",
                     modifier = Modifier.padding(end = 10.dp)
                 )
-                IconCopy()
+                if (didCopyToClipboard.value) IconFilledCircleCheck() else IconCopy()
             }
+
+            Text(
+                modifier = Modifier.fillMaxWidth(),
+                lineHeight = 24.sp,
+                text = "You can also copy your account's secret encryption key in case you need to recover it later. Be sure to store it in a safe, secure location."
+            )
         }
     }
 }

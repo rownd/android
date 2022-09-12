@@ -30,9 +30,7 @@ class MainActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterialApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        Rownd.configure(this.application, "REPLACE_ME_WITH_APP_KEY")
-//        Rownd.config.apiUrl = ""
-//        Rownd.config.baseUrl = ""
+
         val binding: ActivityMainBinding =
             DataBindingUtil.setContentView(this, R.layout.activity_main)
 

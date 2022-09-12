@@ -12,3 +12,11 @@ fun IconCopy() {
         contentDescription = "copy"
     )
 }
+
+@Composable
+fun IconFilledCircleCheck() {
+    Icon(
+        painter = painterResource(R.drawable.ic_baseline_check_circle_24),
+        contentDescription = "check"
+    )
+}

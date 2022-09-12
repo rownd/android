@@ -2,6 +2,7 @@ package io.rownd.android.models.repos
 
 import android.util.Log
 import com.auth0.android.jwt.JWT
+import io.rownd.android.Rownd
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.network.Auth
 import io.rownd.android.models.network.AuthApi
@@ -39,6 +40,10 @@ class AuthRepo {
                 } else {
                     val error = RowndAPIException(resp)
                     Log.e("RowndAuthApi", "Fetching token failed: ${error.message}")
+                    if (resp.code() == 400) {
+                        // The token refresh failed, so we need to sign-out
+                        Rownd.signOut()
+                    }
                     null
                 }
             }

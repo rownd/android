@@ -1,115 +1,98 @@
 package io.rownd.android.views.key_transfer
 
+import android.Manifest
 import android.content.Context
-import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import androidx.activity.OnBackPressedCallback
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.*
-import androidx.fragment.app.Fragment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
-import androidx.navigation.NavOptions
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navOptions
-import io.rownd.android.R
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import io.rownd.android.Rownd
+import io.rownd.android.models.network.SignInLinkApi
+import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.ui.theme.RowndButton
 import io.rownd.android.ui.theme.RowndTheme
+import io.rownd.android.util.Encryption
+import io.rownd.android.util.asBase64String
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 
-// TODO: Rename parameter arguments, choose names that match
-// the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-private const val ARG_PARAM1 = "param1"
-private const val ARG_PARAM2 = "param2"
 
-/**
- * A simple [Fragment] subclass.
- * Use the [KeyTransferStart.newInstance] factory method to
- * create an instance of this fragment.
- */
-//class KeyTransferStart : Fragment() {
-//    // TODO: Rename and change types of parameters
-//    private var param1: String? = null
-//    private var param2: String? = null
-//    private var navController: NavHostController? = null
-//
-//    override fun onAttach(context: Context) {
-//        super.onAttach(context)
-//        val callback: OnBackPressedCallback = object : OnBackPressedCallback(
-//            true // default to enabled
-//        ) {
-//            override fun handleOnBackPressed() {
-////                navController?.setOnBackPressedDispatcher()
-//                // TODO: This doesn't work currently. Need to capture event prior to dismiss
-//                navController?.enableOnBackPressed(true)
-//            }
-//        }
-//
-//        requireActivity().onBackPressedDispatcher.addCallback(
-//            this,
-//            callback
-//        )
-//    }
-//
-//    override fun onCreate(savedInstanceState: Bundle?) {
-//        super.onCreate(savedInstanceState)
-//        arguments?.let {
-//            param1 = it.getString(ARG_PARAM1)
-//            param2 = it.getString(ARG_PARAM2)
-//        }
-//    }
-//
-//    override fun onCreateView(
-//        inflater: LayoutInflater, container: ViewGroup?,
-//        savedInstanceState: Bundle?
-//    ): View? {
-//
-//        // Inflate the layout for this fragment
-//        return inflater.inflate(R.layout.fragment_key_transfer_start, container, false).apply {
-//            val composeView = findViewById<ComposeView>(R.id.key_transfer_start_compose_view)
-//
-//            composeView.setContent {
-//                KeyTransferNavHost()
-//            }
-//        }
-//    }
-//
-//    companion object {
-//        /**
-//         * Use this factory method to create a new instance of
-//         * this fragment using the provided parameters.
-//         *
-//         * @param param1 Parameter 1.
-//         * @param param2 Parameter 2.
-//         * @return A new instance of fragment KeyTransferStart.
-//         */
-//        // TODO: Rename and change types and number of parameters
-//        @JvmStatic
-//        fun newInstance(param1: String, param2: String) =
-//            KeyTransferStart().apply {
-//                arguments = Bundle().apply {
-//                    putString(ARG_PARAM1, param1)
-//                    putString(ARG_PARAM2, param2)
-//                }
-//            }
-//    }
-//}
+internal class KeyTransferViewModel : ViewModel() {
+    var key = mutableStateOf("Loading...")
+    var signInLink = mutableStateOf("")
+    val isReceivingKey = mutableStateOf(true)
+    var operationError = mutableStateOf("")
+
+    val qrCodeData = derivedStateOf {
+        val jsonObj = buildJsonObject {
+            put("data", "${signInLink.value}#${key.value}")
+        }
+
+        jsonObj.toString()
+    }
+
+    fun setupKeyTransfer() {
+        val keyId = UserRepo.getKeyId(Rownd.state.value.user)
+        val key = Encryption.loadKey(keyId)
+        this.key.value = key?.asBase64String ?: "Error"
+
+        // Fetch sign-in link
+        val parent = this
+        CoroutineScope(Dispatchers.IO).launch {
+            val signInLink = SignInLinkApi.client.createSignInLink()
+
+            if (!signInLink.isSuccessful) {
+                parent.operationError.value = "Failed to fetch sign-in link"
+                isReceivingKey.value = false
+            } else {
+                val signInLinkBody = signInLink.body()
+                parent.signInLink.value = signInLinkBody?.link ?: ""
+                isReceivingKey.value = false
+            }
+        }
+    }
+
+    fun receiveKeyTransfer(url: String) {
+
+    }
+}
+
+private fun isCameraPermissionGranted(baseContext: Context): Boolean {
+    return ContextCompat.checkSelfPermission(
+        baseContext,
+        Manifest.permission.CAMERA
+    ) == PackageManager.PERMISSION_GRANTED
+}
 
 @Composable
-fun KeyTransferNavHost(
+internal fun KeyTransferNavHost(
+    hostController: KeyTransferBottomSheet,
     navController: NavHostController = rememberNavController(),
-    navStartPage: String = "key_transfer_start"
+    navStartPage: String = "key_transfer_start",
+    viewModel: KeyTransferViewModel = KeyTransferViewModel()
 ) {
     RowndTheme {
         Surface {
@@ -120,26 +103,44 @@ fun KeyTransferNavHost(
                 val backFn = { navController.popBackStack() }
                 composable("key_transfer_start") {
                     KeyTransferStartContent(
+                        hostController = hostController,
                         onNavToShowCode = { navController.navigate("key_transfer_code")},
-                        onNavToShowScanner = { navController.navigate("key_transfer_scanner") }
+                        onNavToShowScanner = { navController.navigate("key_transfer_scanner") },
+                        onNavToShowPermissionRationale = { navController.navigate("key_transfer_scanner_permission") }
                     )
                 }
 
                 composable("key_transfer_scanner") {
+                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     KeyTransferScanner(
-                        onNavBack = { backFn() }
+                        hostController = hostController,
+                        viewModel = viewModel,
+                        onNavBack = { backFn() },
+                        onNavToShowProgress = { navController.navigate("key_transfer_progress") },
                     )
                 }
 
                 composable("key_transfer_code") {
+                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     KeyTransferCode(
-                        onNavBack = { backFn() }
+                        onNavBack = { backFn() },
+                        viewModel = viewModel
                     )
                 }
 
                 composable("key_transfer_progress") {
                     KeyTransferProgress(
-                        onNavBack = { backFn() }
+                        hostController = hostController,
+                        onNavBack = { backFn() },
+                        viewModel = viewModel
+                    )
+                }
+
+                composable("key_transfer_scanner_permission") {
+                    KeyTransferScannerPermissionPrompt(
+                        hostController = hostController,
+                        onNavBack = { backFn() },
+                        onNavToShowScanner = { navController.navigate("key_transfer_scanner") }
                     )
                 }
             }
@@ -154,9 +155,13 @@ fun KeyTransferNavHost(
 
 @Composable
 fun KeyTransferStartContent(
+    hostController: KeyTransferBottomSheet,
     onNavToShowCode: () -> Unit,
-    onNavToShowScanner: () -> Unit
+    onNavToShowScanner: () -> Unit,
+    onNavToShowPermissionRationale: () -> Unit
 ) {
+    val state = Rownd.state.collectAsState()
+
     Column(modifier = Modifier.padding(horizontal = 10.dp)) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -170,19 +175,21 @@ fun KeyTransferStartContent(
                 fontSize = 18.sp
             )
         }
-        Text(
-            lineHeight = 24.sp,
-            text = "To view your key or transfer your encryption key to another device, tap below."
-        )
-        RowndButton(
-            onClick = {
-                onNavToShowCode()
-            },
-            modifier = Modifier
-                .padding(horizontal = 0.dp, vertical = 10.dp)
-                .fillMaxWidth()
-        ) {
-            Text(text = "Show encryption key")
+        if (state.value.auth.isAuthenticated) {
+            Text(
+                lineHeight = 24.sp,
+                text = "To view your key or transfer your encryption key to another device, tap below."
+            )
+            RowndButton(
+                onClick = {
+                    onNavToShowCode()
+                },
+                modifier = Modifier
+                    .padding(horizontal = 0.dp, vertical = 10.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(text = "Show encryption key")
+            }
         }
 
         Text(
@@ -192,7 +199,13 @@ fun KeyTransferStartContent(
         )
         RowndButton(
             onClick = {
-                onNavToShowScanner()
+                hostController.requestCameraPermissions(
+                    rationaleCallback = {
+                        onNavToShowPermissionRationale()
+                    }
+                ) {
+                    onNavToShowScanner()
+                }
             },
             modifier = Modifier
                 .padding(horizontal = 0.dp, vertical = 10.dp)
