@@ -1,5 +1,8 @@
 package io.rownd.android.views.key_transfer
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -70,6 +74,17 @@ internal class KeyTransferViewModel : ViewModel() {
             }
         }
     }
+
+    fun receiveKeyTransfer(url: String) {
+
+    }
+}
+
+private fun isCameraPermissionGranted(baseContext: Context): Boolean {
+    return ContextCompat.checkSelfPermission(
+        baseContext,
+        Manifest.permission.CAMERA
+    ) == PackageManager.PERMISSION_GRANTED
 }
 
 @Composable
@@ -88,14 +103,20 @@ internal fun KeyTransferNavHost(
                 val backFn = { navController.popBackStack() }
                 composable("key_transfer_start") {
                     KeyTransferStartContent(
+                        hostController = hostController,
                         onNavToShowCode = { navController.navigate("key_transfer_code")},
-                        onNavToShowScanner = { navController.navigate("key_transfer_scanner") }
+                        onNavToShowScanner = { navController.navigate("key_transfer_scanner") },
+                        onNavToShowPermissionRationale = { navController.navigate("key_transfer_scanner_permission") }
                     )
                 }
 
                 composable("key_transfer_scanner") {
+                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     KeyTransferScanner(
-                        onNavBack = { backFn() }
+                        hostController = hostController,
+                        viewModel = viewModel,
+                        onNavBack = { backFn() },
+                        onNavToShowProgress = { navController.navigate("key_transfer_progress") },
                     )
                 }
 
@@ -109,7 +130,17 @@ internal fun KeyTransferNavHost(
 
                 composable("key_transfer_progress") {
                     KeyTransferProgress(
-                        onNavBack = { backFn() }
+                        hostController = hostController,
+                        onNavBack = { backFn() },
+                        viewModel = viewModel
+                    )
+                }
+
+                composable("key_transfer_scanner_permission") {
+                    KeyTransferScannerPermissionPrompt(
+                        hostController = hostController,
+                        onNavBack = { backFn() },
+                        onNavToShowScanner = { navController.navigate("key_transfer_scanner") }
                     )
                 }
             }
@@ -124,8 +155,10 @@ internal fun KeyTransferNavHost(
 
 @Composable
 fun KeyTransferStartContent(
+    hostController: KeyTransferBottomSheet,
     onNavToShowCode: () -> Unit,
-    onNavToShowScanner: () -> Unit
+    onNavToShowScanner: () -> Unit,
+    onNavToShowPermissionRationale: () -> Unit
 ) {
     val state = Rownd.state.collectAsState()
 
@@ -166,7 +199,13 @@ fun KeyTransferStartContent(
         )
         RowndButton(
             onClick = {
-                onNavToShowScanner()
+                hostController.requestCameraPermissions(
+                    rationaleCallback = {
+                        onNavToShowPermissionRationale()
+                    }
+                ) {
+                    onNavToShowScanner()
+                }
             },
             modifier = Modifier
                 .padding(horizontal = 0.dp, vertical = 10.dp)

@@ -102,7 +102,7 @@ internal fun KeyTransferCode(
         }
     }
 
-    Column() {
+    Column(modifier = Modifier.padding(bottom = 10.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             IconButton(
                 onClick = onNavBack,

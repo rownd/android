@@ -58,7 +58,7 @@ android {
 
 dependencies {
     def lifecycle_version = "2.5.1"
-    def nav_version = "2.5.1"
+    def nav_version = "2.5.2"
 
     implementation 'androidx.datastore:datastore-preferences:1.0.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
@@ -69,7 +69,7 @@ dependencies {
     implementation "org.jetbrains.kotlin:kotlin-reflect:1.7.10"
 
     implementation 'androidx.core:core-ktx:1.8.0'
-    implementation 'androidx.appcompat:appcompat:1.5.0'
+    implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.6.1'
     implementation 'androidx.compose.material:material:1.2.1'
     implementation 'androidx.compose.ui:ui-viewbinding:1.2.1'
@@ -86,6 +86,12 @@ dependencies {
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
     implementation "androidx.navigation:navigation-compose:$nav_version"
     implementation "androidx.navigation:navigation-dynamic-features-fragment:$nav_version"
+
+    // QR code scanning
+    implementation 'com.google.mlkit:barcode-scanning:17.0.2'
+    implementation "androidx.camera:camera-camera2:1.1.0"
+    implementation "androidx.camera:camera-lifecycle:1.1.0"
+    implementation "androidx.camera:camera-view:1.1.0"
 
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
     implementation 'com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0'

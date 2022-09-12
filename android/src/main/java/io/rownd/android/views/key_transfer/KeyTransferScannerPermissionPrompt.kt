@@ -1,13 +1,10 @@
 package io.rownd.android.views.key_transfer
 
-import android.content.Context
 import android.os.Bundle
-import android.util.Log
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
@@ -21,17 +18,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
 import io.rownd.android.R
-import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
+import io.rownd.android.ui.theme.RowndButton
 
 @Composable
-internal fun KeyTransferScanner(
+fun KeyTransferScannerPermissionPrompt(
     hostController: KeyTransferBottomSheet,
-    viewModel: KeyTransferViewModel,
     onNavBack: () -> Unit,
-    onNavToShowProgress: () -> Unit
+    onNavToShowScanner: () -> Unit
 ) {
     Column() {
         Row(
@@ -50,37 +44,33 @@ internal fun KeyTransferScanner(
             Text(
                 modifier = Modifier
                     .fillMaxWidth(),
-                text = "Scan QR code",
+                text = "Camera permission required",
                 fontWeight = FontWeight.Bold,
                 fontSize = 18.sp
             )
         }
 
-        Column(
-            modifier = Modifier.padding(horizontal = Dp(10F)),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
+        Column(modifier = Modifier.padding(horizontal = Dp(10F))) {
             Text(
                 lineHeight = 24.sp,
-                text = "If you have an account attached to another device, you can securely transfer that account data to this device."
+                text = "The easiest way to sync your data to this device is by using your device's camera."
+            )
+            Text(
+                lineHeight = 24.sp,
+                text = "If you don't want to allow access to your camera, select \"Enter key manually\" instead."
             )
 
-            if (hostController.isCameraPermissionGranted()) {
-                Text(
-                    lineHeight = 24.sp,
-                    text = "Scan the QR code that is displayed on your other device."
-                )
-
-                CameraView(
-                    onValueCaptured = {
-                        Log.d("Rownd.enc_key_transfer_scanner", it)
-                        viewModel.receiveKeyTransfer(it)
-                        onNavToShowProgress()
-                    },
-                    onError = {
-                        Log.e("Rownd.enc_key_transfer_scanner", it.message.orEmpty())
+            RowndButton(
+                onClick = {
+                    hostController.requestCameraPermissions(isReRequestingPermission = true) {
+                        onNavToShowScanner()
                     }
-                )
+                },
+                modifier = Modifier
+                    .padding(horizontal = 0.dp, vertical = 10.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(text = "Use camera")
             }
 
             TextButton(
@@ -88,7 +78,7 @@ internal fun KeyTransferScanner(
                     // TODO: Handle manual mode
                 },
                 modifier = Modifier
-                    .padding(bottom = 10.dp)
+                    .padding(horizontal = 0.dp, vertical = 10.dp)
                     .fillMaxWidth()
             ) {
                 Text("Enter code manually")
