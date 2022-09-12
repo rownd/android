@@ -87,6 +87,7 @@ object StateRepo {
                 UserRepo.loadUserAsync().await()
             }
 
+            // Persist all state updates to cache
             store.stateAsStateFlow().collect {
                 val updatedState = it
                 dataStore.updateData {
