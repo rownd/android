@@ -5,6 +5,7 @@ package io.rownd.android
 import android.app.Application
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.fragment.app.FragmentActivity
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
@@ -23,16 +24,25 @@ object Rownd {
     private val json = Json { encodeDefaults = true }
     internal lateinit var appHandleWrapper: AppLifecycleListener
 
-    lateinit var config: RowndConfig
+    val config = RowndConfig()
     internal lateinit var store: Store<GlobalState, StateAction>
     var state = StateRepo.state
+
+    private fun configure(appKey: String) {
+        config.appKey = appKey
+        store = StateRepo.setup(appHandleWrapper.app.get()!!.applicationContext.dataStore)
+    }
 
     @JvmStatic
     fun configure(app: Application, appKey: String) {
         appHandleWrapper = AppLifecycleListener(app)
-        config = RowndConfig(appKey)
+        configure(appKey)
+    }
 
-        store = StateRepo.setup(app.applicationContext.dataStore)
+    @JvmStatic
+    fun configure(activity: FragmentActivity, appKey: String) {
+        appHandleWrapper = AppLifecycleListener(activity)
+        configure(appKey)
     }
 
     @JvmStatic
@@ -74,7 +84,7 @@ object Rownd {
 
     // Internal stuff
     private fun displayHub(targetPage: HubPageSelector, jsFnOptions: RowndSignInOptions? = null) {
-        val activity = appHandleWrapper.activity.get() as AppCompatActivity
+        val activity = appHandleWrapper.activity.get() as FragmentActivity
 
         var jsFnOptionsStr: String? = null
         if (jsFnOptions != null) {
