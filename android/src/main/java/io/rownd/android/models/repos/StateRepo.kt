@@ -1,6 +1,7 @@
 package io.rownd.android.models.repos
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
@@ -33,10 +34,13 @@ data class GlobalState(
 object GlobalStateSerializer : Serializer<GlobalState> {
 
     override val defaultValue = GlobalState()
+    val json = Json {
+        ignoreUnknownKeys = true
+    }
 
     override suspend fun readFrom(input: InputStream): GlobalState {
         try {
-            return Json.decodeFromString(
+            return json.decodeFromString(
                 GlobalState.serializer(), input.readBytes().decodeToString()
             )
         } catch (serialization: SerializationException) {
@@ -46,7 +50,7 @@ object GlobalStateSerializer : Serializer<GlobalState> {
 
     override suspend fun writeTo(t: GlobalState, output: OutputStream) {
         output.write(
-            Json.encodeToString(GlobalState.serializer(), t)
+            json.encodeToString(GlobalState.serializer(), t)
                 .encodeToByteArray()
         )
     }
@@ -76,8 +80,12 @@ object StateRepo {
 
         // Re-inflate store from persistence
         CoroutineScope(Dispatchers.IO).async {
-            val persistedState = dataStore.data.first()
-            store.dispatch(StateAction.SetGlobalState(persistedState))
+            try {
+                val persistedState = dataStore.data.first()
+                store.dispatch(StateAction.SetGlobalState(persistedState))
+            } catch (err: Exception) {
+                Log.d("Rownd.StateRepo", "Failed to load existing state from device", err)
+            }
 
             // Fetch latest app config
             AppConfigRepo.loadAppConfigAsync().await()

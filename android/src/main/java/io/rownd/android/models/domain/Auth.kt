@@ -1,23 +1,23 @@
 package io.rownd.android.models.domain
 
-import android.util.Base64
-import android.util.Log
-import androidx.datastore.preferences.protobuf.ByteString
 import io.rownd.android.Rownd.store
 import io.rownd.android.models.json
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.toBase64
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.Transient
+import kotlinx.serialization.json.JsonNames
 
 @Serializable
-data class AuthState(
+data class AuthState @OptIn(ExperimentalSerializationApi::class) constructor(
     val isLoading: Boolean = false,
+    @SerialName("access_token")
+    @JsonNames("accessToken")
     val accessToken: String? = null,
+    @SerialName("refresh_token")
+    @JsonNames("refreshToken")
     val refreshToken: String? = null,
     val isVerifiedUser: Boolean = false,
 

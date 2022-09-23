@@ -3,17 +3,15 @@ package io.rownd.android.models.domain
 import android.util.Log
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
-import io.rownd.android.models.network.User as NetworkUser
 import io.rownd.android.util.AnyValueSerializer
 import io.rownd.android.util.Encryption
-import kotlinx.collections.immutable.PersistentList
-import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.Serializable
+import io.rownd.android.models.network.User as NetworkUser
 
 @Serializable
 data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?> = HashMap<String, Any?>(),
-    val redacted: PersistentList<String> = persistentListOf()
+    val redacted: MutableList<String> = mutableListOf()
 ) {
     fun asNetworkModel(): NetworkUser {
         return NetworkUser(

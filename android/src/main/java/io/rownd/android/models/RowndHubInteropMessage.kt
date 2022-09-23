@@ -1,5 +1,6 @@
 package io.rownd.android.models
 
+import io.rownd.android.models.network.User
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -20,6 +21,10 @@ enum class MessageType {
     authentication,
     @SerialName("sign_out")
     signOut,
+    @SerialName("user_data_update")
+    UserDataUpdate,
+    @SerialName("close_hub_view_controller")
+    CloseHubView,
     unknown
 }
 
@@ -43,12 +48,25 @@ data class SignOutMessage(
     override var type: MessageType = MessageType.signOut
 ) : RowndHubInteropMessage()
 
+@Serializable
+data class UserDataUpdateMessage(
+    override var type: MessageType = MessageType.UserDataUpdate,
+    var payload: User
+) : RowndHubInteropMessage()
+
+@Serializable
+data class CloseHubViewMessage(
+    override var type: MessageType = MessageType.CloseHubView
+) : RowndHubInteropMessage()
+
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
-        return when (element.jsonObject["type"]?.jsonPrimitive?.content) {
+        return when (val messageType = element.jsonObject["type"]?.jsonPrimitive?.content) {
             "authentication" -> AuthenticationMessage.serializer()
             "sign_out" -> SignOutMessage.serializer()
-            else -> throw Exception("Unknown Module: key 'type' not found or does not matches any module type")
+            "user_data_update" -> UserDataUpdateMessage.serializer()
+            "close_hub_view_controller" -> CloseHubViewMessage.serializer()
+            else -> RowndHubInteropMessage.serializer() // This may not work--might need to throw
         }
     }
 }

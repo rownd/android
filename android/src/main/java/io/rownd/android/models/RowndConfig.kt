@@ -1,5 +1,6 @@
 package io.rownd.android.models
 
+import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import io.rownd.android.Rownd.store
@@ -17,17 +18,19 @@ data class RowndConfig(
 ) {
     fun hubLoaderUrl(): String {
         val jsonConfig = json.encodeToString(RowndConfig.serializer(), this)
-        val base64Config = Base64.encodeToString(jsonConfig.encodeToByteArray(), Base64.DEFAULT)
+        val base64Config = Base64.encodeToString(jsonConfig.encodeToByteArray(), Base64.NO_WRAP)
 
-        var rphInit: String? = ""
+        val uriBuilder = Uri.parse("$baseUrl/mobile_app").buildUpon()
+        uriBuilder.appendQueryParameter("config", base64Config)
+
         try {
             val rphInitStr = store.currentState.auth.toRphInitHash()
-            rphInit = "#rph_init=$rphInitStr"
+            uriBuilder.encodedFragment("rph_init=$rphInitStr")
         } catch (error: Exception) {
             Log.d("Rownd.config", "Couldn't compute requested init hash: ${error.message}")
         }
 
-        return "$baseUrl/mobile_app?config=$base64Config$rphInit"
+        return uriBuilder.build().toString()
     }
 }
 

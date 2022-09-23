@@ -4,17 +4,16 @@ import android.util.Log
 import io.rownd.android.models.domain.AppSchemaEncryptionState
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
-import io.rownd.android.models.domain.User as DomainUser
 import io.rownd.android.util.AnyValueSerializer
 import io.rownd.android.util.ApiClient
 import io.rownd.android.util.Encryption
 import io.rownd.android.util.RequireAccessToken
-import kotlinx.collections.immutable.toPersistentList
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import io.rownd.android.models.domain.User as DomainUser
 
 @Serializable
 data class User(
@@ -24,7 +23,7 @@ data class User(
     fun asDomainModel(): DomainUser {
         return DomainUser(
             data = dataAsDecrypted(),
-            redacted = redacted.toPersistentList()
+            redacted = redacted.toMutableList()
         )
     }
 

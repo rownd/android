@@ -44,7 +44,6 @@ open class BottomSheet : BottomSheetDialogFragment() {
             val bottomSheetBehavior = behavior as (BottomSheetBehavior)
             bottomSheetBehavior.peekHeight = view?.measuredHeight ?: 0
             (bottomSheet?.parent as? View)?.setBackgroundColor(Color.TRANSPARENT)
-
         }
     }
 

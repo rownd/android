@@ -16,6 +16,7 @@ import io.rownd.android.Rownd
 import io.rownd.android.models.AuthenticationMessage
 import io.rownd.android.models.MessageType
 import io.rownd.android.models.RowndHubInteropMessage
+import io.rownd.android.models.UserDataUpdateMessage
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
@@ -31,6 +32,7 @@ enum class HubPageSelector {
     SignIn,
     SignOut,
     QrCode,
+    ManageAccount,
     Unknown
 }
 
@@ -106,8 +108,9 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
 
         when ((view as RowndWebView).targetPage) {
             HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
-            HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut()")
+            HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
             HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson})")
+            HubPageSelector.ManageAccount -> evaluateJavascript("rownd.user.manageAccount()")
         }
 
         webView.progressBar?.visibility = View.INVISIBLE
@@ -160,6 +163,18 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                 }
                 Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
                 Rownd.store.dispatch(StateAction.SetUser(User()))
+                parentWebView.dialog.dismiss()
+            }
+            MessageType.UserDataUpdate -> {
+                Rownd.store.dispatch(
+                    StateAction.SetUser(
+                        (interopMessage as UserDataUpdateMessage).payload.asDomainModel()
+                    )
+                )
+                UserRepo.loadUserAsync()
+            }
+
+            MessageType.CloseHubView -> {
                 parentWebView.dialog.dismiss()
             }
             else -> {

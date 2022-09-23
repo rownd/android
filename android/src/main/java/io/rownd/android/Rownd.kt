@@ -65,6 +65,11 @@ object Rownd {
     }
 
     @JvmStatic
+    fun manageAccount() {
+        displayHub(HubPageSelector.ManageAccount)
+    }
+
+    @JvmStatic
     fun transferEncryptionKey() {
         val activity = appHandleWrapper.activity.get() as AppCompatActivity
 
