@@ -67,6 +67,10 @@ object SignInLinkApi {
             signInUrl = signInUrl.replace("#${urlObj.fragment}", "")
         }
 
+        // Rewrite links to https, since we sometimes send links via SMS
+        // without a protocol attached
+        signInUrl = signInUrl.replace("http://", "https://")
+
         try {
             val authResp = client.authenticateWithSignInLink(signInUrl)
             if (!authResp.isSuccessful) {
