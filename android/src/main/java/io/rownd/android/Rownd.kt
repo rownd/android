@@ -10,6 +10,7 @@ import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
+import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.views.BottomSheet
@@ -31,6 +32,10 @@ object Rownd {
     private fun configure(appKey: String) {
         config.appKey = appKey
         store = StateRepo.setup(appHandleWrapper.app.get()!!.applicationContext.dataStore)
+
+        appHandleWrapper.onActivityInitialized {
+            SignInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
+        }
     }
 
     @JvmStatic
@@ -71,7 +76,7 @@ object Rownd {
 
     @JvmStatic
     fun transferEncryptionKey() {
-        val activity = appHandleWrapper.activity.get() as AppCompatActivity
+        val activity = appHandleWrapper.activity?.get() as AppCompatActivity
 
         val bottomSheet = KeyTransferBottomSheet.newInstance()
         bottomSheet.show(activity.supportFragmentManager, BottomSheet.TAG)
@@ -89,7 +94,7 @@ object Rownd {
 
     // Internal stuff
     private fun displayHub(targetPage: HubPageSelector, jsFnOptions: RowndSignInOptions? = null) {
-        val activity = appHandleWrapper.activity.get() as FragmentActivity
+        val activity = appHandleWrapper.activity?.get() as FragmentActivity
 
         var jsFnOptionsStr: String? = null
         if (jsFnOptions != null) {

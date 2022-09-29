@@ -1,21 +1,18 @@
 package io.rownd.rowndtestsandbox
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.widget.ProgressBar
+import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement.Center
-import androidx.compose.foundation.layout.Arrangement.SpaceAround
-import androidx.compose.ui.platform.ComposeView
-import io.rownd.android.Rownd
 import androidx.compose.material.*
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.databinding.DataBindingUtil
+import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInOptions
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.Encryption
@@ -126,7 +123,7 @@ class MainActivity : AppCompatActivity() {
                                     Button(
                                         modifier = Modifier.padding(horizontal = Dp(5F)),
                                         onClick = {
-
+                                            Rownd.manageAccount()
                                         }
                                     ) {
                                         Text("Edit profile")

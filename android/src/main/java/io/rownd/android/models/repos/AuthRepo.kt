@@ -3,14 +3,14 @@ package io.rownd.android.models.repos
 import android.util.Log
 import com.auth0.android.jwt.JWT
 import io.rownd.android.Rownd
-import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.network.Auth
 import io.rownd.android.models.network.AuthApi
 import io.rownd.android.models.network.RowndAPIException
 import io.rownd.android.models.network.TokenRequestBody
-import kotlinx.coroutines.*
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 
 class AuthRepo {
     companion object {
@@ -28,6 +28,10 @@ class AuthRepo {
 
             return accessToken
         }
+
+//        internal suspend fun getAccessToken(token: String): String? {
+//
+//        }
 
         @Synchronized
         private fun fetchTokenAsync(tokenRequest: TokenRequestBody): Deferred<String?> {
