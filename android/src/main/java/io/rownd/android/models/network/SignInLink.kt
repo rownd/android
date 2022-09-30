@@ -1,6 +1,7 @@
 package io.rownd.android.models.network
 
 import android.app.Activity
+import android.content.ClipData
 import android.content.ClipDescription
 import android.content.ClipboardManager
 import android.content.Context
@@ -139,7 +140,7 @@ object SignInLinkApi {
         val potentialSignInLink = Uri.parse(clipboardText) ?: return
 
         dispatchSignInWithLink(potentialSignInLink)
-//        clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+        clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
     }
 
     private fun dispatchSignInWithLink(uri: Uri?) {

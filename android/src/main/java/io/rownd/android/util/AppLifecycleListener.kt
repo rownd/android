@@ -7,7 +7,6 @@ import android.os.Bundle
 import androidx.annotation.Nullable
 import androidx.fragment.app.FragmentActivity
 import java.lang.ref.WeakReference
-import kotlin.properties.Delegates
 
 enum class ContextType {
     APP, ACTIVITY
@@ -16,11 +15,7 @@ enum class ContextType {
 class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks {
     var app: WeakReference<Application>
         private set
-    var activity: WeakReference<Activity>? by Delegates.observable(null) { property, oldValue, newValue ->
-//        for (listener in activityListeners) {
-//            listener.invoke(newValue?.get()!!)
-//        }
-    }
+    var activity: WeakReference<Activity>? = null
         private set
 
     private var activityListeners: MutableList<(activity: Activity) -> Unit> = mutableListOf()

@@ -29,10 +29,6 @@ class AuthRepo {
             return accessToken
         }
 
-//        internal suspend fun getAccessToken(token: String): String? {
-//
-//        }
-
         @Synchronized
         private fun fetchTokenAsync(tokenRequest: TokenRequestBody): Deferred<String?> {
             return CoroutineScope(Dispatchers.IO).async {
