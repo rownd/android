@@ -15,8 +15,10 @@ enum class ContextType {
 class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks {
     var app: WeakReference<Application>
         private set
-    lateinit var activity: WeakReference<Activity>
+    var activity: WeakReference<Activity>? = null
         private set
+
+    private var activityListeners: MutableList<(activity: Activity) -> Unit> = mutableListOf()
 
     init {
         app = WeakReference(parentApp)
@@ -37,10 +39,25 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
 
     override fun onActivityResumed(activity: Activity) {
         this.activity = WeakReference(activity)
+
+        // This is probably one of the better trigger points for listeners
+        // unless there's a need for something earlier in the lifecycle
+        for (listener in activityListeners) {
+            listener.invoke(activity)
+        }
     }
 
     override fun onActivityPaused(activity: Activity) {}
     override fun onActivityStopped(activity: Activity) {}
     override fun onActivitySaveInstanceState(activity: Activity, bundle: Bundle) {}
     override fun onActivityDestroyed(activity: Activity) {}
+
+    internal fun onActivityInitialized(callback: (activity: Activity) -> Unit) {
+        activityListeners.add(callback)
+
+        val activity = this.activity?.get() ?: null
+        if (activity != null) {
+            callback.invoke(activity)
+        }
+    }
 }

@@ -1,23 +1,31 @@
 package io.rownd.android.models.network
 
+import android.app.Activity
+import android.content.ClipData
+import android.content.ClipDescription
+import android.content.ClipboardManager
+import android.content.Context
+import android.content.Intent.ACTION_VIEW
+import android.net.Uri
 import android.util.Log
+import android.view.View
+import androidx.core.view.doOnLayout
 import io.rownd.android.Rownd
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.StateAction
-import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.ApiClient
 import io.rownd.android.util.Encryption
 import io.rownd.android.util.RequireAccessToken
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.Response
-import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Url
-import java.net.URI
-import java.net.URL
 
 @Serializable
 data class SignInLink(
@@ -52,7 +60,7 @@ object SignInLinkApi {
 
     internal suspend fun signInWithLink(url: String) {
         var signInUrl = url
-        val urlObj = URI(url)
+        val urlObj = Uri.parse(url)
         var encKey: String? = null
 
         if (urlObj.fragment != null) {
@@ -60,23 +68,90 @@ object SignInLinkApi {
             signInUrl = signInUrl.replace("#${urlObj.fragment}", "")
         }
 
-        val authResp = client.authenticateWithSignInLink(signInUrl)
-        if (!authResp.isSuccessful) {
-            Log.e("Rownd.SignInLink", "Auto sign-in failed for ${urlObj.path}")
-            throw RowndAPIException(authResp)
+        // Rewrite links to https, since we sometimes send links via SMS
+        // without a protocol attached
+        signInUrl = signInUrl.replace("http://", "https://")
+
+        try {
+            val authResp = client.authenticateWithSignInLink(signInUrl)
+            if (!authResp.isSuccessful) {
+                Log.e("Rownd.SignInLink", "Auto sign-in failed for ${urlObj.path}")
+                throw RowndAPIException(authResp)
+            }
+
+            val authBody: SignInAuthenticationResponse =
+                authResp.body() ?: throw RowndAPIException(authResp)
+
+            if (encKey != null) {
+                Encryption.deleteKey(authBody.appUserId)
+                Encryption.storeKey(encKey, authBody.appUserId)
+            }
+
+            Rownd.store.dispatch(
+                StateAction.SetAuth(
+                    AuthState(
+                        accessToken = authBody.accessToken,
+                        refreshToken = authBody.refreshToken
+                    )
+                )
+            )
+            UserRepo.loadUserAsync().await()
+        } catch (err: Exception) {
+            Log.e("Rownd.SignInLink", "Exception thrown during auto sign-in attempt:", err)
+        }
+    }
+
+    internal fun signInWithLinkIfPresentOnIntentOrClipboard(ctx: Activity) {
+        if (Rownd.store.currentState.auth.isAuthenticated) {
+            return
         }
 
-        val authBody: SignInAuthenticationResponse = authResp.body() ?: throw RowndAPIException(authResp)
+        val action: String? = ctx.intent?.action
 
-        if (encKey != null) {
-            Encryption.deleteKey(authBody.appUserId)
-            Encryption.storeKey(encKey, authBody.appUserId)
+        if (action == ACTION_VIEW && isRowndSignInLink(ctx.intent?.data)) {
+            dispatchSignInWithLink(ctx.intent?.data)
+        } else if (ctx.hasWindowFocus()) {
+            // Look on the clipboard
+            signInWithLinkFromClipboardIfPresent(ctx)
+        } else {
+            val rootView = ctx.findViewById<View>(android.R.id.content)
+            rootView.doOnLayout {
+                signInWithLinkFromClipboardIfPresent(ctx)
+            }
+        }
+    }
+
+    private fun signInWithLinkFromClipboardIfPresent(ctx: Activity) {
+        val clipboard = ctx.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        if (clipboard.primaryClipDescription?.hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN) != true) {
+            return
         }
 
-        Rownd.store.dispatch(StateAction.SetAuth(AuthState(
-            accessToken = authBody.accessToken,
-            refreshToken = authBody.refreshToken
-        )))
-        UserRepo.loadUserAsync().await()
+        var clipboardText = clipboard.primaryClip?.getItemAt(0)?.text.toString() ?: return
+
+        if (!clipboardText.contains("rownd.link")) {
+            return
+        }
+
+        if (!clipboardText.startsWith("http")) {
+            clipboardText = "https://${clipboardText}"
+        }
+
+        val potentialSignInLink = Uri.parse(clipboardText) ?: return
+
+        dispatchSignInWithLink(potentialSignInLink)
+        clipboard.setPrimaryClip(ClipData.newPlainText("", ""))
+    }
+
+    private fun dispatchSignInWithLink(uri: Uri?) {
+        if (isRowndSignInLink(uri)) {
+            CoroutineScope(Dispatchers.IO).launch {
+                signInWithLink(uri.toString())
+            }
+        }
+    }
+
+    private fun isRowndSignInLink(uri: Uri?) : Boolean {
+        return uri?.host?.endsWith("rownd.link") == true
     }
 }
