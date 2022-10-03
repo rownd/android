@@ -2,9 +2,11 @@ package io.rownd.android.views
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
@@ -92,6 +94,18 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
 
         webView.evaluateJavascript(wrappedJs) {
             Log.d("Rownd.hub", "Hub js evaluation response: $it")
+        }
+    }
+
+    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
+        val url = request?.url
+        return if (url != null && URLUtil.isValidUrl(url.toString())) {
+            view?.context?.startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse(url.toString()))
+            )
+            true
+        } else {
+            false
         }
     }
 
