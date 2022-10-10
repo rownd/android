@@ -18,6 +18,7 @@ data class AppConfigState @OptIn(ExperimentalSerializationApi::class) constructo
     @JsonNames("userVerificationFields")
     val userVerificationFields: List<String> = listOf(),
     val schema: Map<String, AppSchemaField> = HashMap<String, AppSchemaField>(),
+    val config: AppConfigConfig = AppConfigConfig(),
 )
 
 @Serializable
@@ -42,3 +43,33 @@ data class AppSchemaFieldEncryption(
 enum class AppSchemaEncryptionState {
     Enabled, Disabled
 }
+
+@Serializable
+data class AppConfigConfig constructor(
+    val hub: HubConfig = HubConfig(),
+)
+
+@Serializable
+data class HubConfig constructor(
+    val auth: HubAuthConfig = HubAuthConfig(),
+)
+
+@Serializable
+data class HubAuthConfig @OptIn(ExperimentalSerializationApi::class) constructor(
+    @SerialName("sign_in_methods")
+    @JsonNames("signInMethods")
+    val signInMethods: SignInMethods = SignInMethods(),
+)
+
+@Serializable
+data class SignInMethods constructor(
+    val google: GoogleSignInMethod = GoogleSignInMethod(),
+)
+
+@Serializable
+data class GoogleSignInMethod @OptIn(ExperimentalSerializationApi::class) constructor(
+    val enabled: Boolean = false,
+    @SerialName("client_id")
+    @JsonNames("clientId")
+    val clientId: String = ""
+)

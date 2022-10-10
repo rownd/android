@@ -4,6 +4,11 @@ import io.rownd.android.models.domain.AppConfigState
 import io.rownd.android.models.domain.AppSchemaField as DomainAppSchemaField
 import io.rownd.android.models.domain.AppSchemaFieldEncryption as DomainAppSchemaFieldEncryption
 import io.rownd.android.models.domain.AppSchemaEncryptionState as DomainAppSchemaEncryptionState
+import io.rownd.android.models.domain.AppConfigConfig as DomainAppConfigConfig
+import io.rownd.android.models.domain.HubConfig as DomainHubConfig
+import io.rownd.android.models.domain.HubAuthConfig as DomainHubAuthConfig
+import io.rownd.android.models.domain.SignInMethods as DomainSignInMethods
+import io.rownd.android.models.domain.GoogleSignInMethod as DomainGoogleSignInMethod
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -18,6 +23,7 @@ data class AppConfig(
     @SerialName("user_verification_fields")
     var userVerificationFields: List<String>,
     var schema: Map<String, AppSchemaField>,
+    var config: AppConfigConfig,
 ) {
     fun asDomainModel(): AppConfigState {
         return AppConfigState(
@@ -27,7 +33,8 @@ data class AppConfig(
             userVerificationFields = userVerificationFields,
             schema = schema.mapValues {
                 it.value.asDomainModel()
-            }
+            },
+            config = config.asDomainModel()
         )
     }
 }
@@ -77,6 +84,65 @@ enum class AppSchemaEncryptionState {
             Enabled -> DomainAppSchemaEncryptionState.Enabled
             Disabled -> DomainAppSchemaEncryptionState.Disabled
         }
+    }
+}
+
+@Serializable
+data class AppConfigConfig(
+    var hub: HubConfig,
+) {
+    fun asDomainModel(): DomainAppConfigConfig {
+        return DomainAppConfigConfig(
+            hub.asDomainModel()
+        )
+    }
+}
+
+@Serializable
+data class HubConfig(
+    var auth: HubAuthConfig,
+) {
+    fun asDomainModel(): DomainHubConfig {
+        return DomainHubConfig(
+            auth.asDomainModel()
+        )
+    }
+}
+
+@Serializable
+data class HubAuthConfig(
+    @SerialName("sign_in_methods")
+    var signInMethods: SignInMethods
+) {
+    fun asDomainModel(): DomainHubAuthConfig {
+        return DomainHubAuthConfig(
+            signInMethods.asDomainModel()
+        )
+    }
+}
+
+@Serializable
+data class SignInMethods(
+    var google: GoogleSignInMethod
+) {
+    fun asDomainModel(): DomainSignInMethods {
+        return DomainSignInMethods(
+            google.asDomainModel()
+        )
+    }
+}
+
+@Serializable
+data class GoogleSignInMethod(
+    val enabled: Boolean = false,
+    @SerialName("client_id")
+    val clientId: String = ""
+) {
+    fun asDomainModel(): DomainGoogleSignInMethod {
+        return DomainGoogleSignInMethod(
+            enabled,
+            clientId,
+        )
     }
 }
 

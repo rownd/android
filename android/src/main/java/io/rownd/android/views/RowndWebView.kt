@@ -15,6 +15,7 @@ import android.webkit.*
 import android.widget.ProgressBar
 import androidx.fragment.app.DialogFragment
 import io.rownd.android.Rownd
+import io.rownd.android.RowndSignInHint
 import io.rownd.android.models.AuthenticationMessage
 import io.rownd.android.models.MessageType
 import io.rownd.android.models.RowndHubInteropMessage
@@ -24,6 +25,7 @@ import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.Constants
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -99,7 +101,7 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
 
     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
         val url = request?.url
-        return if (url != null && URLUtil.isValidUrl(url.toString())) {
+        return if (shouldOpenInSeparateActivity(url)) {
             view?.context?.startActivity(
                 Intent(Intent.ACTION_VIEW, Uri.parse(url.toString()))
             )
@@ -107,6 +109,25 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
         } else {
             false
         }
+    }
+
+    private fun shouldOpenInSeparateActivity(url: Uri?): Boolean {
+        if (url == null || !URLUtil.isValidUrl(url.toString())) {
+            return false
+        }
+
+        // The following urls should always open in the hub web view
+        val urlStrings: List<String> = persistentListOf(
+            "https://appleid.apple.com/auth/authorize"
+        )
+        val match = urlStrings.find {
+            url.toString().startsWith(it)
+        }
+        if (match != null && match != "") {
+            return false
+        }
+
+        return true
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -179,6 +200,12 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                 Rownd.store.dispatch(StateAction.SetUser(User()))
                 parentWebView.dialog.dismiss()
             }
+
+            MessageType.triggerSignInWithGoogle -> {
+                Rownd.requestSignIn(RowndSignInHint.Google)
+                parentWebView.dialog.dismiss()
+            }
+
             MessageType.UserDataUpdate -> {
                 Rownd.store.dispatch(
                     StateAction.SetUser(

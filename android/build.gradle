@@ -101,6 +101,9 @@ dependencies {
     implementation "net.java.dev.jna:jna:5.8.0@aar"
     implementation "androidx.security:security-crypto:1.0.0"
 
+    // Sign in with Google
+    implementation 'com.google.android.gms:play-services-auth:20.3.0'
+
     testImplementation 'junit:junit:4.13.2'
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'

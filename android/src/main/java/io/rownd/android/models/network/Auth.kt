@@ -6,7 +6,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.Response
 import retrofit2.http.Body
-import retrofit2.http.GET
 import retrofit2.http.POST
 
 @Serializable
@@ -28,9 +27,13 @@ data class Auth(
 }
 
 @Serializable
-data class TokenRequestBody(
+data class TokenRequestBody internal constructor(
     @SerialName("refresh_token")
-    val refreshToken: String
+    val refreshToken: String? = null,
+    @SerialName("id_token")
+    val idToken: String? = null,
+    @SerialName("app_id")
+    val appId: String? = null,
 )
 
 interface TokenService {
