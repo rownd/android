@@ -53,7 +53,6 @@ object Rownd {
 
         appHandleWrapper.registerActivityListener(
             persistentListOf(
-                Lifecycle.State.INITIALIZED,
                 Lifecycle.State.RESUMED
             ), true) {
             SignInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
