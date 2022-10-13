@@ -160,6 +160,61 @@ data class User(
 )
 ```
 
+## Customizing the UI
+
+While most customizations are handled via the [Rownd dashboard](https://app.rownd.io), there are a few things that have to be customized directly in the SDK.
+
+The `RowndCustomizations` class exists to facilitate these customizations. It provides the following properties that may be subclassed or overridden.
+
+- `sheetBackgroundColor: Color` (default: `light: #ffffff`, `dark: #1c1c1e`; requires subclassing) - Allows changing the background color underlaying the bottom sheet that appears when signing in, managing the user account, transferring encryption keys, etc.
+- `sheetCornerBorderRadius: Dp` (default: `25.dp`) - Modifies the curvature radius of the bottom sheet's top corners.
+- `loadingAnimation: Int` (default: null) - Replace Rownd's use of the system default loading spinner (i.e., `ProgressBar`) with a custom animation. Any animation resource compatible with [Lottie](https://airbnb.design/lottie/) should work, but will be scaled to fit a 1:1 aspect ratio (usually with a frame width/height of `100`) This should be a value like `R.assets.my_animation`
+
+To apply customizations, we recommend subclassing the `RowndCustomizations` class. Here's an example:
+
+```kotlin
+class AppCustomizations(app: Application) : RowndCustomizations() {
+    private var app: Application
+
+    init {
+        this.app = app
+    }
+
+    override val sheetBackgroundColor: Color
+    get() {
+            val uiMode = app.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+            return if (uiMode == Configuration.UI_MODE_NIGHT_YES) {
+                Color(0xff123456)
+            } else {
+                Color(0xfffedcba)
+
+            }
+        }
+
+    override var sheetCornerBorderRadius: Dp = 25.dp
+}
+
+// MyApplication.kt
+import android.app.Application
+import android.content.res.Configuration
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import io.rownd.android.Rownd
+import io.rownd.android.models.RowndCustomizations
+
+class MyApplication: Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+
+        Rownd.configure(this, "b60bc454-c45f-47a2-8f8a-12b2062f5a77")
+        Rownd.config.customizations = AppCustomizations(this)
+
+    }
+}
+```
+
 ## API reference
 
 In addition to the StateFlow APIs, Rownd provides imperative APIs that you can call to request sign in, get and retrieve user profile information, retrieve a current access token, or encrypt user data with the user's local key.
