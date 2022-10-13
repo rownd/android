@@ -24,6 +24,8 @@ import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.Constants
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 
 val json = Json { ignoreUnknownKeys = true }
 
@@ -36,9 +38,11 @@ enum class HubPageSelector {
     Unknown
 }
 
+private const val HUB_CLOSE_AFTER_SECS: Long = 1
+
 @SuppressLint("SetJavaScriptEnabled")
 class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, attrs), DialogChild {
-    override lateinit var dialog: DialogFragment
+    override var dialog: DialogFragment? = null
     internal var targetPage: HubPageSelector = HubPageSelector.Unknown
     internal var jsFunctionArgsAsJson: String = "{}"
     internal var progressBar: ProgressBar? = null
@@ -154,7 +158,9 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                 )
                 UserRepo.loadUserAsync()
 
-                parentWebView.dialog.dismiss()
+                Executors.newSingleThreadScheduledExecutor().schedule({
+                    parentWebView.dialog?.dismiss()
+                }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
             }
 
             MessageType.signOut -> {
@@ -163,7 +169,10 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                 }
                 Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
                 Rownd.store.dispatch(StateAction.SetUser(User()))
-                parentWebView.dialog.dismiss()
+
+                Executors.newSingleThreadScheduledExecutor().schedule({
+                    parentWebView.dialog?.dismiss()
+                }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
             }
             MessageType.UserDataUpdate -> {
                 Rownd.store.dispatch(
@@ -175,7 +184,7 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
             }
 
             MessageType.CloseHubView -> {
-                parentWebView.dialog.dismiss()
+                parentWebView.dialog?.dismiss()
             }
             else -> {
                 Log.w("RowndHub", "An unknown message was received")
