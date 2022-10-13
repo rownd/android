@@ -18,7 +18,7 @@ data class AppConfigState @OptIn(ExperimentalSerializationApi::class) constructo
     @JsonNames("userVerificationFields")
     val userVerificationFields: List<String> = listOf(),
     val schema: Map<String, AppSchemaField> = HashMap<String, AppSchemaField>(),
-    val config: AppConfigConfig = AppConfigConfig(),
+    val config: AppConfigConfig = AppConfigConfig()
 )
 
 @Serializable

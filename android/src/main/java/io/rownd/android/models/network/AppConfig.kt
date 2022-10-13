@@ -89,7 +89,7 @@ enum class AppSchemaEncryptionState {
 
 @Serializable
 data class AppConfigConfig(
-    var hub: HubConfig,
+    var hub: HubConfig = HubConfig()
 ) {
     fun asDomainModel(): DomainAppConfigConfig {
         return DomainAppConfigConfig(
@@ -100,7 +100,7 @@ data class AppConfigConfig(
 
 @Serializable
 data class HubConfig(
-    var auth: HubAuthConfig,
+    var auth: HubAuthConfig = HubAuthConfig()
 ) {
     fun asDomainModel(): DomainHubConfig {
         return DomainHubConfig(
@@ -112,7 +112,7 @@ data class HubConfig(
 @Serializable
 data class HubAuthConfig(
     @SerialName("sign_in_methods")
-    var signInMethods: SignInMethods
+    var signInMethods: SignInMethods = SignInMethods()
 ) {
     fun asDomainModel(): DomainHubAuthConfig {
         return DomainHubAuthConfig(
@@ -123,7 +123,7 @@ data class HubAuthConfig(
 
 @Serializable
 data class SignInMethods(
-    var google: GoogleSignInMethod
+    var google: GoogleSignInMethod = GoogleSignInMethod()
 ) {
     fun asDomainModel(): DomainSignInMethods {
         return DomainSignInMethods(
