@@ -26,7 +26,7 @@ import io.rownd.android.models.repos.*
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.RowndException
 import io.rownd.android.views.BottomSheet
-import io.rownd.android.views.HubBottomSheet
+import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
 import kotlinx.collections.immutable.persistentListOf
@@ -107,9 +107,9 @@ object Rownd {
 
     @JvmStatic
     fun signOut() {
-        displayHub(HubPageSelector.SignOut)
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
+        displayHub(HubPageSelector.SignOut)
     }
 
     @JvmStatic
@@ -185,8 +185,9 @@ object Rownd {
             jsFnOptionsStr = json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions)
         }
 
-        val bottomSheet = HubBottomSheet.newInstance(targetPage, jsFnOptionsStr)
-        bottomSheet.show(activity.supportFragmentManager, BottomSheet.TAG)
+//        val bottomSheet = HubBottomSheet.newInstance(targetPage, jsFnOptionsStr)
+        val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
+        bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
     }
 }
 

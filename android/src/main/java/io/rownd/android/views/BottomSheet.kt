@@ -2,7 +2,6 @@ package io.rownd.android.views
 
 import android.app.Dialog
 import android.content.Context
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -43,7 +42,8 @@ open class BottomSheet : BottomSheetDialogFragment() {
             val behavior = params.behavior
             val bottomSheetBehavior = behavior as (BottomSheetBehavior)
             bottomSheetBehavior.peekHeight = view?.measuredHeight ?: 0
-            (bottomSheet?.parent as? View)?.setBackgroundColor(Color.TRANSPARENT)
+//            bottomSheet?.parent.
+//            (bottomSheet?.parent as? View)?.setBackgroundColor(Rownd.config.customizations.sheetBackgroundColor.toArgb())
         }
     }
 
@@ -71,7 +71,11 @@ open class BottomSheet : BottomSheetDialogFragment() {
 
     override fun onCreateDialog(savedInstanceState: Bundle?) : Dialog {
         val dialog = super.onCreateDialog(savedInstanceState)
-        dialog.setContentView(View(context))
+//        val dialog = BottomSheetDialog(requireContext(), R.style.RowndBottomSheetStyle)
+
+        val view = View(context)
+//        view.background
+        dialog.setContentView(view)
 
         val behavior = (dialog as BottomSheetDialog).behavior
 

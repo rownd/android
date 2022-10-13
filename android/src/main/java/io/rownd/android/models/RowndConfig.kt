@@ -14,7 +14,8 @@ data class RowndConfig(
     var appKey: String? = null,
     var baseUrl: String = "https://hub.rownd.io",
     var apiUrl: String = "https://api.rownd.io",
-    var postSignInRedirect: String? = null
+    var postSignInRedirect: String? = null,
+    var customizations: RowndCustomizations = RowndCustomizations()
 ) {
     fun hubLoaderUrl(): String {
         val jsonConfig = json.encodeToString(RowndConfig.serializer(), this)
