@@ -166,9 +166,10 @@ While most customizations are handled via the [Rownd dashboard](https://app.rown
 
 The `RowndCustomizations` class exists to facilitate these customizations. It provides the following properties that may be subclassed or overridden.
 
-- `sheetBackgroundColor: Color` (default: `light: #ffffff`, `dark: #1c1c1e`; requires subclassing) - Allows changing the background color underlaying the bottom sheet that appears when signing in, managing the user account, transferring encryption keys, etc.
+- `sheetBackgroundColor: Color?` (default: `null`) - Allows setting a single color for Rownd-provided bottom sheet interfaces regardless of system theme. Use this or `dynamicSheetBackgroundColor`, but not both.
+- `dynamicSheetBackgroundColor: Color` (default: `light: #ffffff`, `dark: #1c1c1e`; requires subclassing) - Allows changing the background color underlaying the bottom sheet that appears when signing in, managing the user account, transferring encryption keys, etc. based on the system color scheme.
 - `sheetCornerBorderRadius: Dp` (default: `25.dp`) - Modifies the curvature radius of the bottom sheet's top corners.
-- `loadingAnimation: Int` (default: null) - Replace Rownd's use of the system default loading spinner (i.e., `ProgressBar`) with a custom animation. Any animation resource compatible with [Lottie](https://airbnb.design/lottie/) should work, but will be scaled to fit a 1:1 aspect ratio (usually with a frame width/height of `100`) This should be a value like `R.assets.my_animation`
+- `loadingAnimation: Int` (default: null) - Replace Rownd's use of the system default loading spinner (i.e., `ProgressBar`) with a custom animation. Any animation resource compatible with [Lottie](https://airbnb.design/lottie/) should work, but will be scaled to fit a 1:1 aspect ratio (usually with a frame width/height of `100`) This should be a value like `R.raw.my_animation`
 
 To apply customizations, we recommend subclassing the `RowndCustomizations` class. Here's an example:
 
@@ -180,7 +181,7 @@ class AppCustomizations(app: Application) : RowndCustomizations() {
         this.app = app
     }
 
-    override val sheetBackgroundColor: Color
+    override val dynamicSheetBackgroundColor: Color
     get() {
             val uiMode = app.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
             return if (uiMode == Configuration.UI_MODE_NIGHT_YES) {
@@ -192,6 +193,8 @@ class AppCustomizations(app: Application) : RowndCustomizations() {
         }
 
     override var sheetCornerBorderRadius: Dp = 25.dp
+    
+    override var loadingAnimation: Int? = R.raw.loading
 }
 
 // MyApplication.kt
