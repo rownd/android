@@ -14,10 +14,12 @@ import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.io.OutputStream
@@ -28,7 +30,10 @@ val Context.dataStore by dataStore("rownd_state.json", GlobalStateSerializer)
 data class GlobalState(
     val appConfig: AppConfigState = AppConfigState(),
     val auth: AuthState = AuthState(),
-    val user: User = User()
+    val user: User = User(),
+
+    @Transient
+    val isInitialized: Boolean = false,
 ) : State
 
 object GlobalStateSerializer : Serializer<GlobalState> {
@@ -49,10 +54,12 @@ object GlobalStateSerializer : Serializer<GlobalState> {
     }
 
     override suspend fun writeTo(t: GlobalState, output: OutputStream) {
-        output.write(
-            json.encodeToString(GlobalState.serializer(), t)
-                .encodeToByteArray()
-        )
+        withContext(Dispatchers.IO) {
+            output.write(
+                json.encodeToString(GlobalState.serializer(), t)
+                    .encodeToByteArray()
+            )
+        }
     }
 }
 
@@ -79,12 +86,14 @@ object StateRepo {
         dataStore = ds
 
         // Re-inflate store from persistence
-        CoroutineScope(Dispatchers.IO).async {
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                val persistedState = dataStore.data.first()
+                var persistedState = dataStore.data.first()
+                persistedState = persistedState.copy(isInitialized = true)
                 store.dispatch(StateAction.SetGlobalState(persistedState))
             } catch (err: Exception) {
                 Log.d("Rownd.StateRepo", "Failed to load existing state from device", err)
+                store.dispatch(StateAction.SetGlobalState(GlobalState(isInitialized = true)))
             }
 
             // Fetch latest app config

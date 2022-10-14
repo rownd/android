@@ -1,5 +1,6 @@
 package io.rownd.android.models.domain
 
+import com.auth0.android.jwt.JWT
 import io.rownd.android.Rownd.store
 import io.rownd.android.models.json
 import io.rownd.android.models.repos.UserRepo
@@ -24,6 +25,17 @@ data class AuthState @OptIn(ExperimentalSerializationApi::class) constructor(
     @Transient
     val isAuthenticated: Boolean = accessToken != null
 ) {
+    val isAccessTokenValid: Boolean
+        get() {
+            if (accessToken == null) {
+                return false
+            }
+
+            val jwt = JWT(accessToken)
+
+            return !jwt.isExpired(0)
+        }
+
     internal fun toRphInitHash(): String? {
         val userId: String? = UserRepo.get("user_id") as? String
 
