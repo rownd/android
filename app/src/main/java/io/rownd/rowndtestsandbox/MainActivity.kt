@@ -98,6 +98,9 @@ class MainActivity : AppCompatActivity() {
                                 Text("Transfer key")
                             }
 
+                            Text("Initialized: ${state.value.isInitialized}")
+                            Text("Valid access token: ${state.value.auth.isAccessTokenValid}")
+
                             if (state.value.auth.isAuthenticated) {
                                 Row(
                                     modifier = Modifier.fillMaxWidth()

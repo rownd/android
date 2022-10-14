@@ -2,6 +2,7 @@ package io.rownd.rowndtestsandbox
 
 import android.app.Application
 import android.content.res.Configuration
+import android.util.Log
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -39,6 +40,7 @@ class RowndTestSandbox: Application() {
         instance = this
 
         Rownd.configure(this, "b60bc454-c45f-47a2-8f8a-12b2062f5a77")
+        Log.d("App.onCreate", "Rownd initialized: ${Rownd.state.value.isInitialized}")
         Rownd.config.apiUrl = "https://api.us-east-2.dev.rownd.io"
         Rownd.config.baseUrl = "https://hub.rownd.workers.dev"
         Rownd.config.customizations = AppCustomizations(this)
