@@ -31,6 +31,10 @@ import kotlinx.coroutines.launch
 
 
 abstract class ComposableBottomSheetFragment : DialogFragment() {
+    open val shouldDisplayLoader = false
+
+    @OptIn(ExperimentalMaterialApi::class)
+    var sheetState: ModalBottomSheetState? = null
 
     override fun onStart() {
         super.onStart()
@@ -43,6 +47,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
+    // Might be needed for better display over device "safe areas"
 //    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog? {
 //        val dialog: BottomSheetDialog = super.onCreateDialog(savedInstanceState)
 //        val window: Window? = dialog.window
@@ -99,8 +104,9 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         val bottomSheetState = rememberModalBottomSheetState(
             initialValue = ModalBottomSheetValue.HalfExpanded
         )
+        sheetState = bottomSheetState
 
-        val (isLoading, setIsLoading) = remember { mutableStateOf(true) }
+        val (isLoading, setIsLoading) = remember { mutableStateOf(shouldDisplayLoader) }
         var loadingLottieComposition: LottieComposition? = null
 
         if (Rownd.config.customizations.loadingAnimation != null) {
@@ -136,24 +142,26 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Content(setIsLoading)
+                        Content(bottomSheetState, setIsLoading)
                     }
 
                     if (isLoading) {
-                        if (loadingLottieComposition != null) {
-                            Box(
-                                modifier = Modifier
-                                    .size(100.dp)
-                                    .offset(y = 100.dp)
-                                    .align(Alignment.TopCenter)
-                            ) {
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .offset(y = 100.dp)
+                                .align(Alignment.TopCenter)
+                        ) {
+                            if (loadingLottieComposition != null) {
                                 LottieAnimation(
                                     composition = loadingLottieComposition,
                                     iterations = LottieConstants.IterateForever
                                 )
+                            } else {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.align(Alignment.Center)
+                                )
                             }
-                        } else {
-
                         }
                     }
                 }
@@ -182,6 +190,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
+    @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    abstract fun Content(setIsLoading: (isLoading: Boolean) -> Unit)
+    abstract fun Content(bottomSheetState: ModalBottomSheetState, setIsLoading: (isLoading: Boolean) -> Unit)
 }

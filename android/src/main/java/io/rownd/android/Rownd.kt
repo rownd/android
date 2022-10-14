@@ -25,7 +25,6 @@ import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.RowndException
-import io.rownd.android.views.BottomSheet
 import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
@@ -122,7 +121,7 @@ object Rownd {
         val activity = appHandleWrapper.activity?.get() as AppCompatActivity
 
         val bottomSheet = KeyTransferBottomSheet.newInstance()
-        bottomSheet.show(activity.supportFragmentManager, BottomSheet.TAG)
+        bottomSheet.show(activity.supportFragmentManager, KeyTransferBottomSheet.TAG)
     }
 
     private fun signInWithGoogle() {

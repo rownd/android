@@ -1,16 +1,10 @@
 package io.rownd.android.views.key_transfer
 
-import android.os.Bundle
-import androidx.fragment.app.Fragment
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.materialIcon
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -26,7 +20,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidViewBinding
-import io.rownd.android.R
+import androidx.fragment.app.Fragment
 import io.rownd.android.Rownd
 import io.rownd.android.databinding.HubViewLayoutBinding
 import io.rownd.android.ui.theme.IconCopy
@@ -125,7 +119,7 @@ internal fun KeyTransferCode(
         Column(
             modifier = Modifier
                 .padding(horizontal = Dp(10F)),
-                verticalArrangement = Arrangement.spacedBy(10.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.Top)
         ) {
             Text(
                 lineHeight = 24.sp,
@@ -133,13 +127,18 @@ internal fun KeyTransferCode(
             )
 
             // QRCodeWebView
-            AndroidViewBinding(HubViewLayoutBinding::inflate) {
-                val url = Rownd.config.hubLoaderUrl()
-                this.hubWebview.layoutParams.height = 700
-                this.hubWebview.progressBar = this.hubProgressBar
-                this.hubWebview.targetPage = HubPageSelector.QrCode
-                this.hubWebview.jsFunctionArgsAsJson = viewModel.qrCodeData.value
-                this.hubWebview.loadUrl(url)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(300.dp)
+            ) {
+                AndroidViewBinding(HubViewLayoutBinding::inflate) {
+                    val url = Rownd.config.hubLoaderUrl()
+                    this.hubWebview.progressBar = this.hubProgressBar
+                    this.hubWebview.targetPage = HubPageSelector.QrCode
+                    this.hubWebview.jsFunctionArgsAsJson = viewModel.qrCodeData.value
+                    this.hubWebview.loadUrl(url)
+                }
             }
 
             RowndButton(
