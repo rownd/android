@@ -5,11 +5,7 @@ import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.*
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
@@ -25,6 +21,11 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
+import com.airbnb.lottie.LottieComposition
+import com.airbnb.lottie.compose.LottieAnimation
+import com.airbnb.lottie.compose.LottieCompositionSpec
+import com.airbnb.lottie.compose.LottieConstants
+import com.airbnb.lottie.compose.rememberLottieComposition
 import io.rownd.android.Rownd
 import kotlinx.coroutines.launch
 
@@ -99,6 +100,14 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
             initialValue = ModalBottomSheetValue.HalfExpanded
         )
 
+        val (isLoading, setIsLoading) = remember { mutableStateOf(true) }
+        var loadingLottieComposition: LottieComposition? = null
+
+        if (Rownd.config.customizations.loadingAnimation != null) {
+            loadingLottieComposition =
+                rememberLottieComposition(LottieCompositionSpec.RawRes(Rownd.config.customizations.loadingAnimation!!)).value
+        }
+
         val configuration = LocalConfiguration.current
         val fullScreenHeight = configuration.screenHeightDp.dp
 
@@ -116,26 +125,43 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         // Creating a Bottom Sheet
         ModalBottomSheetLayout(
             sheetState = bottomSheetState,
+            sheetBackgroundColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
             sheetShape = RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius),
-            sheetContent =  {
-                Column(modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Rownd.config.customizations.sheetBackgroundColor)
-                ) {
+            sheetContent = {
+                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                     Column(
                         modifier = Modifier
-                            .height(fullScreenHeight)
+                            .height(maxHeight)
                             .fillMaxWidth(),
                         verticalArrangement = Arrangement.Top,
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Content()
+                        Content(setIsLoading)
+                    }
+
+                    if (isLoading) {
+                        if (loadingLottieComposition != null) {
+                            Box(
+                                modifier = Modifier
+                                    .size(100.dp)
+                                    .offset(y = 100.dp)
+                                    .align(Alignment.TopCenter)
+                            ) {
+                                LottieAnimation(
+                                    composition = loadingLottieComposition,
+                                    iterations = LottieConstants.IterateForever
+                                )
+                            }
+                        } else {
+
+                        }
                     }
                 }
-            },
+            }
         ) {
             Text("")
         }
+
 
         val view = LocalView.current
         DisposableEffect(view) {
@@ -157,5 +183,5 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
     }
 
     @Composable
-    abstract fun Content()
+    abstract fun Content(setIsLoading: (isLoading: Boolean) -> Unit)
 }

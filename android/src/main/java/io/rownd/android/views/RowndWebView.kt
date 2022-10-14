@@ -50,6 +50,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal var targetPage: HubPageSelector = HubPageSelector.Unknown
     internal var jsFunctionArgsAsJson: String = "{}"
     internal var progressBar: ProgressBar? = null
+    internal var setIsLoading: ((isLoading: Boolean) -> Unit)? = null
 
     init {
         this.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
@@ -137,7 +138,11 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
         super.onPageStarted(webView, url, favicon)
         Log.d("Rownd.hub", "Started loading $url")
-        webView.progressBar?.visibility = View.VISIBLE
+        if (webView.setIsLoading == null) {
+            webView.progressBar?.visibility = View.VISIBLE
+        }
+
+        webView.setIsLoading?.invoke(true)
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
@@ -152,7 +157,12 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
             HubPageSelector.ManageAccount -> evaluateJavascript("rownd.user.manageAccount()")
         }
 
-        webView.progressBar?.visibility = View.INVISIBLE
+        if (view.progress == 100) {
+            if (webView.setIsLoading == null) {
+                webView.progressBar?.visibility = View.INVISIBLE
+            }
+            webView.setIsLoading?.invoke(false)
+        }
     }
 
     override fun onReceivedError(
@@ -202,17 +212,18 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                 if (parentWebView.targetPage != HubPageSelector.SignOut) {
                     return
                 }
-                Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
-                Rownd.store.dispatch(StateAction.SetUser(User()))
 
                 Executors.newSingleThreadScheduledExecutor().schedule({
                     parentWebView.dialog?.dismiss()
                 }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
+
+                Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
+                Rownd.store.dispatch(StateAction.SetUser(User()))
             }
 
             MessageType.triggerSignInWithGoogle -> {
                 Rownd.requestSignIn(RowndSignInHint.Google)
-                parentWebView.dialog.dismiss()
+                parentWebView.dialog?.dismiss()
             }
 
             MessageType.UserDataUpdate -> {

@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import io.rownd.android.Rownd
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
@@ -17,15 +18,17 @@ import kotlin.math.roundToInt
 
 @Serializable
 open class RowndCustomizations() {
+    @Transient
+    open var sheetBackgroundColor: Color? = null
+
     @Serializable(with = ColorAsHexStringSerializer::class)
-    open val sheetBackgroundColor: Color
+    open val dynamicSheetBackgroundColor: Color
     get() {
         val uiMode = Rownd.appHandleWrapper.app.get()!!.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-        return if (uiMode == Configuration.UI_MODE_NIGHT_YES) {
-            Color(0xff1c1c1e)
-        } else {
-            Color(0xffffffff)
-
+        return when {
+            sheetBackgroundColor != null -> sheetBackgroundColor!!
+            uiMode == Configuration.UI_MODE_NIGHT_YES -> Color(0xff1c1c1e)
+            else -> Color(0xffffffff)
         }
     }
 

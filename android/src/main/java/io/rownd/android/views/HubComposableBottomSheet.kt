@@ -22,7 +22,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
     }
 
     @Composable
-    override fun Content() {
+    override fun Content(setIsLoading: (isLoading: Boolean) -> Unit) {
         val bundle = this.arguments
         val targetPage: HubPageSelector =
             (bundle?.getSerializable(HubBottomSheetBundleKeys.TargetPage.key)
@@ -40,6 +40,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
             this.hubWebview.dialog = parent
             val url = Rownd.config.hubLoaderUrl()
             this.hubWebview.progressBar = this.hubProgressBar
+                this.hubWebview.setIsLoading = setIsLoading
             this.hubWebview.targetPage = targetPage ?: HubPageSelector.SignIn
             this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: "{}"
             this.hubWebview.loadUrl(url)
