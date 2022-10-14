@@ -4,16 +4,12 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material.Surface
 import androidx.compose.material.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -25,7 +21,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.google.android.material.bottomsheet.BottomSheetBehavior
 import io.rownd.android.Rownd
 import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.UserRepo
@@ -87,6 +82,7 @@ private fun isCameraPermissionGranted(baseContext: Context): Boolean {
     ) == PackageManager.PERMISSION_GRANTED
 }
 
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 internal fun KeyTransferNavHost(
     hostController: KeyTransferBottomSheet,
@@ -95,7 +91,11 @@ internal fun KeyTransferNavHost(
     viewModel: KeyTransferViewModel = KeyTransferViewModel()
 ) {
     RowndTheme {
-        Surface {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            elevation = 0.dp,
+//            color = Rownd.config.customizations.dynamicSheetBackgroundColor
+        ) {
             NavHost(
                 navController = navController,
                 startDestination = navStartPage,
@@ -111,7 +111,10 @@ internal fun KeyTransferNavHost(
                 }
 
                 composable("key_transfer_scanner") {
-                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+//                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+                    LaunchedEffect(key1 = "key_transfer_scanner") {
+                        hostController.sheetState?.animateTo(ModalBottomSheetValue.Expanded)
+                    }
                     KeyTransferScanner(
                         hostController = hostController,
                         viewModel = viewModel,
@@ -121,7 +124,10 @@ internal fun KeyTransferNavHost(
                 }
 
                 composable("key_transfer_code") {
-                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+//                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+                    LaunchedEffect(key1 = "key_transfer_code") {
+                        hostController.sheetState?.animateTo(ModalBottomSheetValue.Expanded)
+                    }
                     KeyTransferCode(
                         onNavBack = { backFn() },
                         viewModel = viewModel

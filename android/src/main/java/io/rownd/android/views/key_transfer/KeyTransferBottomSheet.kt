@@ -3,18 +3,15 @@ package io.rownd.android.views.key_transfer
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.ComposeView
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ModalBottomSheetState
+import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
-import io.rownd.android.R
-import io.rownd.android.views.*
+import io.rownd.android.views.ComposableBottomSheetFragment
 
-class KeyTransferBottomSheet : BottomSheet() {
+class KeyTransferBottomSheet : ComposableBottomSheetFragment() {
 
-    override var layoutId = R.layout.key_transfer_layout
     private var permissionRequestCallback: ((isGranted: Boolean) -> Unit)? = null
     private val requestPermission = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -22,23 +19,10 @@ class KeyTransferBottomSheet : BottomSheet() {
         permissionRequestCallback?.invoke(isGranted)
     }
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-//        val bundle = this.arguments
-
-        val view = super.onCreateView(inflater, container, savedInstanceState)
-            ?: throw Exception("Failed to create view")
-
-        val composeView = view.findViewById<ComposeView>(R.id.key_transfer_start_compose_view)
-
-        composeView.setContent {
-            KeyTransferNavHost(hostController = this)
-        }
-
-        return view
+    @OptIn(ExperimentalMaterialApi::class)
+    @Composable
+    override fun Content(bottomSheetState: ModalBottomSheetState, setIsLoading: (isLoading: Boolean) -> Unit) {
+        KeyTransferNavHost(hostController = this)
     }
 
     internal fun isCameraPermissionGranted(): Boolean {
@@ -80,6 +64,8 @@ class KeyTransferBottomSheet : BottomSheet() {
     }
 
     companion object {
+        const val TAG = "KeyTransferComposableBottomSheet"
+
         fun newInstance(): KeyTransferBottomSheet {
             val bundle = Bundle()
 

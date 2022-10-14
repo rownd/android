@@ -2,9 +2,8 @@ package io.rownd.android.views
 
 import android.os.Bundle
 import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.viewinterop.AndroidViewBinding
 import io.rownd.android.Rownd
@@ -12,17 +11,11 @@ import io.rownd.android.databinding.HubViewLayoutBinding
 import kotlinx.serialization.json.Json
 
 class HubComposableBottomSheet : ComposableBottomSheetFragment() {
+    override val shouldDisplayLoader = true
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View {
-        return super.onCreateView(inflater, container, savedInstanceState)
-    }
-
+    @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    override fun Content(setIsLoading: (isLoading: Boolean) -> Unit) {
+    override fun Content(bottomSheetState: ModalBottomSheetState, setIsLoading: (isLoading: Boolean) -> Unit) {
         val bundle = this.arguments
         val targetPage: HubPageSelector =
             (bundle?.getSerializable(HubBottomSheetBundleKeys.TargetPage.key)
@@ -35,12 +28,10 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
         AndroidViewBinding(
             factory = HubViewLayoutBinding::inflate,
             update = {
-//                LogCompositions(tag = "HubComposableBottomSheet", msg = "Composing AndroidViewBinding")
-                Log.d("HubComposableBottomSheet", "Parent: ${parent}")
             this.hubWebview.dialog = parent
             val url = Rownd.config.hubLoaderUrl()
             this.hubWebview.progressBar = this.hubProgressBar
-                this.hubWebview.setIsLoading = setIsLoading
+            this.hubWebview.setIsLoading = setIsLoading
             this.hubWebview.targetPage = targetPage ?: HubPageSelector.SignIn
             this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: "{}"
             this.hubWebview.loadUrl(url)
