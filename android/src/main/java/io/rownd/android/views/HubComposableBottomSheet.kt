@@ -10,6 +10,10 @@ import io.rownd.android.Rownd
 import io.rownd.android.databinding.HubViewLayoutBinding
 import kotlinx.serialization.json.Json
 
+enum class HubBottomSheetBundleKeys(val key: String) {
+    TargetPage("target_page")
+}
+
 class HubComposableBottomSheet : ComposableBottomSheetFragment() {
     override val shouldDisplayLoader = true
 
@@ -20,9 +24,9 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
         val targetPage: HubPageSelector =
             (bundle?.getSerializable(HubBottomSheetBundleKeys.TargetPage.key)
                 ?: HubPageSelector.Unknown) as HubPageSelector
-        val jsFnArgsAsJson = bundle?.getString(HubBottomSheet.JS_FN_OPTIONS)
+        val jsFnArgsAsJson = bundle?.getString(JS_FN_OPTIONS)
 
-        Log.d("HubComposableBottomSheet", "jsFnArgsAsJson: ${jsFnArgsAsJson}")
+        Log.d("HubComposableBottomSheet", "jsFnArgsAsJson: $jsFnArgsAsJson")
 
         val parent = this
         AndroidViewBinding(
