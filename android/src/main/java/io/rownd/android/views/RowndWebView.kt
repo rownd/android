@@ -6,6 +6,7 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.net.Uri
 import android.os.Build
 import android.util.AttributeSet
@@ -123,7 +124,8 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
 
         // The following urls should always open in the hub web view
         val urlStrings: List<String> = persistentListOf(
-            "https://appleid.apple.com/auth/authorize"
+            "https://appleid.apple.com/auth/authorize",
+            Rownd.config.baseUrl
         )
         val match = urlStrings.find {
             url.toString().startsWith(it)
@@ -143,12 +145,17 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
         }
 
         webView.setIsLoading?.invoke(true)
+
+        if (url?.startsWith(Rownd.config.baseUrl) == true) {
+            view?.setBackgroundColor(0x00000000)
+        } else {
+            view?.setBackgroundColor(Color.WHITE)
+        }
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
         view?.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
-        view?.setBackgroundColor(0x00000000)
 
         when ((view as RowndWebView).targetPage) {
             HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")

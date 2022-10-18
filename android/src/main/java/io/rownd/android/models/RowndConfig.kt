@@ -15,6 +15,7 @@ data class RowndConfig(
     var baseUrl: String = "https://hub.rownd.io",
     var apiUrl: String = "https://api.rownd.io",
     var postSignInRedirect: String? = null,
+    var appleIdCallbackUrl: String? = null,
     var customizations: RowndCustomizations = RowndCustomizations()
 ) {
     fun hubLoaderUrl(): String {
