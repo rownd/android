@@ -17,6 +17,16 @@ implementation 'io.rownd:android:1.0.0'
 
 After adding, run a Gradle sync and the Rownd SDK/API should be available within your IDE.
 
+### ProGuard config
+
+If you're using ProGuard to shrink, obfuscate, and/or optimize your app ([and you should!](https://developer.android.com/studio/build/shrink-code)), you'll need to add the following rules to your `proguard-rules.pro` file.
+
+```
+-dontwarn java.awt.*
+-keep class com.sun.jna.* { *; }
+-keepclassmembers class * extends com.sun.jna.* { public *; }
+```
+
 ## Usage
 
 ### Initializing the Rownd SDK
