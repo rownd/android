@@ -14,6 +14,8 @@ import android.util.Log
 import android.view.View
 import android.webkit.*
 import android.widget.ProgressBar
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ModalBottomSheetValue
 import androidx.fragment.app.DialogFragment
 import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInHint
@@ -52,6 +54,8 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal var jsFunctionArgsAsJson: String = "{}"
     internal var progressBar: ProgressBar? = null
     internal var setIsLoading: ((isLoading: Boolean) -> Unit)? = null
+    @OptIn(ExperimentalMaterialApi::class)
+    internal var animateBottomSheet: ((to: ModalBottomSheetValue) -> Unit)? = null
 
     init {
         this.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
@@ -153,6 +157,7 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
         }
     }
 
+    @OptIn(ExperimentalMaterialApi::class)
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
         view?.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
@@ -169,6 +174,10 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
                 webView.progressBar?.visibility = View.INVISIBLE
             }
             webView.setIsLoading?.invoke(false)
+        }
+
+        if (url?.startsWith(Rownd.config.baseUrl) == false) {
+            webView.animateBottomSheet?.invoke(ModalBottomSheetValue.Expanded)
         }
     }
 
