@@ -57,7 +57,7 @@ data class CustomizationsConfig constructor(
 )
 
 @Serializable
-data class HubConfig constructor (
+data class HubConfig constructor(
     val auth: HubAuthConfig = HubAuthConfig(),
     val customizations: HubCustomizationsConfig? = HubCustomizationsConfig(),
     @SerialName("custom_styles")
