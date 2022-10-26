@@ -40,6 +40,8 @@ open class RowndCustomizations() {
     // The "standard" font scale on Android should be 1.0 and the font scale for the
     // Hub is about 12pt, so we'll multiply the Hub's baseline with the Android fontScale
     val defaultFontSize: Float = Resources.getSystem().configuration.fontScale * 12
+    var customStylesFlag: Boolean = false
+    var fontFamily: String? = null
 }
 
 class ColorAsHexStringSerializer : KSerializer<Color> {

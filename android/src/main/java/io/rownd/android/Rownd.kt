@@ -25,6 +25,7 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import dagger.Component
 import io.rownd.android.models.RowndConfig
+import io.rownd.android.models.RowndCustomizations
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
@@ -41,6 +42,7 @@ import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -85,6 +87,8 @@ class RowndClient constructor(
         rowndContext.config = config
         stateRepo.userRepo = userRepo
     }
+
+    private var coroutineScope: Job? = null
 
     private fun configure(appKey: String) {
         config.appKey = appKey
@@ -146,6 +150,14 @@ class RowndClient constructor(
             false
         ) {
             launchers.remove(it.localClassName)
+        }
+
+        coroutineScope = CoroutineScope(Dispatchers.IO).launch {
+            Rownd.state.collect {
+                config.customizations.customStylesFlag =
+                    state.value.appConfig.config.hub.customStyles?.isNotEmpty() ?: false
+                config.customizations.fontFamily = state.value.appConfig.config.hub.customizations?.fontFamily
+            }
         }
     }
 
