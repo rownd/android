@@ -74,7 +74,7 @@ data class HubCustomizationsConfig constructor(
 
 @Serializable
 data class HubCustomStylesConfig constructor(
-    val content: String = "",
+    val content: String? = "",
 )
 
 @Serializable
