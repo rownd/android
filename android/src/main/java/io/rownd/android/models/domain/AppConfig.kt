@@ -57,9 +57,11 @@ data class CustomizationsConfig constructor(
 )
 
 @Serializable
-data class HubConfig constructor(
+data class HubConfig(
     val auth: HubAuthConfig = HubAuthConfig(),
     val customizations: HubCustomizationsConfig? = HubCustomizationsConfig(),
+    @SerialName("custom_styles")
+    val customStyles: List<HubCustomStylesConfig>? = List(0) { HubCustomStylesConfig() }
 )
 
 @Serializable
@@ -68,6 +70,11 @@ data class HubCustomizationsConfig constructor(
     val fontFamily: String? = null,
     @SerialName("dark_mode")
     val darkMode: String? = null,
+)
+
+@Serializable
+data class HubCustomStylesConfig constructor(
+    val content: String = "",
 )
 
 @Serializable
