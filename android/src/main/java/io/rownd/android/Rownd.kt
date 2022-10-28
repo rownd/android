@@ -6,6 +6,7 @@ import android.app.Application
 import android.content.Intent
 import android.util.Log
 import androidx.activity.result.ActivityResult
+import androidx.activity.result.ActivityResultCaller
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -13,6 +14,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStoreOwner
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -33,7 +35,7 @@ import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -61,7 +63,10 @@ object Rownd {
                 Lifecycle.State.CREATED
             ), true
         ) {
-            hubViewModel = ViewModelProvider(it as AppCompatActivity, hubViewModelFactory)[RowndWebViewModel::class.java]
+            if (it !is ViewModelStoreOwner) {
+                return@registerActivityListener
+            }
+            hubViewModel = ViewModelProvider(it as ViewModelStoreOwner, hubViewModelFactory)[RowndWebViewModel::class.java]
             // Re-triggers the sign-in sheet in the event that the activity restarted during sign-in
             if (hubViewModel.webView().value != null) {
                 displayHub(HubPageSelector.Unknown)
@@ -77,11 +82,10 @@ object Rownd {
 
         // Add an activity result callback for Google sign in
         appHandleWrapper.registerActivityListener(persistentListOf(Lifecycle.State.CREATED), false) {
-            if (launcher == null && it is AppCompatActivity) {
+            if (it is ActivityResultCaller) {
                 launcher =
                     it.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-                        @Suppress("DeferredResultUnused")
-                        CoroutineScope(Dispatchers.IO).async {
+                        CoroutineScope(Dispatchers.IO).launch {
                             handleSignInWithGoogleCallback(result)
                         }
                     }
@@ -155,7 +159,8 @@ object Rownd {
             .requestIdToken(googleSignInMethodConfig.clientId)
             .build()
 
-        val activity = appHandleWrapper.activity?.get() as AppCompatActivity
+        val activity = appHandleWrapper.activity?.get() ?: return
+
         val googleSignInClient = GoogleSignIn.getClient(activity, gso)
         val signInIntent: Intent = googleSignInClient.signInIntent
         launcher?.launch(signInIntent)
