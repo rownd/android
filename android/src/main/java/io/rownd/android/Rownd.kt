@@ -126,7 +126,6 @@ object Rownd {
     fun signOut() {
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
-//        displayHub(HubPageSelector.SignOut)
     }
 
     @JvmStatic
