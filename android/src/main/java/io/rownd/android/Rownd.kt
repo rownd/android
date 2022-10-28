@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
@@ -27,6 +28,7 @@ import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.RowndException
 import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
+import io.rownd.android.views.RowndWebViewModel
 import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
@@ -45,10 +47,26 @@ object Rownd {
     internal lateinit var store: Store<GlobalState, StateAction>
     var state = StateRepo.state
     private var launcher: ActivityResultLauncher<Intent>? = null
+    private lateinit var hubViewModel: RowndWebViewModel
 
     private fun configure(appKey: String) {
         config.appKey = appKey
+
         store = StateRepo.setup(appHandleWrapper.app.get()!!.applicationContext.dataStore)
+
+        // Webview holder in case of activity restarts during auth
+        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!)
+        appHandleWrapper.registerActivityListener(
+            persistentListOf(
+                Lifecycle.State.CREATED
+            ), true
+        ) {
+            hubViewModel = ViewModelProvider(it as AppCompatActivity, hubViewModelFactory)[RowndWebViewModel::class.java]
+            // Re-triggers the sign-in sheet in the event that the activity restarted during sign-in
+            if (hubViewModel.webView().value != null) {
+                displayHub(HubPageSelector.Unknown)
+            }
+        }
 
         appHandleWrapper.registerActivityListener(
             persistentListOf(
@@ -59,9 +77,9 @@ object Rownd {
 
         // Add an activity result callback for Google sign in
         appHandleWrapper.registerActivityListener(persistentListOf(Lifecycle.State.CREATED), false) {
-            if (launcher == null) {
+            if (launcher == null && it is AppCompatActivity) {
                 launcher =
-                    (it as AppCompatActivity).registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                    it.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                         @Suppress("DeferredResultUnused")
                         CoroutineScope(Dispatchers.IO).async {
                             handleSignInWithGoogleCallback(result)
@@ -108,7 +126,7 @@ object Rownd {
     fun signOut() {
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
-        displayHub(HubPageSelector.SignOut)
+//        displayHub(HubPageSelector.SignOut)
     }
 
     @JvmStatic
@@ -177,16 +195,23 @@ object Rownd {
 
     // Internal stuff
     private fun displayHub(targetPage: HubPageSelector, jsFnOptions: RowndSignInOptions? = null) {
-        val activity = appHandleWrapper.activity?.get() as FragmentActivity
+        try {
+            val activity = appHandleWrapper.activity?.get() as FragmentActivity
 
-        var jsFnOptionsStr: String? = null
-        if (jsFnOptions != null) {
-            jsFnOptionsStr = json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions)
+            if (activity.isFinishing) {
+                return
+            }
+
+            var jsFnOptionsStr: String? = null
+            if (jsFnOptions != null) {
+                jsFnOptionsStr = json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions)
+            }
+
+            val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
+            bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
+        } catch(exception: Exception) {
+            Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage")
         }
-
-//        val bottomSheet = HubBottomSheet.newInstance(targetPage, jsFnOptionsStr)
-        val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
-        bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
     }
 }
 

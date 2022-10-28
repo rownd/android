@@ -90,10 +90,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
-    override fun dismiss() {
-        super.dismiss()
-    }
-
     @ExperimentalMaterialApi
     @Composable
     private fun BottomSheet() {
@@ -102,7 +98,11 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         // Declaring a Boolean value to
         // store bottom sheet collapsed state
         val bottomSheetState = rememberModalBottomSheetState(
-            initialValue = ModalBottomSheetValue.HalfExpanded
+            initialValue = ModalBottomSheetValue.HalfExpanded,
+
+            // TODO: Perhaps we should support blocking the bottom sheet from closing
+            //  when certain operations are in progress.
+            // confirmStateChange = { false }
         )
         sheetState = bottomSheetState
 
@@ -134,7 +134,10 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
             sheetBackgroundColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
             sheetShape = RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius),
             sheetContent = {
-                BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+                BoxWithConstraints(
+                    modifier = Modifier
+                        .fillMaxSize()
+                ) {
                     Column(
                         modifier = Modifier
                             .height(maxHeight)
