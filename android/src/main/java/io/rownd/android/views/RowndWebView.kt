@@ -9,6 +9,7 @@ import android.graphics.Color
 import android.net.Uri
 import android.util.AttributeSet
 import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import android.webkit.*
 import android.widget.ProgressBar
@@ -75,6 +76,21 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         }
     }
 
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        if (event!!.action == KeyEvent.ACTION_DOWN) {
+            when (keyCode) {
+                KeyEvent.KEYCODE_BACK -> {
+                    if (this.canGoBack()) {
+                        this.goBack()
+                    } else {
+                        dismiss?.invoke()
+                    }
+                    return true
+                }
+            }
+        }
+        return super.onKeyDown(keyCode, event)
+    }
 }
 
 class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {

@@ -63,7 +63,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                 val rootViewGroup = view.root
                 val currentWebView = view.hubWebview
 
-                if (existingWebView != null) {
+                if (existingWebView != null && existingWebView?.parent == null) {
                     val oldWebViewIndex = viewGroup.indexOfChild(currentWebView)
                     rootViewGroup.removeView(currentWebView)
                     rootViewGroup.addView(existingWebView, oldWebViewIndex, currentWebView.layoutParams)
