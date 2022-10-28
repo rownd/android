@@ -2,6 +2,8 @@ package io.rownd.android.views
 
 import android.os.Bundle
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -9,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.viewinterop.AndroidViewBinding
+import androidx.lifecycle.ViewModelProvider
 import io.rownd.android.Rownd
 import io.rownd.android.databinding.HubViewLayoutBinding
 import kotlinx.coroutines.launch
@@ -20,6 +23,24 @@ enum class HubBottomSheetBundleKeys(val key: String) {
 
 class HubComposableBottomSheet : ComposableBottomSheetFragment() {
     override val shouldDisplayLoader = true
+
+    private var existingWebView: RowndWebView? = null
+    private var viewModel: RowndWebViewModel? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        viewModel = ViewModelProvider(this.requireActivity())[RowndWebViewModel::class.java]
+        viewModel?.webView()?.observe(this) {
+            existingWebView = it
+        }
+    }
+
+    // Internal dismiss function to recycle web view
+    protected fun _dismiss() {
+        viewModel?.webView()?.postValue(null)
+        dismiss()
+    }
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
@@ -37,7 +58,21 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
 
         val parent = this
         AndroidViewBinding(
-            factory = HubViewLayoutBinding::inflate,
+            factory = { layoutInflater: LayoutInflater, viewGroup: ViewGroup, b: Boolean ->
+                val view = HubViewLayoutBinding.inflate(layoutInflater, viewGroup, b)
+                val rootViewGroup = view.root
+                val currentWebView = view.hubWebview
+
+                if (existingWebView != null) {
+                    val oldWebViewIndex = viewGroup.indexOfChild(currentWebView)
+                    rootViewGroup.removeView(currentWebView)
+                    rootViewGroup.addView(existingWebView, oldWebViewIndex, currentWebView.layoutParams)
+                } else {
+                    viewModel?.webView()?.postValue(currentWebView)
+                }
+
+                return@AndroidViewBinding view
+            },
             update = {
                 this.hubWebview.dialog = parent
                 val url = Rownd.config.hubLoaderUrl()
@@ -49,6 +84,9 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                     coroutineScope.launch {
                         bottomSheetState.animateTo(it)
                     }
+                }
+                this.hubWebview.dismiss = {
+                    _dismiss()
                 }
                 if (!hasLoadedUrl) {
                     this.hubWebview.loadUrl(url)

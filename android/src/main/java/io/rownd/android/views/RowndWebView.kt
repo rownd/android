@@ -4,11 +4,9 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
-import android.content.res.Configuration
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.net.Uri
-import android.os.Build
 import android.util.AttributeSet
 import android.util.Log
 import android.view.View
@@ -17,6 +15,7 @@ import android.widget.ProgressBar
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.fragment.app.DialogFragment
+import androidx.webkit.*
 import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInHint
 import io.rownd.android.models.AuthenticationMessage
@@ -50,6 +49,7 @@ private const val HUB_CLOSE_AFTER_SECS: Long = 1
 @SuppressLint("SetJavaScriptEnabled")
 class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, attrs), DialogChild {
     override var dialog: DialogFragment? = null
+    internal var dismiss: (() -> Unit)? = null
     internal var targetPage: HubPageSelector = HubPageSelector.Unknown
     internal var jsFunctionArgsAsJson: String = "{}"
     internal var progressBar: ProgressBar? = null
@@ -65,13 +65,6 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val nightModeFlags = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-            if (nightModeFlags == Configuration.UI_MODE_NIGHT_YES) {
-                settings.forceDark = WebSettings.FORCE_DARK_ON
-            }
-        }
 
         this.addJavascriptInterface(RowndJavascriptInterface(this), "rowndAndroidSDK")
         this.webViewClient = RowndWebViewClient(this)
@@ -220,7 +213,7 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                 UserRepo.loadUserAsync()
 
                 Executors.newSingleThreadScheduledExecutor().schedule({
-                    parentWebView.dialog?.dismiss()
+                    parentWebView.dismiss?.invoke()
                 }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
             }
 
@@ -230,7 +223,7 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                 }
 
                 Executors.newSingleThreadScheduledExecutor().schedule({
-                    parentWebView.dialog?.dismiss()
+                    parentWebView.dismiss?.invoke()
                 }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
 
                 Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
@@ -239,7 +232,7 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
 
             MessageType.triggerSignInWithGoogle -> {
                 Rownd.requestSignIn(RowndSignInHint.Google)
-                parentWebView.dialog?.dismiss()
+                parentWebView.dismiss?.invoke()
             }
 
             MessageType.UserDataUpdate -> {
@@ -252,7 +245,7 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
             }
 
             MessageType.CloseHubView -> {
-                parentWebView.dialog?.dismiss()
+                parentWebView.dismiss?.invoke()
             }
             else -> {
                 Log.w("RowndHub", "An unknown message was received")
