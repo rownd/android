@@ -130,6 +130,11 @@ object Rownd {
     fun signOut() {
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
+
+        val googleSignInMethodConfig = state.value.appConfig.config.hub.auth.signInMethods.google
+        if (googleSignInMethodConfig.enabled) {
+            signOutOfGoogle()
+        }
     }
 
     @JvmStatic
@@ -143,6 +148,18 @@ object Rownd {
 
         val bottomSheet = KeyTransferBottomSheet.newInstance()
         bottomSheet.show(activity.supportFragmentManager, KeyTransferBottomSheet.TAG)
+    }
+
+    private fun signOutOfGoogle() {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
+        val activity = appHandleWrapper.activity?.get() ?: return
+        val googleSignInClient = GoogleSignIn.getClient(activity, gso)
+
+        googleSignInClient.signOut().addOnCompleteListener(activity) {
+            if (!it.isSuccessful) {
+                Log.w("Rownd", "Failed to sign out of Google")
+            }
+        }
     }
 
     private fun signInWithGoogle() {
