@@ -84,12 +84,12 @@ object Rownd {
         // Add an activity result callback for Google sign in
         appHandleWrapper.registerActivityListener(persistentListOf(Lifecycle.State.CREATED), false) {
             if (it is ActivityResultCaller) {
-                launchers.put(it.localClassName,
+                launchers[it.toString()] =
                     it.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                         CoroutineScope(Dispatchers.IO).launch {
                             handleSignInWithGoogleCallback(result)
                         }
-                    })
+                    }
             }
         }
 
@@ -186,8 +186,7 @@ object Rownd {
 
         val googleSignInClient = GoogleSignIn.getClient(activity, gso)
         val signInIntent: Intent = googleSignInClient.signInIntent
-        launchers.get(activity.localClassName)?.launch(signInIntent)
-//        launcher?.launch(signInIntent)
+        launchers[activity.toString()]?.launch(signInIntent)
     }
 
     private suspend fun handleSignInWithGoogleCallback(result: ActivityResult) {
