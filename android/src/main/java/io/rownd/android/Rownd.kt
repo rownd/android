@@ -49,6 +49,7 @@ object Rownd {
     internal lateinit var store: Store<GlobalState, StateAction>
     var state = StateRepo.state
     private var launcher: ActivityResultLauncher<Intent>? = null
+    private var launchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private lateinit var hubViewModel: RowndWebViewModel
 
     private fun configure(appKey: String) {
@@ -83,13 +84,18 @@ object Rownd {
         // Add an activity result callback for Google sign in
         appHandleWrapper.registerActivityListener(persistentListOf(Lifecycle.State.CREATED), false) {
             if (it is ActivityResultCaller) {
-                launcher =
+                launchers.put(it.localClassName,
                     it.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                         CoroutineScope(Dispatchers.IO).launch {
                             handleSignInWithGoogleCallback(result)
                         }
-                    }
+                    })
             }
+        }
+
+        // Remove Google sign-in callbacks if activity is destroyed
+        appHandleWrapper.registerActivityListener(persistentListOf(Lifecycle.State.DESTROYED), false) {
+            launchers.remove(it.localClassName)
         }
     }
 
@@ -180,7 +186,8 @@ object Rownd {
 
         val googleSignInClient = GoogleSignIn.getClient(activity, gso)
         val signInIntent: Intent = googleSignInClient.signInIntent
-        launcher?.launch(signInIntent)
+        launchers.get(activity.localClassName)?.launch(signInIntent)
+//        launcher?.launch(signInIntent)
     }
 
     private suspend fun handleSignInWithGoogleCallback(result: ActivityResult) {

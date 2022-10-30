@@ -51,6 +51,13 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
 
     override fun onActivityStarted(activity: Activity) {
         this.activity = WeakReference(activity)
+
+        val listeners = activityListeners.filter() {
+            it.states.contains(State.STARTED)
+        }
+        for (listener in listeners) {
+            listener.callback.invoke(activity)
+        }
     }
 
     override fun onActivityResumed(activity: Activity) {
@@ -80,7 +87,14 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
     override fun onActivityPaused(activity: Activity) {}
     override fun onActivityStopped(activity: Activity) {}
     override fun onActivitySaveInstanceState(activity: Activity, bundle: Bundle) {}
-    override fun onActivityDestroyed(activity: Activity) {}
+    override fun onActivityDestroyed(activity: Activity) {
+        val listeners = activityListeners.filter() {
+            it.states.contains(State.DESTROYED)
+        }
+        for (listener in listeners) {
+            listener.callback.invoke(activity)
+        }
+    }
 
     internal fun registerActivityListener(states: PersistentList<State>, immediate: Boolean = false, callback: (activity: Activity) -> Unit) {
         val activity = this.activity?.get() ?: null
