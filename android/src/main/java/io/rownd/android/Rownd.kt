@@ -216,6 +216,12 @@ object Rownd {
     }
 
     @JvmStatic
+    suspend fun _refreshToken(): String? {
+        val result = AuthRepo.refreshTokenAsync().await()
+        return result.accessToken
+    }
+
+    @JvmStatic
     fun isEncryptionPossible() : Boolean {
         return UserRepo.isEncryptionPossible()
     }
