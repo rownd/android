@@ -25,6 +25,7 @@ If you're using ProGuard to shrink, obfuscate, and/or optimize your app ([and yo
 -dontwarn java.awt.*
 -keep class com.sun.jna.* { *; }
 -keepclassmembers class * extends com.sun.jna.* { public *; }
+-keep public class * extends androidx.lifecycle.ViewModel {*;}
 ```
 
 ## Usage
