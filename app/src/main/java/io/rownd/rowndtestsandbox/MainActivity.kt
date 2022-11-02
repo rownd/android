@@ -1,6 +1,7 @@
 package io.rownd.rowndtestsandbox
 
 import android.os.Bundle
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.*
@@ -9,6 +10,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.databinding.DataBindingUtil
@@ -17,12 +19,31 @@ import io.rownd.android.RowndSignInOptions
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.Encryption
 import io.rownd.rowndtestsandbox.databinding.ActivityMainBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
     private val _encKey = MutableStateFlow("")
+
+    private fun refreshTokenTest() {
+        CoroutineScope(Dispatchers.Default).launch {
+            val newToken = Rownd._refreshToken()
+            Log.d("Token 1:", newToken ?: "null")
+        }
+
+        CoroutineScope(Dispatchers.Default).launch {
+            val newToken = Rownd._refreshToken()
+            Log.d("Token 2:", newToken ?: "null")
+        }
+
+        CoroutineScope(Dispatchers.Default).launch {
+            val newToken = Rownd._refreshToken()
+            Log.d("Token 3:", newToken ?: "null")
+        }
+    }
 
     @OptIn(ExperimentalMaterialApi::class)
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -130,6 +151,15 @@ class MainActivity : AppCompatActivity() {
                                         }
                                     ) {
                                         Text("Edit profile")
+                                    }
+
+                                    Button(
+                                        modifier = Modifier.padding(horizontal = 5.dp),
+                                        onClick = {
+                                            refreshTokenTest()
+                                        }
+                                    ) {
+                                        Text("Refresh token")
                                     }
                                 }
 //                }

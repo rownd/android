@@ -134,6 +134,7 @@ object Rownd {
 
     @JvmStatic
     fun signOut() {
+        hubViewModel.webView().postValue(null)
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
 
