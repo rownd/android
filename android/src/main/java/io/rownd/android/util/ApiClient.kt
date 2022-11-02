@@ -6,11 +6,13 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import okhttp3.Interceptor
-import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Response
+import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Invocation
 import retrofit2.Retrofit
+
 
 val json = Json { ignoreUnknownKeys = true }
 
@@ -46,15 +48,23 @@ internal class DefaultHeadersInterceptor : Interceptor {
     }
 }
 
+internal var reqLogging = HttpLoggingInterceptor().apply {
+    this.setLevel(HttpLoggingInterceptor.Level.BODY)
+}
+
 object ApiClient {
-    private val okHttpClient = OkHttpClient.Builder().addInterceptor(DefaultHeadersInterceptor()).build()
+    private val okHttpClient = OkHttpClient
+        .Builder()
+        .addInterceptor(DefaultHeadersInterceptor())
+        .addInterceptor(reqLogging)
+        .build()
 
     @OptIn(ExperimentalSerializationApi::class)
     fun getInstance(): Retrofit {
 
         return Retrofit.Builder().baseUrl(Rownd.config.apiUrl)
             .client(okHttpClient)
-            .addConverterFactory(json.asConverterFactory(MediaType.get("application/json")))
+            .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .addCallAdapterFactory(ResultCallAdapterFactory())
             .build()
     }

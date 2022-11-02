@@ -134,6 +134,7 @@ object Rownd {
 
     @JvmStatic
     fun signOut() {
+        hubViewModel.webView().postValue(null)
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
 
@@ -213,6 +214,12 @@ object Rownd {
     @JvmStatic
     suspend fun getAccessToken(): String? {
         return AuthRepo.getAccessToken()
+    }
+
+    @JvmStatic
+    suspend fun _refreshToken(): String? {
+        val result = AuthRepo.refreshTokenAsync().await()
+        return result.accessToken
     }
 
     @JvmStatic
