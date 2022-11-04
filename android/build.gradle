@@ -123,12 +123,6 @@ dependencies {
 
     androidTestImplementation "com.google.dagger:dagger:$dagger_version"
     kaptAndroidTest "com.google.dagger:dagger-compiler:$dagger_version"
-//    androidTestImplementation  'com.google.dagger:hilt-android-testing:2.44'
-//    kaptAndroidTest 'com.google.dagger:hilt-compiler:2.44'
-//
-//    // For local unit tests
-//    testImplementation 'com.google.dagger:hilt-android-testing:2.44'
-//    kaptTest 'com.google.dagger:hilt-compiler:2.44'
 
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version"
