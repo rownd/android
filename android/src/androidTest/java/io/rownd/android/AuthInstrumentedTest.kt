@@ -36,7 +36,6 @@ class AuthInstrumentedTest {
         val config = RowndConfig()
         Rownd.config.apiUrl = server.url("/").toString()
         rownd = RowndClient(DaggerRowndGraph.create(), config)
-//        injectInstrumentation(InstrumentationRegistry.getInstrumentation()
     }
 
     @After
@@ -112,6 +111,9 @@ class AuthInstrumentedTest {
 
     @Test
     fun auto_refresh_expired_token_multi_call() = runTest {
+        // We enqueue three different calls in case the refresh token API gets
+        // called multiple times. If it does, that's typically bad and will
+        // cause the test assertions to fail.
         server.enqueue(MockResponse()
             .setResponseCode(200)
             .setBody("""
