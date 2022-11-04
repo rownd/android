@@ -44,7 +44,6 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import javax.inject.Inject
 import javax.inject.Singleton
 
 // The default Rownd instance
@@ -53,40 +52,34 @@ val Rownd = RowndClient(DaggerRowndGraph.create())
 @Singleton
 @Component(modules = [ApiClientModule::class])
 interface RowndGraph {
-    fun instance(): RowndInstance
     fun stateRepo(): StateRepo
     fun userRepo(): UserRepo
+    fun authRepo(): AuthRepo
+    fun signInLinkApi(): SignInLinkApi
 }
 
-@Singleton
-class RowndInstance @Inject constructor() {
-    @Inject lateinit var stateRepo: StateRepo
-    @Inject lateinit var authRepo: AuthRepo
-    @Inject lateinit var userRepo: UserRepo
-    @Inject lateinit var signInLinkApi: SignInLinkApi
-}
-
-class RowndClient constructor(graph: RowndGraph, val config: RowndConfig = RowndConfig()) {
-    internal var graph: RowndGraph
-
+class RowndClient constructor(
+    val graph: RowndGraph,
+    val config: RowndConfig = RowndConfig()
+) {
     private val json = Json { encodeDefaults = true }
     internal lateinit var appHandleWrapper: AppLifecycleListener
 
     internal lateinit var store: Store<GlobalState, StateAction>
 
-    val inst = graph.instance()
-    var state = inst.stateRepo.state
+    var stateRepo: StateRepo = graph.stateRepo()
+    var userRepo: UserRepo = graph.userRepo()
+    var authRepo: AuthRepo = graph.authRepo()
+    var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
+
+    var state = stateRepo.state
     private var launchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private lateinit var hubViewModel: RowndWebViewModel
-
-    init {
-        this.graph = graph
-    }
 
     private fun configure(appKey: String) {
         config.appKey = appKey
 
-        store = inst.stateRepo.setup(appHandleWrapper.app.get()!!.applicationContext.dataStore)
+        store = stateRepo.setup(appHandleWrapper.app.get()!!.applicationContext.dataStore)
 
         // Clear webview cache on startup
         Handler(Looper.getMainLooper()).post {
@@ -118,7 +111,7 @@ class RowndClient constructor(graph: RowndGraph, val config: RowndConfig = Rownd
                 Lifecycle.State.RESUMED
             ), true
         ) {
-            inst.signInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
+            signInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
         }
 
         // Add an activity result callback for Google sign in
@@ -242,7 +235,7 @@ class RowndClient constructor(graph: RowndGraph, val config: RowndConfig = Rownd
             if (account.idToken == "") {
                 Log.w("Rownd", "Google sign-in failed: missing idToken")
             } else {
-                account.idToken?.let { idToken -> inst.authRepo.getAccessToken(idToken) }
+                account.idToken?.let { idToken -> authRepo.getAccessToken(idToken) }
             }
         } catch (e: ApiException) {
             // The ApiException status code indicates the detailed failure reason.
@@ -252,16 +245,16 @@ class RowndClient constructor(graph: RowndGraph, val config: RowndConfig = Rownd
     }
 
     suspend fun getAccessToken(): String? {
-        return inst.authRepo.getAccessToken()
+        return authRepo.getAccessToken()
     }
 
     suspend fun _refreshToken(): String? {
-        val result = inst.authRepo.refreshTokenAsync().await()
+        val result = authRepo.refreshTokenAsync().await()
         return result?.accessToken
     }
 
     fun isEncryptionPossible(): Boolean {
-        return inst.userRepo.isEncryptionPossible()
+        return userRepo.isEncryptionPossible()
     }
 
     // Internal stuff

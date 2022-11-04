@@ -50,7 +50,7 @@ class AuthInstrumentedTest {
             .setBody("")
         )
 
-        val resp = rownd.inst.authRepo.refreshTokenAsync().await()
+        val resp = rownd.authRepo.refreshTokenAsync().await()
 
         assertNull(resp)
         assertFalse(rownd.state.value.auth.isAuthenticated)
@@ -63,9 +63,9 @@ class AuthInstrumentedTest {
             .setBody("{\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Invalid refresh token: Refresh token has been consumed\"}")
         )
 
-        val storeField = rownd.inst.stateRepo.javaClass.getDeclaredField("store")
+        val storeField = rownd.stateRepo.javaClass.getDeclaredField("store")
         storeField.isAccessible = true
-        (storeField.get(rownd.inst.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
             StateAction.SetAuth(AuthState(
                 accessToken = jwtGenerator.generateTestJwt(
                     expires = Date.from(Instant.now().minusSeconds(120))
@@ -74,7 +74,7 @@ class AuthInstrumentedTest {
             ))
         )
 
-        val resp = rownd.inst.authRepo.refreshTokenAsync().await()
+        val resp = rownd.authRepo.refreshTokenAsync().await()
 
         assertNull(resp)
         assertFalse(rownd.state.value.auth.isAuthenticated)
@@ -92,9 +92,9 @@ class AuthInstrumentedTest {
             """.trimIndent())
         )
 
-        val storeField = rownd.inst.stateRepo.javaClass.getDeclaredField("store")
+        val storeField = rownd.stateRepo.javaClass.getDeclaredField("store")
         storeField.isAccessible = true
-        (storeField.get(rownd.inst.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
             StateAction.SetAuth(AuthState(
                 accessToken = jwtGenerator.generateTestJwt(
                     expires = Date.from(Instant.now().minusSeconds(120))
@@ -103,7 +103,7 @@ class AuthInstrumentedTest {
             ))
         )
 
-        val resp = rownd.inst.authRepo.refreshTokenAsync().await()
+        val resp = rownd.authRepo.refreshTokenAsync().await()
 
         assertNotNull(resp)
         assertTrue(rownd.state.value.auth.isAuthenticated)
@@ -145,9 +145,9 @@ class AuthInstrumentedTest {
         )
 
         // Initial state prior to test
-        val storeField = rownd.inst.stateRepo.javaClass.getDeclaredField("store")
+        val storeField = rownd.stateRepo.javaClass.getDeclaredField("store")
         storeField.isAccessible = true
-        (storeField.get(rownd.inst.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
             StateAction.SetAuth(AuthState(
                 accessToken = jwtGenerator.generateTestJwt(
                     expires = Date.from(Instant.now().minusSeconds(120))
@@ -162,11 +162,11 @@ class AuthInstrumentedTest {
         // to ensure that the refresh token flow is only being
         // called once per expired access token.
         val tokens = awaitAll(async {
-            rownd.inst.authRepo.getAccessToken()
+            rownd.authRepo.getAccessToken()
         }, async {
-            rownd.inst.authRepo.getAccessToken()
+            rownd.authRepo.getAccessToken()
         }, async {
-            rownd.inst.authRepo.getAccessToken()
+            rownd.authRepo.getAccessToken()
         })
 
         assertEquals(tokens.size, 3)
