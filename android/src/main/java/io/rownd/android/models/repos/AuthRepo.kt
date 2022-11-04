@@ -33,8 +33,7 @@ class AuthRepo @Inject constructor() {
         }
 
         val accessToken = stateRepo.getStore().currentState.auth.accessToken
-            ?: // TODO: Throw error because there is no access token?
-            return null
+            ?: return null
 
         val jwt = JWT(accessToken)
 

@@ -119,6 +119,7 @@ dependencies {
 
     // For instrumentation tests
     androidTestImplementation 'com.squareup.okhttp3:mockwebserver:4.9.3'
+    androidTestImplementation 'com.nimbusds:nimbus-jose-jwt:7.8.1'
 
     androidTestImplementation "com.google.dagger:dagger:$dagger_version"
     kaptAndroidTest "com.google.dagger:dagger-compiler:$dagger_version"
