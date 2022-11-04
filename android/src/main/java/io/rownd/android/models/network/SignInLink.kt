@@ -26,6 +26,7 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Url
+import javax.inject.Inject
 
 @Serializable
 data class SignInLink(
@@ -55,8 +56,18 @@ interface SignInLinkService {
     suspend fun authenticateWithSignInLink(@Url url: String) : Response<SignInAuthenticationResponse>
 }
 
-object SignInLinkApi {
-    internal val client: SignInLinkService = ApiClient.getInstance().create(SignInLinkService::class.java)
+class SignInLinkApi @Inject constructor(apiClient: ApiClient) {
+    @Inject lateinit var userRepo: UserRepo
+
+    var apiClient: ApiClient
+
+    internal val client: SignInLinkService by lazy {
+        apiClient.client.get().create(SignInLinkService::class.java)
+    }
+
+    init {
+        this.apiClient = apiClient
+    }
 
     internal suspend fun signInWithLink(url: String) {
         var signInUrl = url
@@ -95,7 +106,7 @@ object SignInLinkApi {
                     )
                 )
             )
-            UserRepo.loadUserAsync().await()
+            userRepo.loadUserAsync().await()
         } catch (err: Exception) {
             Log.e("Rownd.SignInLink", "Exception thrown during auto sign-in attempt:", err)
         }

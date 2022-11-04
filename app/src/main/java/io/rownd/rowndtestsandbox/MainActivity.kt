@@ -86,7 +86,7 @@ class MainActivity : AppCompatActivity() {
                             modifier = Modifier.fillMaxWidth()
                                 .padding(vertical = Dp(5F)),
                             onClick = {
-                                val keyId = UserRepo.getKeyId(state.value.user)
+                                val keyId = Rownd.inst.userRepo.getKeyId(state.value.user)
                                 Encryption.deleteKey(keyId)
                                 Encryption.storeKey(encKeyState.value, keyId)
                             }

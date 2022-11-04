@@ -15,14 +15,15 @@ import org.junit.runner.RunWith
 class RowndTest : Application()
 
 @RunWith(AndroidJUnit4::class)
-class EncryptionInstrumentedTest {
+class EncryptionInstrumentedTest : BaseInstrumentedTest() {
 
     private val KEY_ID = "test-key"
 
     lateinit var instrumentationContext: Context
 
     @Before
-    fun setup() {
+    override fun setup() {
+        super.setup()
         val instrumentation = InstrumentationRegistry.getInstrumentation()
         instrumentationContext = instrumentation.context
 

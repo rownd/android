@@ -23,6 +23,8 @@ import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
 import java.io.InputStream
 import java.io.OutputStream
+import javax.inject.Inject
+import javax.inject.Singleton
 
 val Context.dataStore by dataStore("rownd_state.json", GlobalStateSerializer)
 
@@ -70,7 +72,11 @@ sealed class StateAction : Action {
     data class SetUser(val value: User) : StateAction()
 }
 
-object StateRepo {
+@Singleton
+class StateRepo @Inject constructor() {
+    @Inject lateinit var appConfigRepo: AppConfigRepo
+//    var userRepo: UserRepo = Rownd.graph.userRepo()
+
     private lateinit var dataStore: DataStore<GlobalState>
 
     private val store = Store<GlobalState, StateAction>(GlobalState()) { state, action ->
@@ -97,11 +103,11 @@ object StateRepo {
             }
 
             // Fetch latest app config
-            AppConfigRepo.loadAppConfigAsync().await()
+            appConfigRepo.loadAppConfigAsync().await()
 
             // Fetch latest user data if we're authenticated
             if (store.currentState.auth.isAuthenticated) {
-                UserRepo.loadUserAsync().await()
+//                userRepo.loadUserAsync().await()
             }
 
             // Persist all state updates to cache

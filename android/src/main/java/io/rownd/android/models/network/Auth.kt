@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
+import javax.inject.Inject
 
 @Serializable
 data class Auth(
@@ -41,6 +42,14 @@ interface TokenService {
     suspend fun exchangeToken(@Body requestBody: TokenRequestBody) : Response<Auth>
 }
 
-object AuthApi {
-    internal val client: TokenService = ApiClient.getInstance().create(TokenService::class.java)
+class AuthApi @Inject constructor(apiClient: ApiClient) {
+    var apiClient: ApiClient
+
+    init {
+        this.apiClient = apiClient
+    }
+
+    internal val client: TokenService by lazy {
+        apiClient.client.get().create(TokenService::class.java)
+    }
 }

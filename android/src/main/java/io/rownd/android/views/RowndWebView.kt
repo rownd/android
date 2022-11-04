@@ -205,6 +205,8 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
 }
 
 class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
+    var userRepo: UserRepo = Rownd.graph.userRepo()
+
     @JavascriptInterface
     fun postMessage(message: String) {
         Log.d("Rownd.hub", "postMessage: $message")
@@ -226,7 +228,7 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                         )
                     )
                 )
-                UserRepo.loadUserAsync()
+                userRepo.loadUserAsync()
 
                 Executors.newSingleThreadScheduledExecutor().schedule({
                     parentWebView.dismiss?.invoke()
@@ -257,7 +259,7 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
                         (interopMessage as UserDataUpdateMessage).payload.asDomainModel()
                     )
                 )
-                UserRepo.loadUserAsync()
+                userRepo.loadUserAsync()
             }
 
             MessageType.CloseHubView -> {
