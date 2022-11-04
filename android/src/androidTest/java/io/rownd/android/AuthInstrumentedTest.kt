@@ -158,6 +158,9 @@ class AuthInstrumentedTest {
 
         assertFalse(rownd.state.value.auth.isAccessTokenValid)
 
+        // We get the access token multiple times asynchronously
+        // to ensure that the refresh token flow is only being
+        // called once per expired access token.
         val tokens = awaitAll(async {
             rownd.inst.authRepo.getAccessToken()
         }, async {
