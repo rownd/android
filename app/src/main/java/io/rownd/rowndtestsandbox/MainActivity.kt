@@ -16,7 +16,6 @@ import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.databinding.DataBindingUtil
 import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInOptions
-import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.Encryption
 import io.rownd.rowndtestsandbox.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
@@ -86,7 +85,7 @@ class MainActivity : AppCompatActivity() {
                             modifier = Modifier.fillMaxWidth()
                                 .padding(vertical = Dp(5F)),
                             onClick = {
-                                val keyId = Rownd.inst.userRepo.getKeyId(state.value.user)
+                                val keyId = Rownd.userRepo.getKeyId(state.value.user)
                                 Encryption.deleteKey(keyId)
                                 Encryption.storeKey(encKeyState.value, keyId)
                             }
