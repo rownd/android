@@ -1,7 +1,7 @@
 package io.rownd.android.models.domain
 
 import com.auth0.android.jwt.JWT
-import io.rownd.android.Rownd.store
+import io.rownd.android.Rownd
 import io.rownd.android.models.json
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.toBase64
@@ -10,6 +10,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonNames
+import javax.inject.Inject
 
 @Serializable
 data class AuthState @OptIn(ExperimentalSerializationApi::class) constructor(
@@ -36,13 +37,17 @@ data class AuthState @OptIn(ExperimentalSerializationApi::class) constructor(
             return !jwt.isExpired(0)
         }
 
+    @Transient
+    @Inject
+    lateinit var userRepo: UserRepo
+
     internal fun toRphInitHash(): String? {
-        val userId: String? = UserRepo.get("user_id") as? String
+        val userId: String? = userRepo.get("user_id") as? String
 
         val rphInit = RphInitObj(
             accessToken,
             refreshToken,
-            store.currentState.appConfig.id,
+            Rownd.store.currentState.appConfig.id,
             userId
         )
 

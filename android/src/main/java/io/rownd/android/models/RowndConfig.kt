@@ -3,7 +3,7 @@ package io.rownd.android.models
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
-import io.rownd.android.Rownd.store
+import io.rownd.android.Rownd
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -26,7 +26,7 @@ data class RowndConfig(
         uriBuilder.appendQueryParameter("config", base64Config)
 
         try {
-            val rphInitStr = store.currentState.auth.toRphInitHash()
+            val rphInitStr = Rownd.store.currentState.auth.toRphInitHash()
             uriBuilder.encodedFragment("rph_init=$rphInitStr")
         } catch (error: Exception) {
             Log.d("Rownd.config", "Couldn't compute requested init hash: ${error.message}")

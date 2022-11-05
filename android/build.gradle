@@ -1,8 +1,9 @@
 plugins {
+    id 'kotlinx-serialization'
+    id 'kotlin-kapt'
     id 'com.android.library'
     id 'androidx.navigation.safeargs'
     id 'org.jetbrains.kotlin.android'
-    id 'kotlinx-serialization'
     id 'maven-publish'
 }
 
@@ -58,15 +59,18 @@ android {
 
 dependencies {
     def lifecycle_version = "2.5.1"
-    def nav_version = "2.5.2"
+    def nav_version = "2.5.3"
+    def dagger_version = "2.44"
+    def coroutines_version = "1.3.9"
 
     implementation 'androidx.datastore:datastore-preferences:1.0.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.recyclerview:recyclerview:1.2.1'
 
-    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.2.2"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2"
     implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5"
     implementation "org.jetbrains.kotlin:kotlin-reflect:1.7.10"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
 
     implementation 'androidx.webkit:webkit:1.5.0'
     implementation 'androidx.core:core-ktx:1.8.0'
@@ -109,10 +113,26 @@ dependencies {
     // Sign in with Google
     implementation 'com.google.android.gms:play-services-auth:20.3.0'
 
+    // Dependency injection via Dagger
+    implementation "com.google.dagger:dagger:$dagger_version"
+    kapt "com.google.dagger:dagger-compiler:$dagger_version"
+
+    // For instrumentation tests
+    androidTestImplementation 'com.squareup.okhttp3:mockwebserver:4.9.3'
+    androidTestImplementation 'com.nimbusds:nimbus-jose-jwt:7.8.1'
+
+    androidTestImplementation "com.google.dagger:dagger:$dagger_version"
+    kaptAndroidTest "com.google.dagger:dagger-compiler:$dagger_version"
+
     testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version"
 
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+}
+
+kapt {
+    correctErrorTypes true
 }
 
 ext {

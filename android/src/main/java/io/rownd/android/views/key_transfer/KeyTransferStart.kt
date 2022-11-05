@@ -33,6 +33,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import javax.inject.Inject
 
 
 internal class KeyTransferViewModel : ViewModel() {
@@ -40,6 +41,12 @@ internal class KeyTransferViewModel : ViewModel() {
     var signInLink = mutableStateOf("")
     val isReceivingKey = mutableStateOf(true)
     var operationError = mutableStateOf("")
+
+    @Inject
+    lateinit var userRepo: UserRepo
+
+    @Inject
+    lateinit var signInLinkApi: SignInLinkApi
 
     val qrCodeData = derivedStateOf {
         val jsonObj = buildJsonObject {
@@ -50,14 +57,14 @@ internal class KeyTransferViewModel : ViewModel() {
     }
 
     fun setupKeyTransfer() {
-        val keyId = UserRepo.getKeyId(Rownd.state.value.user)
+        val keyId = userRepo.getKeyId(Rownd.state.value.user)
         val key = Encryption.loadKey(keyId)
         this.key.value = key?.asBase64String ?: "Error"
 
         // Fetch sign-in link
         val parent = this
         CoroutineScope(Dispatchers.IO).launch {
-            val signInLink = SignInLinkApi.client.createSignInLink()
+            val signInLink = signInLinkApi.client.createSignInLink()
 
             if (!signInLink.isSuccessful) {
                 parent.operationError.value = "Failed to fetch sign-in link"

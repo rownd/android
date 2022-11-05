@@ -4,7 +4,10 @@ package io.rownd.android
 
 import android.app.Application
 import android.content.Intent
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.webkit.WebView
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultCaller
 import androidx.activity.result.ActivityResultLauncher
@@ -20,12 +23,14 @@ import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
+import dagger.Component
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
+import io.rownd.android.util.ApiClientModule
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.RowndException
 import io.rownd.android.views.HubComposableBottomSheet
@@ -39,23 +44,47 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import javax.inject.Singleton
 
+// The default Rownd instance
+val Rownd = RowndClient(DaggerRowndGraph.create())
 
-object Rownd {
+@Singleton
+@Component(modules = [ApiClientModule::class])
+interface RowndGraph {
+    fun stateRepo(): StateRepo
+    fun userRepo(): UserRepo
+    fun authRepo(): AuthRepo
+    fun signInLinkApi(): SignInLinkApi
+}
+
+class RowndClient constructor(
+    val graph: RowndGraph,
+    val config: RowndConfig = RowndConfig()
+) {
     private val json = Json { encodeDefaults = true }
     internal lateinit var appHandleWrapper: AppLifecycleListener
 
-    val config = RowndConfig()
     internal lateinit var store: Store<GlobalState, StateAction>
-    var state = StateRepo.state
-    private var launcher: ActivityResultLauncher<Intent>? = null
+
+    var stateRepo: StateRepo = graph.stateRepo()
+    var userRepo: UserRepo = graph.userRepo()
+    var authRepo: AuthRepo = graph.authRepo()
+    var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
+
+    var state = stateRepo.state
     private var launchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private lateinit var hubViewModel: RowndWebViewModel
 
     private fun configure(appKey: String) {
         config.appKey = appKey
 
-        store = StateRepo.setup(appHandleWrapper.app.get()!!.applicationContext.dataStore)
+        store = stateRepo.setup(appHandleWrapper.app.get()!!.applicationContext.dataStore)
+
+        // Clear webview cache on startup
+        Handler(Looper.getMainLooper()).post {
+            WebView(appHandleWrapper.app.get()!!).clearCache(true)
+        }
 
         // Webview holder in case of activity restarts during auth
         val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!)
@@ -67,7 +96,10 @@ object Rownd {
             if (it !is ViewModelStoreOwner) {
                 return@registerActivityListener
             }
-            hubViewModel = ViewModelProvider(it as ViewModelStoreOwner, hubViewModelFactory)[RowndWebViewModel::class.java]
+            hubViewModel = ViewModelProvider(
+                it as ViewModelStoreOwner,
+                hubViewModelFactory
+            )[RowndWebViewModel::class.java]
             // Re-triggers the sign-in sheet in the event that the activity restarted during sign-in
             if (hubViewModel.webView().value != null) {
                 displayHub(HubPageSelector.Unknown)
@@ -77,12 +109,16 @@ object Rownd {
         appHandleWrapper.registerActivityListener(
             persistentListOf(
                 Lifecycle.State.RESUMED
-            ), true) {
-            SignInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
+            ), true
+        ) {
+            signInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
         }
 
         // Add an activity result callback for Google sign in
-        appHandleWrapper.registerActivityListener(persistentListOf(Lifecycle.State.CREATED), false) {
+        appHandleWrapper.registerActivityListener(
+            persistentListOf(Lifecycle.State.CREATED),
+            false
+        ) {
             if (it is ActivityResultCaller) {
                 launchers[it.toString()] =
                     it.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -94,31 +130,30 @@ object Rownd {
         }
 
         // Remove Google sign-in callbacks if activity is destroyed
-        appHandleWrapper.registerActivityListener(persistentListOf(Lifecycle.State.DESTROYED), false) {
+        appHandleWrapper.registerActivityListener(
+            persistentListOf(Lifecycle.State.DESTROYED),
+            false
+        ) {
             launchers.remove(it.localClassName)
         }
     }
 
-    @JvmStatic
     fun configure(app: Application, appKey: String) {
         appHandleWrapper = AppLifecycleListener(app)
         configure(appKey)
     }
 
-    @JvmStatic
     fun configure(activity: FragmentActivity, appKey: String) {
         appHandleWrapper = AppLifecycleListener(activity)
         configure(appKey)
     }
 
-    @JvmStatic
     fun requestSignIn(
         signInOptions: RowndSignInOptions
     ) {
         displayHub(HubPageSelector.SignIn, jsFnOptions = signInOptions)
     }
 
-    @JvmStatic
     fun requestSignIn(
         with: RowndSignInHint
     ) {
@@ -127,29 +162,26 @@ object Rownd {
         }
     }
 
-    @JvmStatic
     fun requestSignIn() {
         displayHub(HubPageSelector.SignIn)
     }
 
-    @JvmStatic
     fun signOut() {
         hubViewModel.webView().postValue(null)
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
 
-        val googleSignInMethodConfig = state.value.appConfig.config.hub.auth.signInMethods.google
+        val googleSignInMethodConfig =
+            state.value.appConfig.config.hub.auth.signInMethods.google
         if (googleSignInMethodConfig.enabled) {
             signOutOfGoogle()
         }
     }
 
-    @JvmStatic
     fun manageAccount() {
         displayHub(HubPageSelector.ManageAccount)
     }
 
-    @JvmStatic
     fun transferEncryptionKey() {
         val activity = appHandleWrapper.activity?.get() as AppCompatActivity
 
@@ -170,7 +202,8 @@ object Rownd {
     }
 
     private fun signInWithGoogle() {
-        val googleSignInMethodConfig = state.value.appConfig.config.hub.auth.signInMethods.google
+        val googleSignInMethodConfig =
+            state.value.appConfig.config.hub.auth.signInMethods.google
         if (!googleSignInMethodConfig.enabled) {
             throw RowndException("Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
         }
@@ -202,7 +235,7 @@ object Rownd {
             if (account.idToken == "") {
                 Log.w("Rownd", "Google sign-in failed: missing idToken")
             } else {
-                account.idToken?.let { idToken -> AuthRepo.getAccessToken(idToken) }
+                account.idToken?.let { idToken -> authRepo.getAccessToken(idToken) }
             }
         } catch (e: ApiException) {
             // The ApiException status code indicates the detailed failure reason.
@@ -211,24 +244,24 @@ object Rownd {
         }
     }
 
-    @JvmStatic
     suspend fun getAccessToken(): String? {
-        return AuthRepo.getAccessToken()
+        return authRepo.getAccessToken()
     }
 
-    @JvmStatic
     suspend fun _refreshToken(): String? {
-        val result = AuthRepo.refreshTokenAsync().await()
-        return result.accessToken
+        val result = authRepo.refreshTokenAsync().await()
+        return result?.accessToken
     }
 
-    @JvmStatic
-    fun isEncryptionPossible() : Boolean {
-        return UserRepo.isEncryptionPossible()
+    fun isEncryptionPossible(): Boolean {
+        return userRepo.isEncryptionPossible()
     }
 
     // Internal stuff
-    private fun displayHub(targetPage: HubPageSelector, jsFnOptions: RowndSignInOptions? = null) {
+    private fun displayHub(
+        targetPage: HubPageSelector,
+        jsFnOptions: RowndSignInOptions? = null
+    ) {
         try {
             val activity = appHandleWrapper.activity?.get() as FragmentActivity
 
@@ -238,12 +271,13 @@ object Rownd {
 
             var jsFnOptionsStr: String? = null
             if (jsFnOptions != null) {
-                jsFnOptionsStr = json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions)
+                jsFnOptionsStr =
+                    json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions)
             }
 
             val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
             bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
-        } catch(exception: Exception) {
+        } catch (exception: Exception) {
             Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage")
         }
     }
