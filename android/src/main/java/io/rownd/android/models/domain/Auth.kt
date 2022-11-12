@@ -10,7 +10,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.JsonNames
-import javax.inject.Inject
 
 @Serializable
 data class AuthState @OptIn(ExperimentalSerializationApi::class) constructor(
@@ -37,11 +36,7 @@ data class AuthState @OptIn(ExperimentalSerializationApi::class) constructor(
             return !jwt.isExpired(0)
         }
 
-    @Transient
-    @Inject
-    lateinit var userRepo: UserRepo
-
-    internal fun toRphInitHash(): String? {
+    internal fun toRphInitHash(userRepo: UserRepo): String {
         val userId: String? = userRepo.get("user_id") as? String
 
         val rphInit = RphInitObj(

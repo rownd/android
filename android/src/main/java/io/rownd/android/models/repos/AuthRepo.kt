@@ -26,23 +26,29 @@ class AuthRepo @Inject constructor() {
 
     private var refreshTokenJob: Deferred<Auth?>? = null
 
-    internal suspend fun getAccessToken(): String? {
+    internal suspend fun getLatestAuthState(): AuthState? {
         if (refreshTokenJob is Deferred<Auth?>) {
             val resp = (refreshTokenJob as Deferred<Auth?>).await()
-            return resp?.accessToken
+            return resp?.asDomainModel()
         }
 
-        val accessToken = stateRepo.getStore().currentState.auth.accessToken
+        val authState = stateRepo.getStore().currentState.auth
+        val accessToken = authState.accessToken
             ?: return null
 
         val jwt = JWT(accessToken)
 
         if (jwt.isExpired(0)) {
             val resp = refreshTokenAsync().await()
-            return resp?.accessToken
+            return resp?.asDomainModel()
         }
 
-        return accessToken
+        return authState
+    }
+
+    internal suspend fun getAccessToken(): String? {
+        val authState = getLatestAuthState()
+        return authState?.accessToken
     }
 
     internal suspend fun getAccessToken(idToken: String): String? {

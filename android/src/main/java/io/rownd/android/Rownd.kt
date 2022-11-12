@@ -56,6 +56,7 @@ interface RowndGraph {
     fun userRepo(): UserRepo
     fun authRepo(): AuthRepo
     fun signInLinkApi(): SignInLinkApi
+    fun inject(rowndConfig: RowndConfig)
 }
 
 class RowndClient constructor(
@@ -76,6 +77,10 @@ class RowndClient constructor(
     private var launchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private lateinit var hubViewModel: RowndWebViewModel
 
+    init {
+        graph.inject(config)
+    }
+
     private fun configure(appKey: String) {
         config.appKey = appKey
 
@@ -87,7 +92,7 @@ class RowndClient constructor(
         }
 
         // Webview holder in case of activity restarts during auth
-        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!)
+        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!, config)
         appHandleWrapper.registerActivityListener(
             persistentListOf(
                 Lifecycle.State.CREATED
@@ -100,6 +105,7 @@ class RowndClient constructor(
                 it as ViewModelStoreOwner,
                 hubViewModelFactory
             )[RowndWebViewModel::class.java]
+
             // Re-triggers the sign-in sheet in the event that the activity restarted during sign-in
             if (hubViewModel.webView().value != null) {
                 displayHub(HubPageSelector.Unknown)

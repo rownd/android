@@ -3,9 +3,14 @@ package io.rownd.android.models
 import android.net.Uri
 import android.util.Base64
 import android.util.Log
-import io.rownd.android.Rownd
+import io.rownd.android.models.domain.AuthState
+import io.rownd.android.models.repos.AuthRepo
+import io.rownd.android.models.repos.StateRepo
+import io.rownd.android.models.repos.UserRepo
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
 
 val json = Json { encodeDefaults = true }
 
@@ -18,15 +23,29 @@ data class RowndConfig(
     var appleIdCallbackUrl: String? = "https://api.rownd.io/hub/auth/apple/callback",
     var customizations: RowndCustomizations = RowndCustomizations()
 ) {
-    fun hubLoaderUrl(): String {
-        val jsonConfig = json.encodeToString(RowndConfig.serializer(), this)
+
+    @Inject
+    @Transient
+    lateinit var userRepo: UserRepo
+
+    @Inject
+    @Transient
+    lateinit var stateRepo: StateRepo
+
+    @Inject
+    @Transient
+    lateinit var authRepo: AuthRepo
+
+    suspend fun hubLoaderUrl(): String {
+        val jsonConfig = json.encodeToString(serializer(), this)
         val base64Config = Base64.encodeToString(jsonConfig.encodeToByteArray(), Base64.NO_WRAP)
 
         val uriBuilder = Uri.parse("$baseUrl/mobile_app").buildUpon()
         uriBuilder.appendQueryParameter("config", base64Config)
 
         try {
-            val rphInitStr = Rownd.store.currentState.auth.toRphInitHash()
+            val authState = authRepo.getLatestAuthState() ?: AuthState()
+            val rphInitStr = authState.toRphInitHash(userRepo)
             uriBuilder.encodedFragment("rph_init=$rphInitStr")
         } catch (error: Exception) {
             Log.d("Rownd.config", "Couldn't compute requested init hash: ${error.message}")

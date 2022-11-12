@@ -12,7 +12,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.lifecycle.ViewModelProvider
-import io.rownd.android.Rownd
 import io.rownd.android.databinding.HubViewLayoutBinding
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
@@ -75,7 +74,6 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
             },
             update = {
                 this.hubWebview.dialog = parent
-                val url = Rownd.config.hubLoaderUrl()
                 this.hubWebview.progressBar = this.hubProgressBar
                 this.hubWebview.setIsLoading = setIsLoading
                 this.hubWebview.targetPage = targetPage ?: HubPageSelector.SignIn
@@ -89,7 +87,11 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                     _dismiss()
                 }
                 if (!hasLoadedUrl) {
-                    this.hubWebview.loadUrl(url)
+                    val parentScope = this
+                    coroutineScope.launch {
+                        val url = viewModel?.rowndConfig?.hubLoaderUrl()
+                        parentScope.hubWebview.loadUrl(url!!)
+                    }
                     setHasLoadedUrl(true)
                 }
             }
