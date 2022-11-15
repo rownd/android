@@ -21,6 +21,8 @@ enum class MessageType {
     authentication,
     @SerialName("sign_out")
     signOut,
+    @SerialName("try_again")
+    tryAgain,
     @SerialName("trigger_sign_in_with_google")
     triggerSignInWithGoogle,
     @SerialName("user_data_update")
@@ -51,6 +53,12 @@ data class SignOutMessage(
 ) : RowndHubInteropMessage()
 
 @Serializable
+data class TryAgainMessage(
+    override var type: MessageType = MessageType.tryAgain
+) : RowndHubInteropMessage()
+
+
+@Serializable
 data class TriggerSignInWithGoogleMessage(
     override var type: MessageType = MessageType.triggerSignInWithGoogle
 ) : RowndHubInteropMessage()
@@ -71,6 +79,7 @@ object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<Rownd
         return when (val messageType = element.jsonObject["type"]?.jsonPrimitive?.content) {
             "authentication" -> AuthenticationMessage.serializer()
             "sign_out" -> SignOutMessage.serializer()
+            "try_again" -> TryAgainMessage.serializer()
             "trigger_sign_in_with_google" -> TriggerSignInWithGoogleMessage.serializer()
             "user_data_update" -> UserDataUpdateMessage.serializer()
             "close_hub_view_controller" -> CloseHubViewMessage.serializer()
