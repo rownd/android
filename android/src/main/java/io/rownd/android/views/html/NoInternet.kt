@@ -41,6 +41,9 @@ fun noInternetHTML(context: Context): String {
                             setTimeout(()=> {
                                 window.rowndAndroidSDK.postMessage('{"type":"try_again"}');
                             }, 1000);
+                            setTimeout(()=> {
+                                buttonElem.classList.remove('loading');
+                            }, 4000);
                         }
                     }
                 </script>
