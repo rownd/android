@@ -208,7 +208,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
             webView.setIsLoading?.invoke(false)
         }
 
-        if (url?.startsWith(Rownd.config.baseUrl) == false) {
+        if (url?.startsWith(Rownd.config.baseUrl) == false && url != "about:blank") {
             webView.animateBottomSheet?.invoke(ModalBottomSheetValue.Expanded)
         }
     }
