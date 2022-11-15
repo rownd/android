@@ -28,9 +28,12 @@ import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.Constants
-import io.rownd.android.util.getFragmentManager
 import io.rownd.android.views.html.noInternetHTML
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.concurrent.Executors
@@ -104,16 +107,12 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         this.webView = webView
         this.context = context
 
-        Thread {
-            try {
-                Thread.sleep(10000)
-            } catch (e: InterruptedException) {
-                e.printStackTrace()
-            }
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(10000)
             if (timeout) {
                 loadNoInternetHTML()
             }
-        }.start()
+        }
     }
 
     private fun loadNoInternetHTML() {
@@ -173,6 +172,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+        timeout = false
         super.onPageStarted(webView, url, favicon)
         Log.d("Rownd.hub", "Started loading $url")
         if (webView.setIsLoading == null) {
@@ -190,7 +190,6 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
 
     @OptIn(ExperimentalMaterialApi::class)
     override fun onPageFinished(view: WebView?, url: String?) {
-        timeout = false
         super.onPageFinished(view, url)
         view?.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
@@ -296,9 +295,9 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView, context:
             }
 
             MessageType.tryAgain -> {
-                parentWebView.dismiss?.invoke()
-                val bottomSheet = HubComposableBottomSheet.newInstance(parentWebView.targetPage, parentWebView.jsFunctionArgsAsJson)
-                getFragmentManager(context)?.let { bottomSheet.show(it, HubComposableBottomSheet.TAG) }
+                parentWebView.post(Runnable {
+                    parentWebView.loadUrl(Rownd.config.hubLoaderUrl())
+                })
             }
             else -> {
                 Log.w("RowndHub", "An unknown message was received")
