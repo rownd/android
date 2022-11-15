@@ -51,9 +51,8 @@ data class AppConfigConfig constructor(
 )
 
 @Serializable
-data class CustomizationsConfig @OptIn(ExperimentalSerializationApi::class) constructor(
+data class CustomizationsConfig constructor(
     @SerialName("primary_color")
-    @JsonNames("primaryColor")
     val primaryColor: String? = null,
 )
 
@@ -64,12 +63,10 @@ data class HubConfig constructor(
 )
 
 @Serializable
-data class HubCustomizationsConfig @OptIn(ExperimentalSerializationApi::class) constructor(
+data class HubCustomizationsConfig constructor(
     @SerialName("font_family")
-    @JsonNames("fontFamily")
     val fontFamily: String? = null,
     @SerialName("dark_mode")
-    @JsonNames("darkMode")
     val darkMode: String? = null,
 )
 
