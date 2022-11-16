@@ -9,9 +9,13 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
-open class KtorApiClient constructor(apiUrl: String)  {
+open class KtorApiClient constructor(rowndContext: RowndContext)  {
     val client = HttpClient(Android) {
         install(Logging) {
             this.level = LogLevel.ALL
@@ -27,19 +31,40 @@ open class KtorApiClient constructor(apiUrl: String)  {
         }
         install(ContentEncoding)
         install(HttpRequestRetry) {
-            retryOnExceptionOrServerErrors(maxRetries = 5)
-            exponentialDelay()
+            retryOnExceptionOrServerErrors(maxRetries = rowndContext.config.defaultNumApiRetries)
+            exponentialDelay(maxDelayMs = 3000L)
         }
         install(Resources)
 
-        install(HttpTimeout) {
-            requestTimeoutMillis = 15000L
-        }
+        // Uncomment after upgrading to ktor 2.2, since the HttpRequestRetry
+        // plugin should catch timeouts at that point. It does not as of ktor 2.1.
+//        install(HttpTimeout) {
+//            requestTimeoutMillis = timeout
+//        }
 
+        expectSuccess = true
         defaultRequest {
-            url(apiUrl)
-            contentType(ContentType.parse("application/json"))
+            url(rowndContext.config.apiUrl)
+            contentType(ContentType.Application.Json)
+        }
+    }
 
+    init {
+        // Remove after upgrading to ktor 2.2+, since it should
+        // be able to catch request timeouts directly vs. this workaround.
+        client.plugin(HttpSend).intercept { request ->
+            val executionContext = request.executionContext
+            val killer = CoroutineScope(executionContext).launch {
+                delay(rowndContext.config.defaultRequestTimeout)
+                val cause = HttpRequestTimeoutException(request)
+                executionContext.cancel(cause.message!!, cause)
+                println("Canceled request after timeout")
+            }
+            executionContext.invokeOnCompletion {
+                killer.cancel()
+            }
+            println("executing request")
+            execute(request)
         }
     }
 }

@@ -3,7 +3,9 @@ package io.rownd.android.models.repos
 import android.util.Log
 import com.auth0.android.jwt.JWT
 import io.ktor.client.call.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
+import io.ktor.http.*
 import io.rownd.android.Rownd
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
@@ -12,6 +14,7 @@ import io.rownd.android.models.network.AuthApi
 import io.rownd.android.models.network.RowndAPIException
 import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.util.RowndContext
+import io.rownd.android.util.RowndException
 import io.rownd.android.util.TokenApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -29,7 +32,7 @@ class AuthRepo @Inject constructor(rowndContext: RowndContext) {
     lateinit var stateRepo: StateRepo
 
     // TODO: Should be able to use Dagger to inject this
-    private val tokenApi: TokenApi by lazy { TokenApi(rowndContext.config.apiUrl) }
+    private val tokenApi: TokenApi by lazy { TokenApi(rowndContext) }
 
     private var refreshTokenJob: Deferred<Auth?>? = null
 
@@ -90,15 +93,21 @@ class AuthRepo @Inject constructor(rowndContext: RowndContext) {
                 Log.d("Rownd.Auth", "Refreshing tokens: complete")
                 refreshTokenJob = null
                 return@async authState
-            } catch (ex: Exception) {
-                Log.e("Rownd.AuthRepo", "Failed to refresh tokens:", ex)
-//                Log.w("Rownd.AuthRepo", "Failed to refresh token: ${err?.string()}")
+            } catch (ex: ClientRequestException) {
+                if (ex.response.status != HttpStatusCode.BadRequest) {
+                    throw RowndException(ex.message)
+                }
+
+                Log.e("Rownd.AuthRepo", "Failed to refresh tokens, likely because it has already been consumed:", ex)
                 refreshTokenJob = null
 
                 stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState()))
                 stateRepo.getStore().dispatch(StateAction.SetUser(User()))
 
                 return@async null
+            } catch (ex: Exception) {
+                Log.e("Rownd.AuthRepo", "Failed to refresh tokens:", ex)
+                throw RowndException(ex.message ?: "An unknown refresh token error occurred.")
             }
         }
 

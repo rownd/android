@@ -21,7 +21,9 @@ data class RowndConfig(
     var apiUrl: String = "https://api.rownd.io",
     var postSignInRedirect: String? = null,
     var appleIdCallbackUrl: String? = "https://api.rownd.io/hub/auth/apple/callback",
-    var customizations: RowndCustomizations = RowndCustomizations()
+    var customizations: RowndCustomizations = RowndCustomizations(),
+    var defaultRequestTimeout: Long = 15000L,
+    var defaultNumApiRetries: Int = 5
 ) {
 
     @Inject
