@@ -9,7 +9,7 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -39,7 +39,7 @@ open class KtorApiClient constructor(rowndContext: RowndContext)  {
         // Uncomment after upgrading to ktor 2.2, since the HttpRequestRetry
         // plugin should catch timeouts at that point. It does not as of ktor 2.1.
 //        install(HttpTimeout) {
-//            requestTimeoutMillis = timeout
+//            requestTimeoutMillis = rowndContext.config.defaultRequestTimeout
 //        }
 
         expectSuccess = true
@@ -54,16 +54,14 @@ open class KtorApiClient constructor(rowndContext: RowndContext)  {
         // be able to catch request timeouts directly vs. this workaround.
         client.plugin(HttpSend).intercept { request ->
             val executionContext = request.executionContext
-            val killer = CoroutineScope(executionContext).launch {
+            val killer = client.launch(Dispatchers.Default) {
                 delay(rowndContext.config.defaultRequestTimeout)
                 val cause = HttpRequestTimeoutException(request)
                 executionContext.cancel(cause.message!!, cause)
-                println("Canceled request after timeout")
             }
             executionContext.invokeOnCompletion {
                 killer.cancel()
             }
-            println("executing request")
             execute(request)
         }
     }
