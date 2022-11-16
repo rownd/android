@@ -115,10 +115,27 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
     }
 
+    private fun setIsLoading(isLoading: Boolean) {
+        if (isLoading) {
+            if (webView.setIsLoading == null) {
+                webView.progressBar?.visibility = View.VISIBLE
+            }
+
+            webView.setIsLoading?.invoke(true)
+        } else {
+            if (webView.setIsLoading == null) {
+                webView.progressBar?.visibility = View.INVISIBLE
+            }
+
+            webView.setIsLoading?.invoke(false)
+        }
+    }
+
     private fun loadNoInternetHTML() {
-        webView.post(Runnable {
+        webView.post {
+            setIsLoading(false)
             webView.loadDataWithBaseURL(null, noInternetHTML(context), "text/html", "utf-8", null)
-        })
+        }
     }
 
     private fun evaluateJavascript(code: String) {
@@ -175,11 +192,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         timeout = false
         super.onPageStarted(webView, url, favicon)
         Log.d("Rownd.hub", "Started loading $url")
-        if (webView.setIsLoading == null) {
-            webView.progressBar?.visibility = View.VISIBLE
-        }
-
-        webView.setIsLoading?.invoke(true)
+        setIsLoading(true)
 
         if (url?.startsWith(Rownd.config.baseUrl) == true) {
             view?.setBackgroundColor(0x00000000)
@@ -201,10 +214,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
 
         if (view.progress == 100) {
-            if (webView.setIsLoading == null) {
-                webView.progressBar?.visibility = View.INVISIBLE
-            }
-            webView.setIsLoading?.invoke(false)
+            setIsLoading(false)
         }
 
         if (url?.startsWith(Rownd.config.baseUrl) == false && url != "about:blank") {
@@ -295,9 +305,9 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView, context:
             }
 
             MessageType.tryAgain -> {
-                parentWebView.post(Runnable {
+                CoroutineScope(Dispatchers.Main).launch {
                     parentWebView.loadUrl(Rownd.config.hubLoaderUrl())
-                })
+                }
             }
             else -> {
                 Log.w("RowndHub", "An unknown message was received")

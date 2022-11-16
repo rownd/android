@@ -106,6 +106,7 @@ class AuthRepo @Inject constructor(rowndContext: RowndContext) {
 
                 return@async null
             } catch (ex: Exception) {
+                refreshTokenJob = null
                 Log.e("Rownd.AuthRepo", "Failed to refresh tokens:", ex)
                 throw RowndException(ex.message ?: "An unknown refresh token error occurred.")
             }

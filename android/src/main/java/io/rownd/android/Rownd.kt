@@ -259,8 +259,13 @@ class RowndClient constructor(
     }
 
     suspend fun _refreshToken(): String? {
-        val result = authRepo.refreshTokenAsync().await()
-        return result?.accessToken
+        return try {
+            val result = authRepo.refreshTokenAsync().await()
+            result?.accessToken
+        } catch (ex: RowndException) {
+            Log.d("Rownd.testing","Refresh token flow failed: ${ex.message}")
+            null
+        }
     }
 
     fun isEncryptionPossible(): Boolean {

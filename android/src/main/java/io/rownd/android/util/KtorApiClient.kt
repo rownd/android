@@ -1,5 +1,6 @@
 package io.rownd.android.util
 
+import android.util.Log
 import io.ktor.client.*
 import io.ktor.client.engine.android.*
 import io.ktor.client.plugins.*
@@ -15,10 +16,19 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
+private object CustomAndroidHttpLogger : Logger {
+    private const val logTag = "Rownd.ApiClient"
+
+    override fun log(message: String) {
+        Log.d(logTag, message)
+    }
+}
+
 open class KtorApiClient constructor(rowndContext: RowndContext)  {
     val client = HttpClient(Android) {
         install(Logging) {
-            this.level = LogLevel.ALL
+            level = LogLevel.ALL
+            logger = CustomAndroidHttpLogger
         }
         install(UserAgent) {
             agent = Constants.DEFAULT_API_USER_AGENT
