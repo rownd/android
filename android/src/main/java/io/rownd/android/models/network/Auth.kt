@@ -11,7 +11,6 @@ import retrofit2.http.POST
 import javax.inject.Inject
 
 @Serializable
-@Resource("/hub/auth/token")
 data class Auth(
     @SerialName("access_token")
     val accessToken: String,
@@ -54,10 +53,4 @@ class AuthApi @Inject constructor(apiClient: ApiClient) {
     internal val client: TokenService by lazy {
         apiClient.client.get().create(TokenService::class.java)
     }
-}
-
-@Serializable
-@Resource("/hub/auth/token")
-class AuthTokens() {
-
 }
