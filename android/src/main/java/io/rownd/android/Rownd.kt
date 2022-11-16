@@ -32,6 +32,7 @@ import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
 import io.rownd.android.util.ApiClientModule
 import io.rownd.android.util.AppLifecycleListener
+import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
 import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
@@ -56,6 +57,7 @@ interface RowndGraph {
     fun userRepo(): UserRepo
     fun authRepo(): AuthRepo
     fun signInLinkApi(): SignInLinkApi
+    fun rowndContext(): RowndContext
     fun inject(rowndConfig: RowndConfig)
 }
 
@@ -72,6 +74,7 @@ class RowndClient constructor(
     var userRepo: UserRepo = graph.userRepo()
     var authRepo: AuthRepo = graph.authRepo()
     var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
+    var rowndContext = graph.rowndContext()
 
     var state = stateRepo.state
     private var launchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
@@ -79,6 +82,7 @@ class RowndClient constructor(
 
     init {
         graph.inject(config)
+        rowndContext.config = config
     }
 
     private fun configure(appKey: String) {

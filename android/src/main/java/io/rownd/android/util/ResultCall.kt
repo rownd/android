@@ -16,12 +16,16 @@ class ResultCall<T>(private val delegate: Call<T>) :
         delegate.enqueue(
             object : Callback<T> {
                 override fun onResponse(call: Call<T>, response: Response<T>) {
+                    val body = response.body()
+                    val code = response.code()
+                    val error = response.errorBody()
+
                     if (response.isSuccessful) {
                         callback.onResponse(
                             this@ResultCall,
                             Response.success(
-                                response.code(),
-                                Result.success(response.body()!!)
+                                code,
+                                Result.success(body!!)
                             )
                         )
                     } else {

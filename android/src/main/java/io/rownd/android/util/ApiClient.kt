@@ -64,11 +64,6 @@ internal var reqLogging = HttpLoggingInterceptor().apply {
     this.setLevel(HttpLoggingInterceptor.Level.BODY)
 }
 
-//@Component(modules = [ApiClientModule::class])
-//interface ApiClientComponent {
-//    fun apiClientModule(): ApiClientModule
-//}
-
 @Module
 class ApiClientModule {
     @Provides

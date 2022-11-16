@@ -2,6 +2,8 @@ package io.rownd.android.models.repos
 
 import android.util.Log
 import com.auth0.android.jwt.JWT
+import io.ktor.client.call.*
+import io.ktor.client.request.*
 import io.rownd.android.Rownd
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
@@ -9,6 +11,8 @@ import io.rownd.android.models.network.Auth
 import io.rownd.android.models.network.AuthApi
 import io.rownd.android.models.network.RowndAPIException
 import io.rownd.android.models.network.TokenRequestBody
+import io.rownd.android.util.RowndContext
+import io.rownd.android.util.TokenApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -17,12 +21,15 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AuthRepo @Inject constructor() {
+class AuthRepo @Inject constructor(rowndContext: RowndContext) {
     @Inject
     lateinit var authApi: AuthApi
 
     @Inject
     lateinit var stateRepo: StateRepo
+
+    // TODO: Should be able to use Dagger to inject this
+    private val tokenApi: TokenApi by lazy { TokenApi(rowndContext.config.apiUrl) }
 
     private var refreshTokenJob: Deferred<Auth?>? = null
 
@@ -68,15 +75,24 @@ class AuthRepo @Inject constructor() {
 
         refreshTokenJob = CoroutineScope(Dispatchers.IO).async {
             Log.d("Rownd.Auth", "Refreshing tokens via ${stateRepo.state.value.auth.refreshToken}")
-            val resp = authApi.client.exchangeToken(TokenRequestBody(
-                refreshToken = stateRepo.state.value.auth.refreshToken
-            ))
 
-            val body = resp.body()
+            try {
+                val authState: Auth = tokenApi.client.post("/hub/auth/token") {
+                    setBody(
+                        TokenRequestBody(
+                            refreshToken = stateRepo.state.value.auth.refreshToken
+                        )
+                    )
+                }.body()
 
-            if (body !is Auth) {
-                val err = resp.errorBody()
-                Log.w("Rownd.AuthRepo", "Failed to refresh token: ${err?.string()}")
+                stateRepo.getStore().dispatch(StateAction.SetAuth(authState.asDomainModel()))
+
+                Log.d("Rownd.Auth", "Refreshing tokens: complete")
+                refreshTokenJob = null
+                return@async authState
+            } catch (ex: Exception) {
+                Log.e("Rownd.AuthRepo", "Failed to refresh tokens:", ex)
+//                Log.w("Rownd.AuthRepo", "Failed to refresh token: ${err?.string()}")
                 refreshTokenJob = null
 
                 stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState()))
@@ -84,14 +100,6 @@ class AuthRepo @Inject constructor() {
 
                 return@async null
             }
-
-            val authState = resp.body() as Auth
-
-            stateRepo.getStore().dispatch(StateAction.SetAuth(authState.asDomainModel()))
-
-            Log.d("Rownd.Auth", "Refreshing tokens: complete")
-            refreshTokenJob = null
-            return@async authState
         }
 
         return refreshTokenJob as Deferred<Auth?>

@@ -1,5 +1,6 @@
 package io.rownd.android.models.network
 
+import io.ktor.resources.*
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName
@@ -10,6 +11,7 @@ import retrofit2.http.POST
 import javax.inject.Inject
 
 @Serializable
+@Resource("/hub/auth/token")
 data class Auth(
     @SerialName("access_token")
     val accessToken: String,
@@ -52,4 +54,10 @@ class AuthApi @Inject constructor(apiClient: ApiClient) {
     internal val client: TokenService by lazy {
         apiClient.client.get().create(TokenService::class.java)
     }
+}
+
+@Serializable
+@Resource("/hub/auth/token")
+class AuthTokens() {
+
 }
