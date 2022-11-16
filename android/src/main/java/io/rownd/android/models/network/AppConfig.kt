@@ -4,6 +4,7 @@ import io.rownd.android.models.domain.AppConfigState
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.JsonNames
 import retrofit2.http.GET
 import javax.inject.Inject
 import io.rownd.android.models.domain.AppConfigConfig as DomainAppConfigConfig
@@ -14,6 +15,8 @@ import io.rownd.android.models.domain.GoogleSignInMethod as DomainGoogleSignInMe
 import io.rownd.android.models.domain.HubAuthConfig as DomainHubAuthConfig
 import io.rownd.android.models.domain.HubConfig as DomainHubConfig
 import io.rownd.android.models.domain.SignInMethods as DomainSignInMethods
+import io.rownd.android.models.domain.CustomizationsConfig as DomainCustomizationsConfig
+import io.rownd.android.models.domain.HubCustomizationsConfig as DomainHubCustomizationsConfig
 
 @Serializable
 data class AppConfig(
@@ -88,23 +91,51 @@ enum class AppSchemaEncryptionState {
 
 @Serializable
 data class AppConfigConfig(
-    var hub: HubConfig = HubConfig()
+    var hub: HubConfig = HubConfig(),
+    var customizations: CustomizationsConfig = CustomizationsConfig()
 ) {
     fun asDomainModel(): DomainAppConfigConfig {
         return DomainAppConfigConfig(
-            hub.asDomainModel()
+            hub.asDomainModel(),
+            customizations.asDomainModel(),
+        )
+    }
+}
+
+@Serializable
+data class CustomizationsConfig(
+    @SerialName("primary_color")
+    var primaryColor: String? = ""
+) {
+    fun asDomainModel(): DomainCustomizationsConfig {
+        return DomainCustomizationsConfig(
+            primaryColor
         )
     }
 }
 
 @Serializable
 data class HubConfig(
-    var auth: HubAuthConfig = HubAuthConfig()
+    var auth: HubAuthConfig = HubAuthConfig(),
+    var customizations: HubCustomizationsConfig? = HubCustomizationsConfig(),
 ) {
     fun asDomainModel(): DomainHubConfig {
         return DomainHubConfig(
-            auth.asDomainModel()
+            auth.asDomainModel(),
+            customizations?.asDomainModel(),
         )
+    }
+}
+
+@Serializable
+data class HubCustomizationsConfig(
+    @SerialName("font_family")
+    var fontFamily: String? = "",
+    @SerialName("dark_mode")
+    val darkMode: String? = null,
+) {
+    fun asDomainModel(): DomainHubCustomizationsConfig {
+        return DomainHubCustomizationsConfig(fontFamily, darkMode)
     }
 }
 

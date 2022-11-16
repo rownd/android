@@ -47,11 +47,27 @@ enum class AppSchemaEncryptionState {
 @Serializable
 data class AppConfigConfig constructor(
     val hub: HubConfig = HubConfig(),
+    val customizations: CustomizationsConfig = CustomizationsConfig()
+)
+
+@Serializable
+data class CustomizationsConfig constructor(
+    @SerialName("primary_color")
+    val primaryColor: String? = null,
 )
 
 @Serializable
 data class HubConfig constructor(
     val auth: HubAuthConfig = HubAuthConfig(),
+    val customizations: HubCustomizationsConfig? = HubCustomizationsConfig(),
+)
+
+@Serializable
+data class HubCustomizationsConfig constructor(
+    @SerialName("font_family")
+    val fontFamily: String? = null,
+    @SerialName("dark_mode")
+    val darkMode: String? = null,
 )
 
 @Serializable

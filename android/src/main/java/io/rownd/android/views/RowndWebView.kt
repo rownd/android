@@ -28,7 +28,12 @@ import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.Constants
+import io.rownd.android.views.html.noInternetHTML
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.concurrent.Executors
@@ -67,8 +72,8 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         settings.domStorageEnabled = true
         settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
 
-        this.addJavascriptInterface(RowndJavascriptInterface(this), "rowndAndroidSDK")
-        this.webViewClient = RowndWebViewClient(this)
+        this.addJavascriptInterface(RowndJavascriptInterface(this, context), "rowndAndroidSDK")
+        this.webViewClient = RowndWebViewClient(this, context)
 
         val appFlags = Rownd.appHandleWrapper.app.get()?.applicationInfo?.flags ?: 0
         if (0 != appFlags.and(ApplicationInfo.FLAG_DEBUGGABLE)) {
@@ -93,11 +98,27 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     }
 }
 
-class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
+class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClient() {
     private val webView: RowndWebView
+    private val context: Context
+    private var timeout: Boolean = true
 
     init {
         this.webView = webView
+        this.context = context
+
+        CoroutineScope(Dispatchers.IO).launch {
+            delay(10000)
+            if (timeout) {
+                loadNoInternetHTML()
+            }
+        }
+    }
+
+    private fun loadNoInternetHTML() {
+        webView.post(Runnable {
+            webView.loadDataWithBaseURL(null, noInternetHTML(context), "text/html", "utf-8", null)
+        })
     }
 
     private fun evaluateJavascript(code: String) {
@@ -151,6 +172,7 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+        timeout = false
         super.onPageStarted(webView, url, favicon)
         Log.d("Rownd.hub", "Started loading $url")
         if (webView.setIsLoading == null) {
@@ -185,7 +207,7 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
             webView.setIsLoading?.invoke(false)
         }
 
-        if (url?.startsWith(Rownd.config.baseUrl) == false) {
+        if (url?.startsWith(Rownd.config.baseUrl) == false && url != "about:blank") {
             webView.animateBottomSheet?.invoke(ModalBottomSheetValue.Expanded)
         }
     }
@@ -197,6 +219,7 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
     ) {
         super.onReceivedError(view, request, error)
         Log.e("Rownd.hub", error?.description.toString())
+        loadNoInternetHTML()
     }
 
     private fun handleScriptReturn(value: String) {
@@ -204,8 +227,13 @@ class RowndWebViewClient(webView: RowndWebView) : WebViewClient() {
     }
 }
 
-class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
+class RowndJavascriptInterface(private val parentWebView: RowndWebView, context: Context) {
     var userRepo: UserRepo = Rownd.graph.userRepo()
+    private val context: Context
+
+    init {
+        this.context = context
+    }
 
     @JavascriptInterface
     fun postMessage(message: String) {
@@ -264,6 +292,12 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView) {
 
             MessageType.CloseHubView -> {
                 parentWebView.dismiss?.invoke()
+            }
+
+            MessageType.tryAgain -> {
+                parentWebView.post(Runnable {
+                    parentWebView.loadUrl(Rownd.config.hubLoaderUrl())
+                })
             }
             else -> {
                 Log.w("RowndHub", "An unknown message was received")
