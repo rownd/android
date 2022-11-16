@@ -32,6 +32,7 @@ import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
 import io.rownd.android.util.ApiClientModule
 import io.rownd.android.util.AppLifecycleListener
+import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
 import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
@@ -56,6 +57,8 @@ interface RowndGraph {
     fun userRepo(): UserRepo
     fun authRepo(): AuthRepo
     fun signInLinkApi(): SignInLinkApi
+    fun rowndContext(): RowndContext
+    fun inject(rowndConfig: RowndConfig)
 }
 
 class RowndClient constructor(
@@ -71,10 +74,16 @@ class RowndClient constructor(
     var userRepo: UserRepo = graph.userRepo()
     var authRepo: AuthRepo = graph.authRepo()
     var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
+    var rowndContext = graph.rowndContext()
 
     var state = stateRepo.state
     private var launchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private lateinit var hubViewModel: RowndWebViewModel
+
+    init {
+        graph.inject(config)
+        rowndContext.config = config
+    }
 
     private fun configure(appKey: String) {
         config.appKey = appKey
@@ -87,7 +96,7 @@ class RowndClient constructor(
         }
 
         // Webview holder in case of activity restarts during auth
-        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!)
+        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!, config)
         appHandleWrapper.registerActivityListener(
             persistentListOf(
                 Lifecycle.State.CREATED
@@ -100,6 +109,7 @@ class RowndClient constructor(
                 it as ViewModelStoreOwner,
                 hubViewModelFactory
             )[RowndWebViewModel::class.java]
+
             // Re-triggers the sign-in sheet in the event that the activity restarted during sign-in
             if (hubViewModel.webView().value != null) {
                 displayHub(HubPageSelector.Unknown)
@@ -249,8 +259,13 @@ class RowndClient constructor(
     }
 
     suspend fun _refreshToken(): String? {
-        val result = authRepo.refreshTokenAsync().await()
-        return result?.accessToken
+        return try {
+            val result = authRepo.refreshTokenAsync().await()
+            result?.accessToken
+        } catch (ex: RowndException) {
+            Log.d("Rownd.testing","Refresh token flow failed: ${ex.message}")
+            null
+        }
     }
 
     fun isEncryptionPossible(): Boolean {

@@ -1,5 +1,6 @@
 package io.rownd.android.models.network
 
+import io.ktor.resources.*
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName

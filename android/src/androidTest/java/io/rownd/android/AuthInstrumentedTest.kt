@@ -12,6 +12,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
@@ -36,6 +37,8 @@ class AuthInstrumentedTest {
         val config = RowndConfig()
         Rownd.config.apiUrl = server.url("/").toString()
         rownd = RowndClient(DaggerRowndGraph.create(), config)
+        config.apiUrl = server.url("").toString()
+        config.defaultRequestTimeout = 1000L
     }
 
     @After
@@ -45,20 +48,62 @@ class AuthInstrumentedTest {
 
     @Test
     fun handle_empty_response() = runTest {
+        // Handle all the retries from the API client
+        for (i in 0..5) {
+            server.enqueue(MockResponse()
+                .setResponseCode(500)
+                .setBody("")
+            )
+        }
+
+        try {
+            val resp = rownd.authRepo.refreshTokenAsync().await()
+            fail("Did not throw exception after multiple failures")
+        } catch (ex: Exception) {
+            // the test passes
+            return@runTest
+        }
+    }
+
+    @Test
+    fun handle_network_failures() = runTest {
+        // Handle all the retries from the API client
         server.enqueue(MockResponse()
             .setResponseCode(500)
             .setBody("")
         )
 
+//        server.enqueue(MockResponse()
+//            .setSocketPolicy(SocketPolicy.NO_RESPONSE)
+//        )
+
+        server.enqueue(MockResponse()
+            .setResponseCode(200)
+            .setBody("")
+            .setSocketPolicy(SocketPolicy.DISCONNECT_DURING_REQUEST_BODY)
+        )
+
+        server.enqueue(MockResponse()
+            .setHeader("Content-Type", "application/json; charset=utf-8")
+            .setResponseCode(200)
+            .setBody("""
+                {
+                    "access_token": "${jwtGenerator.generateTestJwt()}",
+                    "refresh_token": "${jwtGenerator.generateTestJwt()}"
+                }
+            """.trimIndent())
+        )
+
         val resp = rownd.authRepo.refreshTokenAsync().await()
 
-        assertNull(resp)
-        assertFalse(rownd.state.value.auth.isAuthenticated)
+        assertNotNull(resp)
+        assertTrue(rownd.state.value.auth.isAuthenticated)
     }
 
     @Test
     fun handle_invalid_token_resp() = runTest {
         server.enqueue(MockResponse()
+            .setHeader("Content-Type", "application/json; charset=utf-8")
             .setResponseCode(400)
             .setBody("{\"statusCode\":400,\"error\":\"Bad Request\",\"message\":\"Invalid refresh token: Refresh token has been consumed\"}")
         )
@@ -74,6 +119,8 @@ class AuthInstrumentedTest {
             ))
         )
 
+        assertTrue(rownd.state.value.auth.isAuthenticated)
+
         val resp = rownd.authRepo.refreshTokenAsync().await()
 
         assertNull(resp)
@@ -83,6 +130,7 @@ class AuthInstrumentedTest {
     @Test
     fun refresh_valid_token() = runTest {
         server.enqueue(MockResponse()
+            .setHeader("Content-Type", "application/json; charset=utf-8")
             .setResponseCode(200)
             .setBody("""
                 {
@@ -115,6 +163,7 @@ class AuthInstrumentedTest {
         // called multiple times. If it does, that's typically bad and will
         // cause the test assertions to fail.
         server.enqueue(MockResponse()
+            .setHeader("Content-Type", "application/json; charset=utf-8")
             .setResponseCode(200)
             .setBody("""
                 {
@@ -125,6 +174,7 @@ class AuthInstrumentedTest {
         )
 
         server.enqueue(MockResponse()
+            .setHeader("Content-Type", "application/json; charset=utf-8")
             .setResponseCode(200)
             .setBody("""
                 {
@@ -135,6 +185,7 @@ class AuthInstrumentedTest {
         )
 
         server.enqueue(MockResponse()
+            .setHeader("Content-Type", "application/json; charset=utf-8")
             .setResponseCode(200)
             .setBody("""
                 {
@@ -179,6 +230,35 @@ class AuthInstrumentedTest {
 
         assertTrue(rownd.state.value.auth.isAccessTokenValid)
         assertTrue(rownd.state.value.auth.isAuthenticated)
+    }
+
+    @Test
+    fun prevent_signout_on_server_errors() = runTest {
+        // Handle all the retries from the API client
+        for (i in 0..5) {
+            server.enqueue(MockResponse()
+                .setResponseCode(500)
+                .setBody("")
+            )
+        }
+
+        val storeField = rownd.stateRepo.javaClass.getDeclaredField("store")
+        storeField.isAccessible = true
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+            StateAction.SetAuth(AuthState(
+                accessToken = jwtGenerator.generateTestJwt(
+                    expires = Date.from(Instant.now().plusSeconds(120))
+                ),
+                refreshToken = jwtGenerator.generateTestJwt()
+            ))
+        )
+
+        try {
+            val resp = rownd.authRepo.refreshTokenAsync().await()
+            fail("Refresh flow should've thrown")
+        } catch (ex: Throwable) {
+            assertTrue(rownd.state.value.auth.isAuthenticated)
+        }
     }
 
 }
