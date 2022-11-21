@@ -18,6 +18,7 @@ import androidx.compose.material.ModalBottomSheetValue
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.*
 import io.rownd.android.Rownd
+import io.rownd.android.RowndClient
 import io.rownd.android.RowndSignInHint
 import io.rownd.android.models.AuthenticationMessage
 import io.rownd.android.models.MessageType
@@ -26,7 +27,6 @@ import io.rownd.android.models.UserDataUpdateMessage
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
-import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.Constants
 import io.rownd.android.views.html.noInternetHTML
 import kotlinx.collections.immutable.persistentListOf
@@ -60,8 +60,11 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal var jsFunctionArgsAsJson: String = "{}"
     internal var progressBar: ProgressBar? = null
     internal var setIsLoading: ((isLoading: Boolean) -> Unit)? = null
+
     @OptIn(ExperimentalMaterialApi::class)
     internal var animateBottomSheet: ((to: ModalBottomSheetValue) -> Unit)? = null
+
+    internal lateinit var rowndClient: RowndClient
 
     init {
         this.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
@@ -237,8 +240,10 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
     }
 }
 
-class RowndJavascriptInterface(private val parentWebView: RowndWebView, context: Context) {
-    var userRepo: UserRepo = Rownd.graph.userRepo()
+class RowndJavascriptInterface(
+    private val parentWebView: RowndWebView,
+    context: Context) {
+
     private val context: Context
 
     init {
@@ -266,7 +271,7 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView, context:
                         )
                     )
                 )
-                userRepo.loadUserAsync()
+                parentWebView.rowndClient.userRepo.loadUserAsync()
 
                 Executors.newSingleThreadScheduledExecutor().schedule({
                     parentWebView.dismiss?.invoke()
@@ -294,10 +299,10 @@ class RowndJavascriptInterface(private val parentWebView: RowndWebView, context:
             MessageType.UserDataUpdate -> {
                 Rownd.store.dispatch(
                     StateAction.SetUser(
-                        (interopMessage as UserDataUpdateMessage).payload.asDomainModel()
+                        (interopMessage as UserDataUpdateMessage).payload.asDomainModel(parentWebView.rowndClient.stateRepo, parentWebView.rowndClient.userRepo)
                     )
                 )
-                userRepo.loadUserAsync()
+                parentWebView.rowndClient.userRepo.loadUserAsync()
             }
 
             MessageType.CloseHubView -> {

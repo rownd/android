@@ -74,8 +74,12 @@ sealed class StateAction : Action {
 
 @Singleton
 class StateRepo @Inject constructor() {
-    @Inject lateinit var appConfigRepo: AppConfigRepo
-//    var userRepo: UserRepo = Rownd.graph.userRepo()
+
+    @Inject
+    lateinit var appConfigRepo: AppConfigRepo
+
+    // Manually inject this one
+    lateinit var userRepo: UserRepo
 
     private lateinit var dataStore: DataStore<GlobalState>
 
@@ -103,11 +107,11 @@ class StateRepo @Inject constructor() {
             }
 
             // Fetch latest app config
-            appConfigRepo.loadAppConfigAsync().await()
+            appConfigRepo.loadAppConfigAsync(this@StateRepo).await()
 
             // Fetch latest user data if we're authenticated
             if (store.currentState.auth.isAuthenticated) {
-//                userRepo.loadUserAsync().await()
+                userRepo.loadUserAsync().await()
             }
 
             // Persist all state updates to cache

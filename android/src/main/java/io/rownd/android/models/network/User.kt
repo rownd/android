@@ -1,7 +1,6 @@
 package io.rownd.android.models.network
 
 import android.util.Log
-import io.rownd.android.Rownd
 import io.rownd.android.models.domain.AppSchemaEncryptionState
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
@@ -10,7 +9,6 @@ import io.rownd.android.util.ApiClient
 import io.rownd.android.util.Encryption
 import io.rownd.android.util.RequireAccessToken
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -23,20 +21,14 @@ data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?>,
     val redacted: List<String> = listOf()
 ) {
-    @Transient
-    var stateRepo: StateRepo = Rownd.graph.stateRepo()
-
-    @Transient
-    var userRepo: UserRepo = Rownd.graph.userRepo()
-
-    fun asDomainModel(): DomainUser {
+    fun asDomainModel(stateRepo: StateRepo, userRepo: UserRepo): DomainUser {
         return DomainUser(
-            data = dataAsDecrypted(),
+            data = dataAsDecrypted(stateRepo, userRepo),
             redacted = redacted.toMutableList()
         )
     }
 
-    internal fun dataAsDecrypted(): Map<String, Any?> {
+    internal fun dataAsDecrypted(stateRepo: StateRepo, userRepo: UserRepo): Map<String, Any?> {
         val encKeyId = userRepo.ensureEncryptionKey(DomainUser(data = data)) ?: return data
 
         val data = data.toMutableMap()

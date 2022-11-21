@@ -1,7 +1,6 @@
 package io.rownd.android.models.repos
 
 import android.util.Log
-import io.rownd.android.Rownd
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.UserApi
 import io.rownd.android.util.Encryption
@@ -14,45 +13,40 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class UserRepo @Inject constructor(stateRepo: StateRepo) {
-    var stateRepo: StateRepo
+class UserRepo @Inject constructor(val stateRepo: StateRepo) {
 
     @Inject
     lateinit var userApi: UserApi
 
-    init {
-        this.stateRepo = stateRepo
-    }
-
     internal fun loadUserAsync(): Deferred<User?> {
         return CoroutineScope(Dispatchers.IO).async {
-            val result = userApi.client.fetchUser(Rownd.store.currentState.appConfig.id)
+            val result = userApi.client.fetchUser(stateRepo.state.value.appConfig.id)
                 .onSuccess {
                     Log.i("RowndUsersApi", "Successfully loaded user data: $it")
-                    stateRepo.getStore().dispatch(StateAction.SetUser(it.asDomainModel()))
+                    stateRepo.getStore().dispatch(StateAction.SetUser(it.asDomainModel(stateRepo, this@UserRepo)))
                 }
                 .onFailure {
                     Log.e("RowndUsersApi", "Failed to fetch the user: ${it.message}")
                 }
 
-            return@async result.getOrNull()?.asDomainModel()
+            return@async result.getOrNull()?.asDomainModel(stateRepo, this@UserRepo)
         }
     }
 
     internal fun saveUserAsync(user: User): Deferred<User?> {
         // Create network user based on domain user
-        val networkUser = user.asNetworkModel()
+        val networkUser = user.asNetworkModel(stateRepo, this)
         return CoroutineScope(Dispatchers.IO).async {
-            val result = userApi.client.saveUser(Rownd.store.currentState.appConfig.id, networkUser)
+            val result = userApi.client.saveUser(stateRepo.state.value.appConfig.id, networkUser)
                 .onSuccess {
                     Log.i("RowndUsersApi", "Successfully saved user data: $it")
-                    stateRepo.getStore().dispatch(StateAction.SetUser(it.asDomainModel()))
+                    stateRepo.getStore().dispatch(StateAction.SetUser(it.asDomainModel(stateRepo, this@UserRepo)))
                 }
                 .onFailure {
                     Log.e("RowndUsersApi", "Failed to save the user: ${it.message}")
                 }
 
-            return@async result.getOrNull()?.asDomainModel()
+            return@async result.getOrNull()?.asDomainModel(stateRepo, this@UserRepo)
         }
     }
 
