@@ -101,6 +101,7 @@ class AuthRepo @Inject constructor(rowndContext: RowndContext) {
                 Log.e("Rownd.AuthRepo", "Failed to refresh tokens, likely because it has already been consumed:", ex)
                 refreshTokenJob = null
 
+                // Sign out on HTTP 400s
                 stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState()))
                 stateRepo.getStore().dispatch(StateAction.SetUser(User()))
 
