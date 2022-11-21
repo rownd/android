@@ -111,7 +111,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         this.context = context
 
         CoroutineScope(Dispatchers.IO).launch {
-            delay(10000)
+            delay(20000)
             if (timeout) {
                 loadNoInternetHTML()
             }
@@ -231,8 +231,10 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         error: WebResourceError?
     ) {
         super.onReceivedError(view, request, error)
-        Log.e("Rownd.hub", error?.description.toString())
-        loadNoInternetHTML()
+        if (request?.url?.host?.contains("rownd.io") == true) {
+            Log.e("Rownd.hub", error?.description.toString())
+            loadNoInternetHTML()
+        }
     }
 
     private fun handleScriptReturn(value: String) {
