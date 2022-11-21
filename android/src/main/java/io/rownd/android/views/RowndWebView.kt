@@ -225,18 +225,6 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
     }
 
-    override fun onReceivedError(
-        view: WebView?,
-        request: WebResourceRequest?,
-        error: WebResourceError?
-    ) {
-        super.onReceivedError(view, request, error)
-        if (request?.url?.host?.contains("rownd.io") == true) {
-            Log.e("Rownd.hub", error?.description.toString())
-            loadNoInternetHTML()
-        }
-    }
-
     private fun handleScriptReturn(value: String) {
         Log.d("Rownd.hub", value)
     }
