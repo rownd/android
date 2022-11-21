@@ -1,7 +1,6 @@
 package io.rownd.android.models.repos
 
 import android.util.Log
-import io.rownd.android.Rownd
 import io.rownd.android.models.domain.AppConfigState
 import io.rownd.android.models.network.AppConfigApi
 import kotlinx.coroutines.CoroutineScope
@@ -16,11 +15,11 @@ class AppConfigRepo @Inject constructor() {
     @Inject
     lateinit var appConfigApi: AppConfigApi
 
-    internal fun loadAppConfigAsync(): Deferred<AppConfigState?> {
+    internal fun loadAppConfigAsync(stateRepo: StateRepo): Deferred<AppConfigState?> {
         return CoroutineScope(Dispatchers.IO).async {
             val result = appConfigApi.client.getAppConfig()
                 .onSuccess {
-                    Rownd.store.dispatch(StateAction.SetAppConfig(it.app.asDomainModel()))
+                    stateRepo.getStore().dispatch(StateAction.SetAppConfig(it.app.asDomainModel()))
                 }
                 .onFailure {
                     Log.e("Rownd", "Oh no! Request failed! ${it.message}")

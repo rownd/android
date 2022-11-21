@@ -89,7 +89,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                 if (!hasLoadedUrl) {
                     val parentScope = this
                     coroutineScope.launch {
-                        val url = viewModel?.rowndConfig?.hubLoaderUrl()
+                        val url = viewModel?.rowndClient?.config?.hubLoaderUrl()
                         parentScope.hubWebview.loadUrl(url!!)
                     }
                     setHasLoadedUrl(true)

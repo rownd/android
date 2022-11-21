@@ -6,7 +6,6 @@ import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AnyValueSerializer
 import io.rownd.android.util.Encryption
 import kotlinx.serialization.Serializable
-import javax.inject.Inject
 import io.rownd.android.models.network.User as NetworkUser
 
 @Serializable
@@ -14,22 +13,14 @@ data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?> = HashMap<String, Any?>(),
     val redacted: MutableList<String> = mutableListOf()
 ) {
-    @kotlinx.serialization.Transient
-    @Inject
-    lateinit var stateRepo: StateRepo
-
-    @kotlinx.serialization.Transient
-    @Inject
-    lateinit var userRepo: UserRepo
-
-    fun asNetworkModel(): NetworkUser {
+    fun asNetworkModel(stateRepo: StateRepo, userRepo: UserRepo): NetworkUser {
         return NetworkUser(
-            data = dataAsEncrypted(),
+            data = dataAsEncrypted(stateRepo, userRepo),
             redacted = redacted
         )
     }
 
-    internal fun dataAsEncrypted(): Map<String, Any?> {
+    internal fun dataAsEncrypted(stateRepo: StateRepo, userRepo: UserRepo): Map<String, Any?> {
         val encKeyId = userRepo.ensureEncryptionKey(this) ?: return data
 
         val data = data.toMutableMap()

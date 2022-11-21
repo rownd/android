@@ -62,7 +62,7 @@ interface RowndGraph {
 }
 
 class RowndClient constructor(
-    val graph: RowndGraph,
+    graph: RowndGraph,
     val config: RowndConfig = RowndConfig()
 ) {
     private val json = Json { encodeDefaults = true }
@@ -83,6 +83,7 @@ class RowndClient constructor(
     init {
         graph.inject(config)
         rowndContext.config = config
+        stateRepo.userRepo = userRepo
     }
 
     private fun configure(appKey: String) {
@@ -96,7 +97,7 @@ class RowndClient constructor(
         }
 
         // Webview holder in case of activity restarts during auth
-        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!, config)
+        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!, this)
         appHandleWrapper.registerActivityListener(
             persistentListOf(
                 Lifecycle.State.CREATED
