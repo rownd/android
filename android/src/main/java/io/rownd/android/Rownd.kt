@@ -25,7 +25,6 @@ import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.tasks.Task
 import dagger.Component
 import io.rownd.android.models.RowndConfig
-import io.rownd.android.models.RowndCustomizations
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
@@ -150,14 +149,6 @@ class RowndClient constructor(
             false
         ) {
             launchers.remove(it.localClassName)
-        }
-
-        coroutineScope = CoroutineScope(Dispatchers.IO).launch {
-            Rownd.state.collect {
-                config.customizations.customStylesFlag =
-                    state.value.appConfig.config.hub.customStyles?.isNotEmpty() ?: false
-                config.customizations.fontFamily = state.value.appConfig.config.hub.customizations?.fontFamily
-            }
         }
     }
 
