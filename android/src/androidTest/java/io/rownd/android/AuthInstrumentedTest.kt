@@ -1,6 +1,7 @@
 package io.rownd.android
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.auth0.android.jwt.JWT
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
@@ -317,9 +318,7 @@ class AuthInstrumentedTest {
         storeField.isAccessible = true
         (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
             StateAction.SetAuth(AuthState(
-                accessToken = jwtGenerator.generateTestJwt(
-                    expires = Date.from(Instant.now().plusSeconds(65))
-                ),
+                accessToken = initialAccessToken,
                 refreshToken = jwtGenerator.generateTestJwt()
             ))
         )
@@ -328,6 +327,31 @@ class AuthInstrumentedTest {
 
         assertTrue(resp is String)
         assertEquals(initialAccessToken, resp)
+    }
+
+    @Test
+    fun detect_is_access_token_expired() = runTest {
+        val isExpiredAccessTokenNew = rownd.authRepo.isJwtExpiredWithMargin(JWT(jwtGenerator.generateTestJwt(
+            expires = Date.from(Instant.now().plusSeconds(60*60))
+        )))
+
+        val isExpiredAccessToken65secs = rownd.authRepo.isJwtExpiredWithMargin(JWT(jwtGenerator.generateTestJwt(
+            expires = Date.from(Instant.now().plusSeconds(65))
+        )))
+
+        val isExpiredAccessTokenOld = rownd.authRepo.isJwtExpiredWithMargin(JWT(jwtGenerator.generateTestJwt(
+            expires = Date.from(Instant.now().minusSeconds(60*60))
+        )))
+
+        val isExpiredAccessToken55secs = rownd.authRepo.isJwtExpiredWithMargin(JWT(jwtGenerator.generateTestJwt(
+            expires = Date.from(Instant.now().plusSeconds(55))
+        )))
+
+        assertFalse(isExpiredAccessTokenNew)
+        assertFalse(isExpiredAccessToken65secs)
+
+        assertTrue(isExpiredAccessTokenOld)
+        assertTrue(isExpiredAccessToken55secs)
     }
 
 }

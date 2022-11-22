@@ -136,7 +136,7 @@ class AuthRepo @Inject constructor(rowndContext: RowndContext) {
         }
     }
 
-    private fun isJwtExpiredWithMargin(jwt: JWT): Boolean {
+    internal fun isJwtExpiredWithMargin(jwt: JWT): Boolean {
         val currentTime =
             (Math.floor((Date().time / 1000).toDouble()) * 1000).toLong() //truncate millis
         val currentDateWithMargin = Date(currentTime + 60 * 1000) //Add 60 secs to current Date
