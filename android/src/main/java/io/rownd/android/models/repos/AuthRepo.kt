@@ -20,6 +20,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -48,7 +49,7 @@ class AuthRepo @Inject constructor(rowndContext: RowndContext) {
 
         val jwt = JWT(accessToken)
 
-        if (jwt.isExpired(0)) {
+        if (isJwtExpiredWithMargin(jwt)) {
             val resp = refreshTokenAsync().await()
             return resp?.asDomainModel()
         }
@@ -133,5 +134,13 @@ class AuthRepo @Inject constructor(rowndContext: RowndContext) {
                 null
             }
         }
+    }
+
+    private fun isJwtExpiredWithMargin(jwt: JWT): Boolean {
+        val currentTime =
+            (Math.floor((Date().time / 1000).toDouble()) * 1000).toLong() //truncate millis
+        val currentDateWithMargin = Date(currentTime + 60 * 1000) //Add 60 secs before token expires
+
+        return jwt.isExpired(0) || jwt.expiresAt == null || currentDateWithMargin.after(jwt.expiresAt)
     }
 }
