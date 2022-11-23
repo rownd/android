@@ -41,6 +41,7 @@ import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -85,6 +86,8 @@ class RowndClient constructor(
         rowndContext.config = config
         stateRepo.userRepo = userRepo
     }
+
+    private var coroutineScope: Job? = null
 
     private fun configure(appKey: String) {
         config.appKey = appKey

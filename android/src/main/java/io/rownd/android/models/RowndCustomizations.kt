@@ -40,6 +40,28 @@ open class RowndCustomizations() {
     // The "standard" font scale on Android should be 1.0 and the font scale for the
     // Hub is about 12pt, so we'll multiply the Hub's baseline with the Android fontScale
     val defaultFontSize: Float = Resources.getSystem().configuration.fontScale * 12
+
+    @Serializable(with = CustomStylesFlagSerializer::class)
+    var customStylesFlag: Boolean = false
+
+    @Serializable(with = FontFamilySerializer::class)
+    var fontFamily: String = ""
+}
+
+class CustomStylesFlagSerializer : KSerializer<Boolean> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("customStylesFlagSerializer", PrimitiveKind.BOOLEAN)
+    override fun serialize(encoder: Encoder, value: Boolean) {
+        return encoder.encodeBoolean(Rownd?.state?.value?.appConfig?.config?.hub?.customStyles?.isNotEmpty() ?: false)
+    }
+    override fun deserialize(decoder: Decoder): Boolean = decoder.decodeBoolean()
+}
+
+class FontFamilySerializer : KSerializer<String> {
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("fontFamilyFlagSerializer", PrimitiveKind.STRING)
+    override fun serialize(encoder: Encoder, value: String) {
+        return encoder.encodeString(Rownd?.state?.value?.appConfig?.config?.hub?.customizations?.fontFamily ?: "")
+    }
+    override fun deserialize(decoder: Decoder): String = decoder.decodeString()
 }
 
 class ColorAsHexStringSerializer : KSerializer<Color> {
