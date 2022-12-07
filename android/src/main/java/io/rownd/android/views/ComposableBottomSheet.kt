@@ -109,10 +109,16 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         val (isLoading, setIsLoading) = remember { mutableStateOf(shouldDisplayLoader) }
         var loadingLottieComposition: LottieComposition? = null
 
-        if (Rownd.config.customizations.loadingAnimation != null) {
+        Rownd.config.customizations.loadingAnimation?.let{loadingAnimation ->
             loadingLottieComposition =
-                rememberLottieComposition(LottieCompositionSpec.RawRes(Rownd.config.customizations.loadingAnimation!!)).value
+                rememberLottieComposition(LottieCompositionSpec.RawRes(loadingAnimation)).value
         }
+
+        Rownd.config.customizations.loadingAnimationJsonString?.let{loadingAnimationJsonString ->
+            loadingLottieComposition =
+                rememberLottieComposition(LottieCompositionSpec.JsonString(loadingAnimationJsonString)).value
+        }
+
 
         val configuration = LocalConfiguration.current
         val fullScreenHeight = configuration.screenHeightDp.dp

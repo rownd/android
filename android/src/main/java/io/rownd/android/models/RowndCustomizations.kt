@@ -37,6 +37,8 @@ open class RowndCustomizations() {
 
     open var loadingAnimation: Int? = null
 
+    open var loadingAnimationJsonString: String? = null
+
     // The "standard" font scale on Android should be 1.0 and the font scale for the
     // Hub is about 12pt, so we'll multiply the Hub's baseline with the Android fontScale
     val defaultFontSize: Float = Resources.getSystem().configuration.fontScale * 12
