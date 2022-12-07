@@ -33,7 +33,7 @@ data class AuthState @OptIn(ExperimentalSerializationApi::class) constructor(
 
             val jwt = JWT(accessToken)
 
-            return !jwt.isExpired(0)
+            return !Rownd.authRepo.isJwtExpiredWithMargin(jwt)
         }
 
     internal fun toRphInitHash(userRepo: UserRepo): String {

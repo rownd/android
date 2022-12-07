@@ -1,6 +1,7 @@
 package io.rownd.android
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.auth0.android.jwt.JWT
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
@@ -259,6 +260,127 @@ class AuthInstrumentedTest {
         } catch (ex: Throwable) {
             assertTrue(rownd.state.value.auth.isAuthenticated)
         }
+    }
+
+    @Test
+    fun detect_expired_access_token() = runTest {
+            server.enqueue(
+                MockResponse()
+                    .setHeader("Content-Type", "application/json; charset=utf-8")
+                    .setResponseCode(200)
+                    .setBody(
+                        """
+                {
+                    "access_token": "${jwtGenerator.generateTestJwt()}",
+                    "refresh_token": "${jwtGenerator.generateTestJwt()}"
+                }
+            """.trimIndent()
+                    )
+            )
+
+        val initialAccessToken = jwtGenerator.generateTestJwt(
+            expires = Date.from(Instant.now().plusSeconds(55))
+        )
+
+        val storeField = rownd.stateRepo.javaClass.getDeclaredField("store")
+        storeField.isAccessible = true
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+            StateAction.SetAuth(AuthState(
+                accessToken = initialAccessToken,
+                refreshToken = jwtGenerator.generateTestJwt()
+            ))
+        )
+
+        assertFalse(rownd.state.value.auth.isAccessTokenValid)
+
+        val resp = rownd.authRepo.getAccessToken()
+
+        assertTrue(resp is String)
+        assertNotSame(initialAccessToken, resp)
+    }
+
+    @Test
+    fun detect_not_expired_access_token() = runTest {
+        server.enqueue(MockResponse()
+            .setHeader("Content-Type", "application/json; charset=utf-8")
+            .setResponseCode(200)
+            .setBody("""
+                {
+                    "access_token": "${jwtGenerator.generateTestJwt()}",
+                    "refresh_token": "${jwtGenerator.generateTestJwt()}"
+                }
+            """.trimIndent())
+        )
+
+        val initialAccessToken = jwtGenerator.generateTestJwt(
+            expires = Date.from(Instant.now().plusSeconds(65))
+        )
+
+        val storeField = rownd.stateRepo.javaClass.getDeclaredField("store")
+        storeField.isAccessible = true
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+            StateAction.SetAuth(AuthState(
+                accessToken = initialAccessToken,
+                refreshToken = jwtGenerator.generateTestJwt()
+            ))
+        )
+
+        assertTrue(rownd.state.value.auth.isAccessTokenValid)
+
+        val resp = rownd.authRepo.getAccessToken()
+
+        assertTrue(resp is String)
+        assertEquals(initialAccessToken, resp)
+    }
+
+    @Test
+    fun detect_is_access_token_expired() = runTest {
+
+        val storeField = rownd.stateRepo.javaClass.getDeclaredField("store")
+        storeField.isAccessible = true
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+            StateAction.SetAuth(AuthState(
+                accessToken = jwtGenerator.generateTestJwt(
+                    expires = Date.from(Instant.now().plusSeconds(65)) // Just about to expire when 60sec margin include
+                ),
+                refreshToken = jwtGenerator.generateTestJwt()
+            ))
+        )
+
+        assertTrue(rownd.state.value.auth.isAccessTokenValid)
+
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+            StateAction.SetAuth(AuthState(
+                accessToken = jwtGenerator.generateTestJwt(
+                    expires = Date.from(Instant.now().plusSeconds(55)) // Just expired when 60sec margin include
+                ),
+                refreshToken = jwtGenerator.generateTestJwt()
+            ))
+        )
+
+        assertFalse(rownd.state.value.auth.isAccessTokenValid)
+
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+            StateAction.SetAuth(AuthState(
+                accessToken = jwtGenerator.generateTestJwt(
+                    expires = Date.from(Instant.now().plusSeconds(3600)) // Access Token is valid for another hour
+                ),
+                refreshToken = jwtGenerator.generateTestJwt()
+            ))
+        )
+
+        assertTrue(rownd.state.value.auth.isAccessTokenValid)
+
+        (storeField.get(rownd.stateRepo) as Store<GlobalState, StateAction>).dispatch(
+            StateAction.SetAuth(AuthState(
+                accessToken = jwtGenerator.generateTestJwt(
+                    expires = Date.from(Instant.now().minusSeconds(3600)) // Access Token expired a hour ago
+                ),
+                refreshToken = jwtGenerator.generateTestJwt()
+            ))
+        )
+
+        assertFalse(rownd.state.value.auth.isAccessTokenValid)
     }
 
 }
