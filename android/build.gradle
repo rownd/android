@@ -86,7 +86,7 @@ dependencies {
     implementation "androidx.room:room-ktx:2.4.3"
     implementation "androidx.compose.foundation:foundation:1.2.1"
     implementation "androidx.compose.material:material:1.2.1"
-    implementation "androidx.fragment:fragment-ktx:1.5.4"
+    implementation "androidx.fragment:fragment-ktx:1.5.5"
 
     implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
@@ -117,6 +117,7 @@ dependencies {
 
     // JWTs
     implementation 'com.auth0.android:jwtdecode:2.0.1'
+    implementation 'com.lyft.kronos:kronos-android:0.0.1-alpha11'
 
     implementation "com.goterl:lazysodium-android:5.0.2@aar"
     implementation "net.java.dev.jna:jna:5.8.0@aar"
