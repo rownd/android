@@ -25,7 +25,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AuthRepo @Inject constructor(rowndContext: RowndContext) {
+class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     @Inject
     lateinit var authApi: AuthApi
 
@@ -138,10 +138,13 @@ class AuthRepo @Inject constructor(rowndContext: RowndContext) {
     }
 
     internal fun isJwtExpiredWithMargin(jwt: JWT): Boolean {
-        val currentTime =
-            (Math.floor((Date().time / 1000).toDouble()) * 1000).toLong() //truncate millis
-        val currentDateWithMargin = Date(currentTime + 60 * 1000) //Add 60 secs to current Date
+        if (jwt.expiresAt == null) {
+            return false
+        }
 
-        return jwt.isExpired(0) || jwt.expiresAt == null || currentDateWithMargin.after(jwt.expiresAt)
+        val currentTime = rowndContext.kronosClock?.getCurrentTimeMs() ?: System.currentTimeMillis()
+        val currentDateWithMargin = Date(currentTime + (60 * 1000)) //Add 60 secs to current Date
+
+        return currentDateWithMargin.after(jwt.expiresAt)
     }
 }
