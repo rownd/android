@@ -249,6 +249,18 @@ Rownd.requestSignIn(RowndSignInOpts(
 ))
 ```
 
+### Rownd.requestSignIn(with = RowndSignInHint)
+Initiates a sign-in using the method specified by the `with` argument, bypassing the authentication method selector. For example, this could be used to steer a new user toward a specific sign-in method.
+
+Supported options:
+- `RowndSignInHint.Google`
+
+Example:
+
+```kotlin
+Rownd.requestSignIn(with = RowndSignInHint.Google)
+```
+
 > NOTE: The following user profile APIs technically accept `Any` as the value of a field. However, that value **must** be serializable using [Kotlin's Serialization](https://kotlinlang.org/docs/serialization.html) library. If the value is not serializable out of the box, you'll need to provide your own serializer implementation as described in the Kotlin documentation.
 
 ### Rownd.user.get(): Map<String, Any?>
