@@ -84,6 +84,8 @@ class RowndClient constructor(
     init {
         graph.inject(config)
         rowndContext.config = config
+        rowndContext.client = this
+        rowndContext.authRepo = authRepo
         stateRepo.userRepo = userRepo
     }
 

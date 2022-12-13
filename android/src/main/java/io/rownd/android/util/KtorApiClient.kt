@@ -25,7 +25,7 @@ private object CustomAndroidHttpLogger : Logger {
 }
 
 open class KtorApiClient constructor(rowndContext: RowndContext)  {
-    val client = HttpClient(Android) {
+    private val base = HttpClient(Android) {
         install(Logging) {
             level = LogLevel.ALL
             logger = CustomAndroidHttpLogger
@@ -37,6 +37,8 @@ open class KtorApiClient constructor(rowndContext: RowndContext)  {
             json(Json {
                 prettyPrint = true
                 isLenient = true
+                ignoreUnknownKeys = true
+
             })
         }
         install(ContentEncoding)
@@ -53,16 +55,33 @@ open class KtorApiClient constructor(rowndContext: RowndContext)  {
 //        }
 
         expectSuccess = true
+//        HttpResponseValidator {
+//            handleResponseExceptionWithRequest { exception, request ->
+//                val clientException = exception as? ClientRequestException ?: return@handleResponseExceptionWithRequest
+//                val exceptionResponse = clientException.response
+//
+//                try {
+//                    val apiError =
+//                        json.decodeFromString(APIError.serializer(), exceptionResponse.bodyAsText())
+//                    throw apiError
+//                } catch (ex: Exception) {
+//                    throw exception
+//                }
+//            }
+//        }
+
         defaultRequest {
             url(rowndContext.config.apiUrl)
             contentType(ContentType.Application.Json)
         }
     }
 
+    open var client = base
+
     init {
         // Remove after upgrading to ktor 2.2+, since it should
         // be able to catch request timeouts directly vs. this workaround.
-        client.plugin(HttpSend).intercept { request ->
+        base.plugin(HttpSend).intercept { request ->
             val executionContext = request.executionContext
             val killer = client.launch(Dispatchers.Default) {
                 delay(rowndContext.config.defaultRequestTimeout)
