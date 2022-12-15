@@ -1,35 +1,48 @@
 package io.rownd.android.models.repos
 
 import android.util.Log
+import io.ktor.client.call.*
+import io.ktor.client.plugins.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 import io.rownd.android.models.domain.User
-import io.rownd.android.models.network.UserApi
-import io.rownd.android.util.Encryption
-import io.rownd.android.util.EncryptionException
+import io.rownd.android.util.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.collections.set
+import io.rownd.android.models.network.User as NetworkUser
 
 @Singleton
-class UserRepo @Inject constructor(val stateRepo: StateRepo) {
+class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndContext: RowndContext) {
 
-    @Inject
-    lateinit var userApi: UserApi
+//    @Inject
+//    lateinit var userApi: UserApi
+
+    private val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
 
     internal fun loadUserAsync(): Deferred<User?> {
         return CoroutineScope(Dispatchers.IO).async {
-            val result = userApi.client.fetchUser(stateRepo.state.value.appConfig.id)
-                .onSuccess {
-                    Log.i("RowndUsersApi", "Successfully loaded user data: $it")
-                    stateRepo.getStore().dispatch(StateAction.SetUser(it.asDomainModel(stateRepo, this@UserRepo)))
-                }
-                .onFailure {
-                    Log.e("RowndUsersApi", "Failed to fetch the user: ${it.message}")
+            try {
+                val user: NetworkUser = userApi.client.get("me/applications/${stateRepo.state.value.appConfig.id}/data").body()
+                Log.i("RowndUsersApi", "Successfully loaded user data: $user")
+                stateRepo.getStore().dispatch(StateAction.SetUser(user.asDomainModel(stateRepo, this@UserRepo)))
+                return@async user.asDomainModel(stateRepo, this@UserRepo)
+            } catch (ex: ClientRequestException) {
+                Log.e("RowndUsersApi", "Failed to fetch the user: ${ex.message}")
+
+                if (ex.response.status == HttpStatusCode.NotFound) {
+                    // This user doesn't exist
+                    rowndContext.client?.signOut()
                 }
 
-            return@async result.getOrNull()?.asDomainModel(stateRepo, this@UserRepo)
+                return@async null
+            } catch (ex: Exception) {
+                throw RowndException("Failed to fetch the user: ${ex.message}")
+            }
         }
     }
 
@@ -37,16 +50,20 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo) {
         // Create network user based on domain user
         val networkUser = user.asNetworkModel(stateRepo, this)
         return CoroutineScope(Dispatchers.IO).async {
-            val result = userApi.client.saveUser(stateRepo.state.value.appConfig.id, networkUser)
-                .onSuccess {
-                    Log.i("RowndUsersApi", "Successfully saved user data: $it")
-                    stateRepo.getStore().dispatch(StateAction.SetUser(it.asDomainModel(stateRepo, this@UserRepo)))
-                }
-                .onFailure {
-                    Log.e("RowndUsersApi", "Failed to save the user: ${it.message}")
-                }
-
-            return@async result.getOrNull()?.asDomainModel(stateRepo, this@UserRepo)
+            try {
+                val savedUser: NetworkUser =
+                    userApi.client.put("me/applications/${stateRepo.state.value.appConfig.id}/data") {
+                        setBody(
+                            networkUser
+                        )
+                    }.body()
+                Log.i("RowndUsersApi", "Successfully saved user data: $user")
+                stateRepo.getStore().dispatch(StateAction.SetUser(savedUser.asDomainModel(stateRepo, this@UserRepo)))
+                return@async savedUser.asDomainModel(stateRepo, this@UserRepo)
+            } catch (ex: Exception) {
+                Log.e("RowndUsersApi", "Failed to save the user: ${ex.message}")
+                throw RowndException("Failed to save the user: ${ex.message}")
+            }
         }
     }
 
@@ -69,6 +86,7 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo) {
             data = data
         )
         stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
+
         saveUserAsync(updatedUser)
     }
 
