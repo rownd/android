@@ -67,7 +67,7 @@ class RowndClient constructor(
     val config: RowndConfig = RowndConfig()
 ) {
     private val json = Json { encodeDefaults = true }
-    internal lateinit var appHandleWrapper: AppLifecycleListener
+    internal var appHandleWrapper: AppLifecycleListener? = null
 
     internal lateinit var store: Store<GlobalState, StateAction>
 
@@ -92,23 +92,24 @@ class RowndClient constructor(
     private fun configure(appKey: String) {
         // Init NTP sync ASAP
         rowndContext.kronosClock = AndroidClockFactory.createKronosClock(
-            appHandleWrapper.app.get()!!.applicationContext,
+            appHandleWrapper?.app?.get()!!.applicationContext,
             ntpHosts = listOf("time.cloudflare.com")
         )
         rowndContext.kronosClock?.syncInBackground()
 
         config.appKey = appKey
 
-        store = stateRepo.setup(appHandleWrapper.app.get()!!.applicationContext.dataStore)
+        store = stateRepo.setup(appHandleWrapper?.app?.get()!!.applicationContext.dataStore)
 
         // Clear webview cache on startup
         Handler(Looper.getMainLooper()).post {
-            WebView(appHandleWrapper.app.get()!!).clearCache(true)
+            WebView(appHandleWrapper?.app?.get()!!).clearCache(true)
         }
 
         // Webview holder in case of activity restarts during auth
-        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper.app.get()!!, this)
-        appHandleWrapper.registerActivityListener(
+        Log.d("RowndAppCheck", appHandleWrapper?.app?.get()?.toString() ?: "null")
+        val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper?.app?.get()!!, this)
+        appHandleWrapper?.registerActivityListener(
             persistentListOf(
                 Lifecycle.State.CREATED
             ), true
@@ -127,16 +128,40 @@ class RowndClient constructor(
             }
         }
 
-        appHandleWrapper.registerActivityListener(
+        appHandleWrapper?.registerActivityListener(
             persistentListOf(
                 Lifecycle.State.RESUMED
             ), true
         ) {
             signInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
         }
+    }
+
+    fun configure(app: Application, appKey: String) {
+        _registerActivityLifecycle(app)
+        configure(appKey)
+    }
+
+    // Used by Flutter and RN SDKs
+    fun configure(activity: FragmentActivity, appKey: String) {
+        _registerActivityLifecycle(activity)
+        configure(appKey)
+    }
+
+    // Mainly for use by other Rownd SDKs (like Flutter)
+    fun _registerActivityLifecycle(app: Application) {
+        if (appHandleWrapper == null) {
+            appHandleWrapper = AppLifecycleListener(app)
+            _registerActivityLifecycle(null)
+        }
+    }
+    fun _registerActivityLifecycle(activity: FragmentActivity?) {
+        if (activity != null && appHandleWrapper == null) {
+            appHandleWrapper = AppLifecycleListener(activity)
+        }
 
         // Add an activity result callback for Google sign in
-        appHandleWrapper.registerActivityListener(
+        appHandleWrapper?.registerActivityListener(
             persistentListOf(Lifecycle.State.CREATED),
             false
         ) {
@@ -151,22 +176,12 @@ class RowndClient constructor(
         }
 
         // Remove Google sign-in callbacks if activity is destroyed
-        appHandleWrapper.registerActivityListener(
+        appHandleWrapper?.registerActivityListener(
             persistentListOf(Lifecycle.State.DESTROYED),
             false
         ) {
             launchers.remove(it.localClassName)
         }
-    }
-
-    fun configure(app: Application, appKey: String) {
-        appHandleWrapper = AppLifecycleListener(app)
-        configure(appKey)
-    }
-
-    fun configure(activity: FragmentActivity, appKey: String) {
-        appHandleWrapper = AppLifecycleListener(activity)
-        configure(appKey)
     }
 
     fun requestSignIn(
@@ -204,7 +219,7 @@ class RowndClient constructor(
     }
 
     fun transferEncryptionKey() {
-        val activity = appHandleWrapper.activity?.get() as AppCompatActivity
+        val activity = appHandleWrapper?.activity?.get() as AppCompatActivity
 
         val bottomSheet = KeyTransferBottomSheet.newInstance()
         bottomSheet.show(activity.supportFragmentManager, KeyTransferBottomSheet.TAG)
@@ -212,7 +227,7 @@ class RowndClient constructor(
 
     private fun signOutOfGoogle() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
-        val activity = appHandleWrapper.activity?.get() ?: return
+        val activity = appHandleWrapper?.activity?.get() ?: return
         val googleSignInClient = GoogleSignIn.getClient(activity, gso)
 
         googleSignInClient.signOut().addOnCompleteListener(activity) {
@@ -237,7 +252,7 @@ class RowndClient constructor(
             .requestIdToken(googleSignInMethodConfig.clientId)
             .build()
 
-        val activity = appHandleWrapper.activity?.get() ?: return
+        val activity = appHandleWrapper?.activity?.get() ?: return
 
         val googleSignInClient = GoogleSignIn.getClient(activity, gso)
         val signInIntent: Intent = googleSignInClient.signInIntent
@@ -289,7 +304,7 @@ class RowndClient constructor(
         jsFnOptions: RowndSignInOptions? = null
     ) {
         try {
-            val activity = appHandleWrapper.activity?.get() as FragmentActivity
+            val activity = appHandleWrapper?.activity?.get() as FragmentActivity
 
             if (activity.isFinishing) {
                 return

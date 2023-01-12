@@ -4,7 +4,6 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
-import androidx.annotation.Nullable
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle.State
 import kotlinx.collections.immutable.PersistentList
@@ -36,7 +35,7 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         activity = WeakReference(currentActivity)
     }
 
-    override fun onActivityCreated(activity: Activity, @Nullable bundle: Bundle?) {
+    override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
         this.activity = WeakReference(activity)
 
 
@@ -97,13 +96,18 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
     }
 
     internal fun registerActivityListener(states: PersistentList<State>, immediate: Boolean = false, callback: (activity: Activity) -> Unit) {
-        val activity = this.activity?.get() ?: null
+        val activity = this.activity?.get() as FragmentActivity?
         activityListeners.add(Listener(
             states,
             callback
         ))
 
-        if (immediate && activity != null) {
+        if (immediate &&
+            states.contains(State.CREATED) &&
+            !states.contains(State.STARTED) &&
+            activity?.lifecycle?.currentState?.isAtLeast(State.RESUMED) == false) {
+            callback.invoke(activity)
+        } else if (immediate && activity != null) {
             callback.invoke(activity)
         }
     }

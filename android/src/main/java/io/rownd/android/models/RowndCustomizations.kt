@@ -24,7 +24,7 @@ open class RowndCustomizations() {
     @Serializable(with = ColorAsHexStringSerializer::class)
     open val dynamicSheetBackgroundColor: Color
     get() {
-        val uiMode = Rownd.appHandleWrapper.app.get()!!.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val uiMode = Rownd.appHandleWrapper?.app?.get()!!.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
         return when {
             sheetBackgroundColor != null -> sheetBackgroundColor!!
             uiMode == Configuration.UI_MODE_NIGHT_YES -> Color(0xff1c1c1e)
@@ -90,7 +90,7 @@ class ColorAsHexStringSerializer : KSerializer<Color> {
 class DpIntSerializer : KSerializer<Dp> {
     override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Dp", PrimitiveKind.INT)
     override fun serialize(encoder: Encoder, value: Dp) {
-        val density = Rownd.appHandleWrapper.app.get()!!.resources.displayMetrics.density
+        val density = Rownd.appHandleWrapper?.app?.get()!!.resources.displayMetrics.density
         return encoder.encodeInt((value.value * density).roundToInt())
     }
 

@@ -21,7 +21,7 @@ object Encryption {
     private val messageEncoder = Base64MessageEncoder()
     private val ls: LazySodiumAndroid = LazySodiumAndroid(SodiumAndroid(), messageEncoder)
     private val context: Context
-        get() = Rownd.appHandleWrapper.app.get()?.applicationContext ?: throw EncryptionException("No context available. Did you call Rownd.configure()?")
+        get() = Rownd.appHandleWrapper?.app?.get()?.applicationContext ?: throw EncryptionException("No context available. Did you call Rownd.configure()?")
 
     private fun keyName(keyId: String?): String {
         return "io.rownd.key.${keyId ?: "default"}"
