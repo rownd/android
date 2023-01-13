@@ -59,9 +59,8 @@ jobs:
     needs: build
     strategy:
       matrix:
-        api-level: [26, 29, 32]
+        api-level: [26, 29, 33]
         target: [playstore]
-        arch:: [x86, x86_64, x86_64]
 
     steps:
       - name: Checkout the code
@@ -69,7 +68,7 @@ jobs:
 
       - name: Load API Token from secrets
         env:
-          API_TOKEN: ${{ secrets.API_OTKEN }}
+          API_TOKEN: ${{ secrets.API_TOKEN }}
         run: echo API_TOKEN=\"$API_TOKEN\" > ./local.properties
 
       - uses: actions/cache@v2
@@ -98,7 +97,7 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
-          arch: ${{ matrix.arch }}
+          arch: ${{ matrix.api-level > 27 && 'x86_64' || 'x86' }}
           profile: Pixel 3a
           script: ./gradlew :android:connectedDebugAndroidTest --stacktrace
 
