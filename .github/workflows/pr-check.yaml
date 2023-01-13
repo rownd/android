@@ -61,6 +61,7 @@ jobs:
       matrix:
         api-level: [26, 29, 32]
         target: [playstore]
+        arch:: [x86, x86_64, x86_64]
 
     steps:
       - name: Checkout the code
@@ -97,7 +98,7 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
-          arch: x86_64
+          arch: ${{ matrix.arch }}
           profile: Pixel 3a
           script: ./gradlew :android:connectedDebugAndroidTest --stacktrace
 
