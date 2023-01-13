@@ -107,7 +107,6 @@ class RowndClient constructor(
         }
 
         // Webview holder in case of activity restarts during auth
-        Log.d("RowndAppCheck", appHandleWrapper?.app?.get()?.toString() ?: "null")
         val hubViewModelFactory = RowndWebViewModel.Factory(appHandleWrapper?.app?.get()!!, this)
         appHandleWrapper?.registerActivityListener(
             persistentListOf(
