@@ -78,7 +78,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         this.addJavascriptInterface(RowndJavascriptInterface(this, context), "rowndAndroidSDK")
         this.webViewClient = RowndWebViewClient(this, context)
 
-        val appFlags = Rownd.appHandleWrapper.app.get()?.applicationInfo?.flags ?: 0
+        val appFlags = Rownd.appHandleWrapper?.app?.get()?.applicationInfo?.flags ?: 0
         if (0 != appFlags.and(ApplicationInfo.FLAG_DEBUGGABLE)) {
             setWebContentsDebuggingEnabled(true)
         }

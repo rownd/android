@@ -15,7 +15,7 @@ android {
         minSdk 26
         targetSdk 33
 
-        versionName '2.2.1'
+        versionName '2.2.2'
 
         aarMetadata {
             minCompileSdk 26
@@ -60,7 +60,7 @@ android {
 dependencies {
     def lifecycle_version = "2.5.1"
     def nav_version = "2.5.3"
-    def dagger_version = "2.44"
+    def dagger_version = "2.44.2"
     def coroutines_version = "1.3.9"
     def ktor_version = "2.1.3"
 
@@ -77,15 +77,14 @@ dependencies {
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.5.1'
     implementation 'com.google.android.material:material:1.6.1'
-    implementation 'androidx.compose.material:material:1.2.1'
-    implementation 'androidx.compose.ui:ui-viewbinding:1.2.1'
+    implementation 'androidx.compose.material:material:1.3.1'
+    implementation 'androidx.compose.ui:ui-viewbinding:1.3.3'
 
     implementation "androidx.lifecycle:lifecycle-common:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
-    implementation "androidx.room:room-ktx:2.4.3"
-    implementation "androidx.compose.foundation:foundation:1.2.1"
-    implementation "androidx.compose.material:material:1.2.1"
+    implementation "androidx.compose.foundation:foundation:1.3.1"
+    implementation "androidx.compose.material:material:1.3.1"
     implementation "androidx.fragment:fragment-ktx:1.5.5"
 
     implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
@@ -125,7 +124,7 @@ dependencies {
     implementation "androidx.security:security-crypto:1.0.0"
 
     // Sign in with Google
-    implementation 'com.google.android.gms:play-services-auth:20.3.0'
+    implementation 'com.google.android.gms:play-services-auth:20.4.0'
 
     // Dependency injection via Dagger
     implementation "com.google.dagger:dagger:$dagger_version"

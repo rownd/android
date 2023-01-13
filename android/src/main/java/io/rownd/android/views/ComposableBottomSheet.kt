@@ -5,12 +5,14 @@ import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.*
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
@@ -67,10 +69,11 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         dialog?.window?.setBackgroundDrawable(ColorDrawable(Color.Transparent.toArgb()))
 
         dialog?.window?.setFlags(
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-            )
-        dialog?.window?.decorView?.systemUiVisibility = requireActivity().window!!.decorView.systemUiVisibility
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+        )
+        dialog?.window?.decorView?.systemUiVisibility =
+            requireActivity().window!!.decorView.systemUiVisibility
 
         dialog?.setOnShowListener { // Clear the not focusable flag from the window
             dialog?.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
@@ -104,19 +107,27 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
             //  when certain operations are in progress.
             // confirmStateChange = { false }
         )
-        sheetState = bottomSheetState
+
+        SideEffect {
+            sheetState = bottomSheetState
+        }
 
         val (isLoading, setIsLoading) = remember { mutableStateOf(shouldDisplayLoader) }
+        val contentAlpha: Float by animateFloatAsState(if (!isLoading) 1f else 0f)
         var loadingLottieComposition: LottieComposition? = null
 
-        Rownd.config.customizations.loadingAnimation?.let{loadingAnimation ->
+        Rownd.config.customizations.loadingAnimation?.let { loadingAnimation ->
             loadingLottieComposition =
                 rememberLottieComposition(LottieCompositionSpec.RawRes(loadingAnimation)).value
         }
 
-        Rownd.config.customizations.loadingAnimationJsonString?.let{loadingAnimationJsonString ->
+        Rownd.config.customizations.loadingAnimationJsonString?.let { loadingAnimationJsonString ->
             loadingLottieComposition =
-                rememberLottieComposition(LottieCompositionSpec.JsonString(loadingAnimationJsonString)).value
+                rememberLottieComposition(
+                    LottieCompositionSpec.JsonString(
+                        loadingAnimationJsonString
+                    )
+                ).value
         }
 
 
@@ -142,14 +153,12 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
             sheetContent = {
                 BoxWithConstraints(
                     modifier = Modifier
-                        .fillMaxSize()
+                        .fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter
                 ) {
                     Column(
                         modifier = Modifier
-                            .height(maxHeight)
-                            .fillMaxWidth(),
-                        verticalArrangement = Arrangement.Top,
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .alpha(contentAlpha)
                     ) {
                         Content(bottomSheetState, setIsLoading)
                     }
@@ -159,7 +168,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                             modifier = Modifier
                                 .size(100.dp)
                                 .offset(y = 100.dp)
-                                .align(Alignment.TopCenter)
                         ) {
                             if (loadingLottieComposition != null) {
                                 LottieAnimation(
@@ -201,5 +209,8 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
-    abstract fun Content(bottomSheetState: ModalBottomSheetState, setIsLoading: (isLoading: Boolean) -> Unit)
+    abstract fun Content(
+        bottomSheetState: ModalBottomSheetState,
+        setIsLoading: (isLoading: Boolean) -> Unit
+    )
 }
