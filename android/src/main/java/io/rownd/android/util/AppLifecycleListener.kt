@@ -95,17 +95,22 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         }
     }
 
-    internal fun registerActivityListener(states: PersistentList<State>, immediate: Boolean = false, callback: (activity: Activity) -> Unit) {
+    internal fun registerActivityListener(
+        states: PersistentList<State>,
+        immediate: Boolean = false,
+        immediateIfBefore: State? = null,
+        callback: (activity: Activity) -> Unit
+    ) {
         val activity = this.activity?.get() as FragmentActivity?
         activityListeners.add(Listener(
             states,
             callback
         ))
 
-        if (immediate &&
-            states.contains(State.CREATED) &&
-            !states.contains(State.STARTED) &&
-            activity?.lifecycle?.currentState?.isAtLeast(State.RESUMED) == false) {
+        if (immediateIfBefore != null &&
+            activity != null &&
+            !activity.lifecycle.currentState.isAtLeast(immediateIfBefore)
+        ) {
             callback.invoke(activity)
         } else if (immediate && activity != null) {
             callback.invoke(activity)

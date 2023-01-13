@@ -163,7 +163,8 @@ class RowndClient constructor(
         // Add an activity result callback for Google sign in
         appHandleWrapper?.registerActivityListener(
             persistentListOf(Lifecycle.State.CREATED),
-            false
+            immediate = false,
+            immediateIfBefore = Lifecycle.State.STARTED
         ) {
             if (it is ActivityResultCaller) {
                 launchers[it.toString()] =
