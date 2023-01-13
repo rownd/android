@@ -97,7 +97,7 @@ jobs:
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
-          arch: x86
+          arch: x86_64
           profile: Pixel 3a
           script: ./gradlew :android:connectedDebugAndroidTest --stacktrace
 
