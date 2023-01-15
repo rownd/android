@@ -32,6 +32,9 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     @Inject
     lateinit var stateRepo: StateRepo
 
+    @Inject
+    lateinit var userRepo: UserRepo
+
     // TODO: Should be able to use Dagger to inject this
     private val tokenApi: TokenApi by lazy { TokenApi(rowndContext) }
 
@@ -124,6 +127,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
             if (resp.isSuccessful) {
                 val authBody = resp.body() as Auth
                 stateRepo.getStore().dispatch(StateAction.SetAuth(authBody.asDomainModel()))
+                userRepo?.loadUserAsync()
                 authBody.accessToken
             } else {
                 val error = RowndAPIException(resp)
