@@ -400,6 +400,10 @@ class RowndClient constructor(
         return authRepo.getAccessToken()
     }
 
+    suspend fun getAccessToken(idToken: String): String? {
+        return authRepo.getAccessToken(idToken)
+    }
+
     suspend fun _refreshToken(): String? {
         return try {
             val result = authRepo.refreshTokenAsync().await()

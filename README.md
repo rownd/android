@@ -293,6 +293,42 @@ Rownd.requestSignIn(with = RowndSignInHint.Google)
 
 > NOTE: The following user profile APIs technically accept `Any` as the value of a field. However, that value **must** be serializable using [Kotlin's Serialization](https://kotlinlang.org/docs/serialization.html) library. If the value is not serializable out of the box, you'll need to provide your own serializer implementation as described in the Kotlin documentation.
 
+### suspend Rownd.getAccessToken(): String?
+Assuming a user is signed-in, returns a valid access token, refreshing the current one if needed.
+If an access token cannot be returned due to a temporary condition (e.g., inaccessible network), this function will `throw`.
+If an access token cannot be returned because the refresh token is invalid, `null` will be returned and the Rownd state
+will sign out the user.
+
+Example:
+
+```kotlin
+    val accessToken = Rownd.getAccessToken()
+```
+
+### suspend Rownd.getAccessToken(token: String): String?
+When possible, exchanges a non-Rownd access token for a Rownd access token. This is primarily used in scenarios
+where an app is migrating from some other authentication mechanism to Rownd. Using Rownd integrations,
+the system will accept a third-party token. If it successfully validates, Rownd will sign-in the user and
+return a fresh Rownd access token to the caller.
+
+This API returns `null` if the token could not be validated and exchanged. If that occurs, it's likely
+that the user should sign-in normally via `Rownd.requestSignIn()`.
+
+> NOTE: This API is typically used once. After a Rownd token is available, other tokens should be discarded.
+
+Example:
+
+```kotlin
+    // Assume `oldToken` was retrieved from some prior authenticator.
+    val accessToken = Rownd.getAccessToken(oldToken)
+
+    if (accessToken != null) {
+        // Navigate to the UI that a user should typically see
+    } else {
+        Rownd.requestSignIn()
+    }
+```
+
 ### Rownd.user.get(): Map<String, Any?>
 Returns the entire user profile as a Map
 
