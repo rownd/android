@@ -4,6 +4,7 @@ package io.rownd.android
 
 import android.app.Application
 import android.content.Intent
+import android.content.IntentSender
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -11,6 +12,7 @@ import android.webkit.WebView
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultCaller
 import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.material.ExperimentalMaterialApi
@@ -18,10 +20,14 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
+import com.google.android.gms.auth.api.identity.BeginSignInRequest
+import com.google.android.gms.auth.api.identity.Identity
+import com.google.android.gms.auth.api.identity.SignInCredential
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.tasks.Task
 import com.lyft.kronos.AndroidClockFactory
 import dagger.Component
@@ -47,6 +53,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import javax.inject.Singleton
+
 
 // The default Rownd instance
 val Rownd = RowndClient(DaggerRowndGraph.create())
@@ -78,8 +85,10 @@ class RowndClient constructor(
     var rowndContext = graph.rowndContext()
 
     var state = stateRepo.state
-    private var launchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
+    private var intentLaunchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
+    private var intentSenderRequestLaunchers: MutableMap<String, ActivityResultLauncher<IntentSenderRequest>> = mutableMapOf()
     private lateinit var hubViewModel: RowndWebViewModel
+    private var hasDisplayedOneTap = false
 
     init {
         graph.inject(config)
@@ -134,6 +143,25 @@ class RowndClient constructor(
         ) {
             signInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
         }
+
+        // Show the Google One Tap UI if applicable
+        CoroutineScope(Dispatchers.IO).launch {
+            store.stateAsStateFlow().collect {
+                if (
+                    !hasDisplayedOneTap &&
+                    !it.auth.isLoading &&
+                    !it.auth.isAccessTokenValid &&
+                    it.appConfig.config.hub.auth.signInMethods.google.clientId != "" &&
+                    it.appConfig.config.hub.auth.signInMethods.google.oneTap.mobileApp.autoPrompt
+                ) {
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        showGoogleOneTap()
+                    },
+                        it.appConfig.config.hub.auth.signInMethods.google.oneTap.mobileApp.delay.toLong()
+                    )
+                }
+            }
+        }
     }
 
     fun configure(app: Application, appKey: String) {
@@ -166,7 +194,7 @@ class RowndClient constructor(
             immediateIfBefore = Lifecycle.State.STARTED
         ) {
             if (it is ActivityResultCaller) {
-                launchers[it.toString()] =
+                intentLaunchers[it.toString()] =
                     it.registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                         CoroutineScope(Dispatchers.IO).launch {
                             handleSignInWithGoogleCallback(result)
@@ -180,7 +208,31 @@ class RowndClient constructor(
             persistentListOf(Lifecycle.State.DESTROYED),
             false
         ) {
-            launchers.remove(it.localClassName)
+            intentLaunchers.remove(it.localClassName)
+        }
+
+        // Add an activity result callback for Google One Tap sign in
+        appHandleWrapper?.registerActivityListener(
+            persistentListOf(Lifecycle.State.CREATED),
+            immediate = false,
+            immediateIfBefore = Lifecycle.State.STARTED
+        ) {
+            if (it is ActivityResultCaller) {
+                intentSenderRequestLaunchers[it.toString()] =
+                    it.registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+                        CoroutineScope(Dispatchers.IO).launch {
+                            handleGoogleOneTapCallback(result)
+                        }
+                    }
+            }
+        }
+
+        // Remove Google One Tap sign-in callback if activity is destroyed
+        appHandleWrapper?.registerActivityListener(
+            persistentListOf(Lifecycle.State.DESTROYED),
+            false
+        ) {
+            intentSenderRequestLaunchers.remove(it.toString())
         }
     }
 
@@ -195,6 +247,7 @@ class RowndClient constructor(
     ) {
         when (with) {
             RowndSignInHint.Google -> signInWithGoogle()
+            RowndSignInHint.OneTap -> showGoogleOneTap()
         }
     }
 
@@ -256,7 +309,7 @@ class RowndClient constructor(
 
         val googleSignInClient = GoogleSignIn.getClient(activity, gso)
         val signInIntent: Intent = googleSignInClient.signInIntent
-        launchers[activity.toString()]?.launch(signInIntent)
+        intentLaunchers[activity.toString()]?.launch(signInIntent)
     }
 
     private suspend fun handleSignInWithGoogleCallback(result: ActivityResult) {
@@ -278,6 +331,69 @@ class RowndClient constructor(
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
             Log.w("Rownd", "Google sign-in failed: code=" + e.statusCode)
         }
+    }
+
+    private suspend fun handleGoogleOneTapCallback(result: ActivityResult) {
+        val activity = appHandleWrapper?.activity?.get() ?: return
+
+        val credential: SignInCredential?
+        try {
+            val oneTapClient = Identity.getSignInClient(activity)
+            credential = oneTapClient.getSignInCredentialFromIntent(result.data)
+            if (credential.googleIdToken == "") {
+                Log.e("Rownd.OneTap", "Google One Tap sign-in failed: missing idToken")
+            } else {
+                credential.googleIdToken?.let { idToken -> authRepo.getAccessToken(idToken) }
+            }
+        } catch (e: ApiException) {
+            if (e.statusCode == CommonStatusCodes.CANCELED) {
+                hasDisplayedOneTap = true
+                Log.d("Rownd.OneTap", "Google One Tap UI was closed by user")
+            } else {
+                Log.e("Rownd.OneTap", "Couldn't get credential from result." + " (${e.localizedMessage})", e)
+            }
+        }
+    }
+
+    private fun showGoogleOneTap() {
+        val googleSignInMethodConfig =
+            state.value.appConfig.config.hub.auth.signInMethods.google
+        if (!googleSignInMethodConfig.enabled) {
+            throw RowndException("Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
+        }
+        if (googleSignInMethodConfig.clientId == "") {
+            throw RowndException("Cannot sign in with Google. Missing client configuration")
+        }
+
+        val activity = appHandleWrapper?.activity?.get() ?: return
+
+        val oneTapClient = Identity.getSignInClient(activity)
+        val signUpRequest = BeginSignInRequest.builder()
+            .setGoogleIdTokenRequestOptions(
+                BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
+                    .setSupported(true)
+                    .setServerClientId(googleSignInMethodConfig.clientId)
+                    .setFilterByAuthorizedAccounts(false)
+                    .build()
+            )
+            .build()
+
+        oneTapClient.beginSignIn(signUpRequest)
+            .addOnSuccessListener(activity) { result ->
+                try {
+                    Log.d("Rownd.OneTap", "Launching Google One Tap UI")
+                    intentSenderRequestLaunchers[activity.toString()]?.launch(
+                        IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                    )
+                    hasDisplayedOneTap = true
+                } catch (e: IntentSender.SendIntentException) {
+                    Log.e("Rownd.OneTap", "Couldn't start One Tap UI: ${e.localizedMessage}", e)
+                }
+            }
+            .addOnFailureListener(activity) { e ->
+                // No Google Accounts found. Just continue presenting the signed-out UI.
+                Log.e("Rownd.OneTap", e.localizedMessage, e)
+            }
     }
 
     suspend fun getAccessToken(): String? {
@@ -332,4 +448,5 @@ data class RowndSignInOptions(
 
 enum class RowndSignInHint {
     Google,
+    OneTap,
 }

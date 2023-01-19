@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.databinding.DataBindingUtil
 import io.rownd.android.Rownd
+import io.rownd.android.RowndSignInHint
 import io.rownd.android.RowndSignInOptions
 import io.rownd.android.util.Encryption
 import io.rownd.rowndtestsandbox.databinding.ActivityMainBinding
@@ -174,6 +175,14 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 ) {
                                     Text(signInButtonText)
+                                }
+                                Button(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    onClick = {
+                                        Rownd.requestSignIn(RowndSignInHint.OneTap)
+                                    }
+                                ) {
+                                    Text("Show One Tap")
                                 }
                             }
                         }
