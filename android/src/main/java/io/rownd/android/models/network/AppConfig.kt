@@ -10,6 +10,8 @@ import io.rownd.android.models.domain.HubAuthConfig as DomainHubAuthConfig
 import io.rownd.android.models.domain.HubCustomStylesConfig as DomainHubCustomStylesConfig
 import io.rownd.android.models.domain.SignInMethods as DomainSignInMethods
 import io.rownd.android.models.domain.GoogleSignInMethod as DomainGoogleSignInMethod
+import io.rownd.android.models.domain.GoogleOneTap as DomainGoogleOneTap
+import io.rownd.android.models.domain.GoogleOneTapMobileApp as DomainGoogleOneTapMobileApp
 import io.rownd.android.models.domain.HubCustomizationsConfig as DomainHubCustomizationsConfig
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName
@@ -169,12 +171,41 @@ data class SignInMethods(
 data class GoogleSignInMethod(
     val enabled: Boolean = false,
     @SerialName("client_id")
-    val clientId: String = ""
+    val clientId: String = "",
+    @SerialName("one_tap")
+    val oneTap: GoogleOneTap = GoogleOneTap()
 ) {
     fun asDomainModel(): DomainGoogleSignInMethod {
         return DomainGoogleSignInMethod(
             enabled,
             clientId,
+            oneTap.asDomainModel(),
+        )
+    }
+}
+
+@Serializable
+data class GoogleOneTap(
+    @SerialName("mobile_app")
+    val mobileApp: GoogleOneTapMobileApp = GoogleOneTapMobileApp()
+) {
+    fun asDomainModel(): DomainGoogleOneTap {
+        return DomainGoogleOneTap(
+            mobileApp.asDomainModel()
+        )
+    }
+}
+
+@Serializable
+data class GoogleOneTapMobileApp(
+    @SerialName("auto_prompt")
+    val autoPrompt: Boolean = true,
+    val delay: Int = 0,
+) {
+    fun asDomainModel(): DomainGoogleOneTapMobileApp {
+        return DomainGoogleOneTapMobileApp(
+            autoPrompt,
+            delay,
         )
     }
 }

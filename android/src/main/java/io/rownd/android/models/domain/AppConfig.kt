@@ -17,7 +17,7 @@ data class AppConfigState @OptIn(ExperimentalSerializationApi::class) constructo
     @SerialName("user_verification_fields")
     @JsonNames("userVerificationFields")
     val userVerificationFields: List<String> = listOf(),
-    val schema: Map<String, AppSchemaField> = HashMap<String, AppSchemaField>(),
+    val schema: Map<String, AppSchemaField> = HashMap(),
     val config: AppConfigConfig = AppConfigConfig()
 )
 
@@ -94,5 +94,23 @@ data class GoogleSignInMethod @OptIn(ExperimentalSerializationApi::class) constr
     val enabled: Boolean = false,
     @SerialName("client_id")
     @JsonNames("clientId")
-    val clientId: String = ""
+    val clientId: String = "",
+    @SerialName("one_tap")
+    @JsonNames("oneTap")
+    val oneTap: GoogleOneTap = GoogleOneTap(),
+)
+
+@Serializable
+data class GoogleOneTap @OptIn(ExperimentalSerializationApi::class) constructor(
+    @SerialName("mobile_app")
+    @JsonNames("mobileApp")
+    val mobileApp: GoogleOneTapMobileApp = GoogleOneTapMobileApp(),
+)
+
+@Serializable
+data class GoogleOneTapMobileApp @OptIn(ExperimentalSerializationApi::class) constructor(
+    @SerialName("auto_prompt")
+    @JsonNames("autoPrompt")
+    val autoPrompt: Boolean = true,
+    val delay: Int = 0,
 )
