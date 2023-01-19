@@ -38,7 +38,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
     // Internal dismiss function to recycle web view
     private fun _dismiss() {
         viewModel?.webView()?.postValue(null)
-        dismiss()
+        dismissAllowingStateLoss()
     }
 
     @OptIn(ExperimentalMaterialApi::class)
