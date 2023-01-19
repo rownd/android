@@ -199,7 +199,7 @@ data class GoogleOneTap(
 @Serializable
 data class GoogleOneTapMobileApp(
     @SerialName("auto_prompt")
-    val autoPrompt: Boolean = true,
+    val autoPrompt: Boolean = false,
     val delay: Int = 0,
 ) {
     fun asDomainModel(): DomainGoogleOneTapMobileApp {
