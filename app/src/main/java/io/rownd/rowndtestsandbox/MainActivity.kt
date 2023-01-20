@@ -165,6 +165,16 @@ class MainActivity : AppCompatActivity() {
 //                }
                             }
                             Column(modifier = Modifier.fillMaxWidth()) {
+                                if (!state.value.auth.isAuthenticated && state.value.appConfig.config.hub.auth.signInMethods.google.enabled) {
+                                    Button(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onClick = {
+                                            Rownd.requestSignIn(RowndSignInHint.OneTap)
+                                        }
+                                    ) {
+                                        Text("Show One Tap")
+                                    }
+                                }
                                 Button(
                                     modifier = Modifier.fillMaxWidth(),
                                     onClick = {
@@ -175,14 +185,6 @@ class MainActivity : AppCompatActivity() {
                                     }
                                 ) {
                                     Text(signInButtonText)
-                                }
-                                Button(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    onClick = {
-                                        Rownd.requestSignIn(RowndSignInHint.OneTap)
-                                    }
-                                ) {
-                                    Text("Show One Tap")
                                 }
                             }
                         }
