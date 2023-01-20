@@ -150,7 +150,7 @@ class RowndClient constructor(
                 if (
                     !hasDisplayedOneTap &&
                     !it.auth.isLoading &&
-                    !it.auth.isAccessTokenValid &&
+                    !it.auth.isAuthenticated &&
                     it.appConfig.config.hub.auth.signInMethods.google.clientId != "" &&
                     it.appConfig.config.hub.auth.signInMethods.google.oneTap.mobileApp.autoPrompt
                 ) {
