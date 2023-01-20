@@ -111,6 +111,6 @@ data class GoogleOneTap @OptIn(ExperimentalSerializationApi::class) constructor(
 data class GoogleOneTapMobileApp @OptIn(ExperimentalSerializationApi::class) constructor(
     @SerialName("auto_prompt")
     @JsonNames("autoPrompt")
-    val autoPrompt: Boolean = true,
+    val autoPrompt: Boolean = false,
     val delay: Int = 0,
 )
