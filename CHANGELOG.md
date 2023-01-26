@@ -1,5 +1,12 @@
 
 
+## [2.4.1](https://github.com/rownd/android/compare/2.4.0...2.4.1) (2023-01-26)
+
+
+### Bug Fixes
+
+* added a default to the postSignInRedirect matching ios ([af0003d](https://github.com/rownd/android/commit/af0003de29f13c12bd4447ce7bf767fcd9bbf942))
+
 # [2.4.0](https://github.com/rownd/android/compare/2.3.2...2.4.0) (2023-01-19)
 
 
