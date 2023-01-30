@@ -6,13 +6,11 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import io.rownd.android.Rownd
+import io.rownd.android.*
+import io.rownd.android.RowndSignInJsOptions
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
-import io.rownd.android.models.network.Auth
-import io.rownd.android.models.network.AuthApi
-import io.rownd.android.models.network.RowndAPIException
-import io.rownd.android.models.network.TokenRequestBody
+import io.rownd.android.models.network.*
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
 import io.rownd.android.util.TokenApi
@@ -20,6 +18,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -66,12 +66,26 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     }
 
     internal suspend fun getAccessToken(idToken: String): String? {
+        return getAccessToken(idToken, intent = null, type = AccessTokenType.default)
+    }
+
+    internal suspend fun getAccessToken(idToken: String, intent: RowndSignInIntent?, type: AccessTokenType ): String? {
         val appId = stateRepo.getStore().currentState.appConfig.id
         val tokenRequest = TokenRequestBody(
             appId = appId,
-            idToken = idToken
+            idToken = idToken,
+            intent = intent
         )
-        return fetchTokenAsync(tokenRequest).await()
+        return fetchTokenAsync(tokenRequest, intent, type).await()
+    }
+
+
+    @Serializable
+    internal enum class AccessTokenType {
+        @SerialName("default")
+        default,
+        @SerialName("google")
+        google,
     }
 
     @Synchronized
@@ -121,14 +135,34 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     }
 
     @Synchronized
-    internal fun fetchTokenAsync(tokenRequest: TokenRequestBody): Deferred<String?> {
+    internal fun fetchTokenAsync(tokenRequest: TokenRequestBody, intent: RowndSignInIntent?, type: AccessTokenType): Deferred<String?> {
         return CoroutineScope(Dispatchers.IO).async {
             val resp = authApi.client.exchangeToken(tokenRequest)
             if (resp.isSuccessful) {
-                val authBody = resp.body() as Auth
-                stateRepo.getStore().dispatch(StateAction.SetAuth(authBody.asDomainModel()))
+                val tokenResponse = resp.body() as TokenResponse
+                if (type != AccessTokenType.default) {
+                    if (tokenResponse.userType === RowndSignInUserType.NewUser && intent === RowndSignInIntent.SignIn) {
+                        Rownd.requestSignIn(
+                            RowndSignInJsOptions(
+                                intent = intent,
+                                loginStep = RowndSignInLoginStep.NoAccount,
+                                token = tokenRequest.idToken
+                            )
+                        )
+                        return@async null
+                    }
+                    Rownd.requestSignIn(
+                        RowndSignInJsOptions(
+                            intent = intent,
+                            loginStep = RowndSignInLoginStep.Success,
+                            userType = tokenResponse.userType
+                        )
+                    )
+                }
+
+                stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState(accessToken = tokenResponse.accessToken, refreshToken = tokenResponse.refreshToken)))
                 userRepo?.loadUserAsync()
-                authBody.accessToken
+                tokenResponse.accessToken
             } else {
                 val error = RowndAPIException(resp)
                 Log.e("RowndAuthApi", "Fetching token failed: ${error.message}")
