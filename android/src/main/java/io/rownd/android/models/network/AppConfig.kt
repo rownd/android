@@ -147,11 +147,14 @@ data class HubCustomizationsConfig(
 @Serializable
 data class HubAuthConfig(
     @SerialName("sign_in_methods")
-    var signInMethods: SignInMethods = SignInMethods()
+    var signInMethods: SignInMethods = SignInMethods(),
+    @SerialName("use_explicit_sign_up_flow")
+    var useExplicitSignUpFlow: Boolean? = null
 ) {
     fun asDomainModel(): DomainHubAuthConfig {
         return DomainHubAuthConfig(
-            signInMethods.asDomainModel()
+            signInMethods.asDomainModel(),
+            useExplicitSignUpFlow
         )
     }
 }
