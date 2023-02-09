@@ -31,16 +31,17 @@ import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.tasks.Task
 import com.lyft.kronos.AndroidClockFactory
 import dagger.Component
+import io.ktor.client.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.auth.*
+import io.ktor.client.plugins.auth.providers.*
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
-import io.rownd.android.util.ApiClientModule
-import io.rownd.android.util.AppLifecycleListener
-import io.rownd.android.util.RowndContext
-import io.rownd.android.util.RowndException
+import io.rownd.android.util.*
 import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndWebViewModel
@@ -259,6 +260,9 @@ class RowndClient constructor(
         hubViewModel.webView().postValue(null)
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
+
+        // Remove any cached access/refresh tokens in authenticatedApi client
+        userRepo.userApi.client.plugin(Auth).providers.filterIsInstance<BearerAuthProvider>().firstOrNull()?.clearToken()
 
         val googleSignInMethodConfig =
             state.value.appConfig.config.hub.auth.signInMethods.google
