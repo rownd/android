@@ -22,12 +22,12 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
 //    @Inject
 //    lateinit var userApi: UserApi
 
-    private val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
+    // private val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
 
     internal fun loadUserAsync(): Deferred<User?> {
         return CoroutineScope(Dispatchers.IO).async {
             try {
-                val user: NetworkUser = userApi.client.get("me/applications/${stateRepo.state.value.appConfig.id}/data").body()
+                val user: NetworkUser = AuthenticatedApi(rowndContext).client.get("me/applications/${stateRepo.state.value.appConfig.id}/data").body()
                 Log.i("RowndUsersApi", "Successfully loaded user data: $user")
                 stateRepo.getStore().dispatch(StateAction.SetUser(user.asDomainModel(stateRepo, this@UserRepo)))
                 return@async user.asDomainModel(stateRepo, this@UserRepo)
@@ -52,7 +52,7 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
         return CoroutineScope(Dispatchers.IO).async {
             try {
                 val savedUser: NetworkUser =
-                    userApi.client.put("me/applications/${stateRepo.state.value.appConfig.id}/data") {
+                    AuthenticatedApi(rowndContext).client.put("me/applications/${stateRepo.state.value.appConfig.id}/data") {
                         setBody(
                             networkUser
                         )
