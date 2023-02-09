@@ -1,5 +1,12 @@
 
 
+# [2.5.0](https://github.com/rownd/android/compare/2.4.2...2.5.0) (2023-02-09)
+
+
+### Features
+
+* **auth:** support sign up intent ([#31](https://github.com/rownd/android/issues/31)) ([4ddf4b9](https://github.com/rownd/android/commit/4ddf4b9a482bd53a96902dac259b7b2c60e7a522))
+
 ## [2.4.2](https://github.com/rownd/android/compare/2.4.1...2.4.2) (2023-02-09)
 
 
