@@ -1,5 +1,12 @@
 
 
+## [2.4.2](https://github.com/rownd/android/compare/2.4.1...2.4.2) (2023-02-09)
+
+
+### Bug Fixes
+
+* clear authenticatedApi client on signout ([#33](https://github.com/rownd/android/issues/33)) ([3efbc1c](https://github.com/rownd/android/commit/3efbc1c6a718cb43e89d419ab47599f23fdb823e))
+
 ## [2.4.1](https://github.com/rownd/android/compare/2.4.0...2.4.1) (2023-01-26)
 
 
