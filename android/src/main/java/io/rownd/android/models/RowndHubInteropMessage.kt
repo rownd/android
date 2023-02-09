@@ -62,7 +62,7 @@ data class TryAgainMessage(
 @Serializable
 data class TriggerSignInWithGoogleMessage(
     override var type: MessageType = MessageType.triggerSignInWithGoogle,
-    var payload: TriggerSignInWithGooglePayload
+    var payload: TriggerSignInWithGooglePayload? = null
 ) : RowndHubInteropMessage()
 
 @Serializable

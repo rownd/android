@@ -50,10 +50,8 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import javax.inject.Singleton
 
@@ -243,7 +241,7 @@ class RowndClient constructor(
     fun requestSignIn(
         signInOptions: RowndSignInOptions
     ) {
-        var signInOptions = determineSignInOptions(signInOptions)
+        val signInOptions = determineSignInOptions(signInOptions)
         displayHub(HubPageSelector.SignIn, jsFnOptions = signInOptions)
     }
 

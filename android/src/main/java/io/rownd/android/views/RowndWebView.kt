@@ -280,7 +280,7 @@ class RowndJavascriptInterface(
             }
 
             MessageType.triggerSignInWithGoogle -> {
-                Rownd.requestSignIn(with = RowndSignInHint.Google, RowndSignInOptions(intent = (interopMessage as TriggerSignInWithGoogleMessage).payload.intent))
+                Rownd.requestSignIn(with = RowndSignInHint.Google, RowndSignInOptions(intent = (interopMessage as TriggerSignInWithGoogleMessage).payload?.intent))
                 parentWebView.dismiss?.invoke()
             }
 
