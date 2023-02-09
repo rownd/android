@@ -22,7 +22,7 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
 //    @Inject
 //    lateinit var userApi: UserApi
 
-    private val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
+    internal val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
 
     internal fun loadUserAsync(): Deferred<User?> {
         return CoroutineScope(Dispatchers.IO).async {
