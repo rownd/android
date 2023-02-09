@@ -20,10 +20,8 @@ import androidx.webkit.*
 import io.rownd.android.Rownd
 import io.rownd.android.RowndClient
 import io.rownd.android.RowndSignInHint
-import io.rownd.android.models.AuthenticationMessage
-import io.rownd.android.models.MessageType
-import io.rownd.android.models.RowndHubInteropMessage
-import io.rownd.android.models.UserDataUpdateMessage
+import io.rownd.android.RowndSignInOptions
+import io.rownd.android.models.*
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
@@ -282,7 +280,7 @@ class RowndJavascriptInterface(
             }
 
             MessageType.triggerSignInWithGoogle -> {
-                Rownd.requestSignIn(RowndSignInHint.Google)
+                Rownd.requestSignIn(with = RowndSignInHint.Google, RowndSignInOptions(intent = (interopMessage as TriggerSignInWithGoogleMessage).payload?.intent))
                 parentWebView.dismiss?.invoke()
             }
 

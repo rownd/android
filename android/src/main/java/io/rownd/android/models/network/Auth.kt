@@ -1,6 +1,8 @@
 package io.rownd.android.models.network
 
 import io.ktor.resources.*
+import io.rownd.android.RowndSignInIntent
+import io.rownd.android.RowndSignInUserType
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName
@@ -36,11 +38,23 @@ data class TokenRequestBody internal constructor(
     val idToken: String? = null,
     @SerialName("app_id")
     val appId: String? = null,
+    @SerialName("intent")
+    val intent: RowndSignInIntent? = null,
+)
+
+@Serializable
+data class TokenResponse internal constructor(
+    @SerialName("access_token")
+    val accessToken: String? = null,
+    @SerialName("refresh_token")
+    val refreshToken: String? = null,
+    @SerialName("user_type")
+    val userType: RowndSignInUserType? = null,
 )
 
 interface TokenService {
     @POST("hub/auth/token")
-    suspend fun exchangeToken(@Body requestBody: TokenRequestBody) : Response<Auth>
+    suspend fun exchangeToken(@Body requestBody: TokenRequestBody) : Response<TokenResponse>
 }
 
 class AuthApi @Inject constructor(apiClient: ApiClient) {

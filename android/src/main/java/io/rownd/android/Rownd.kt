@@ -90,6 +90,7 @@ class RowndClient constructor(
     private var intentSenderRequestLaunchers: MutableMap<String, ActivityResultLauncher<IntentSenderRequest>> = mutableMapOf()
     private lateinit var hubViewModel: RowndWebViewModel
     private var hasDisplayedOneTap = false
+    private var googleSignInIntent: RowndSignInIntent? = null
 
     init {
         graph.inject(config)
@@ -240,14 +241,24 @@ class RowndClient constructor(
     fun requestSignIn(
         signInOptions: RowndSignInOptions
     ) {
+        val signInOptions = determineSignInOptions(signInOptions)
         displayHub(HubPageSelector.SignIn, jsFnOptions = signInOptions)
+    }
+
+    internal fun requestSignIn(signInJsOptions: RowndSignInJsOptions) {
+        displayHub(HubPageSelector.SignIn, jsFnOptions = signInJsOptions)
     }
 
     fun requestSignIn(
         with: RowndSignInHint
     ) {
+        requestSignIn(with, signInOptions = RowndSignInOptions())
+    }
+
+    fun requestSignIn(with: RowndSignInHint, signInOptions: RowndSignInOptions) {
+        var signInOptions = determineSignInOptions(signInOptions)
         when (with) {
-            RowndSignInHint.Google -> signInWithGoogle()
+            RowndSignInHint.Google -> signInWithGoogle(intent = signInOptions.intent)
             RowndSignInHint.OneTap -> showGoogleOneTap()
         }
     }
@@ -282,6 +293,18 @@ class RowndClient constructor(
         bottomSheet.show(activity.supportFragmentManager, KeyTransferBottomSheet.TAG)
     }
 
+    private fun determineSignInOptions(signInOptions: RowndSignInOptions) :RowndSignInOptions {
+        var signInOptions = signInOptions
+        if (signInOptions.intent == RowndSignInIntent.SignUp || signInOptions.intent == RowndSignInIntent.SignIn) {
+            if (state.value.appConfig.config.hub.auth.useExplicitSignUpFlow != true) {
+                signInOptions.intent = null
+                Log.w("Rownd", "Sign in with intent: SignIn/SignUp is not enabled. Turn it on in the Rownd platform")
+            }
+        }
+
+        return signInOptions
+    }
+
     private fun signOutOfGoogle() {
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
         val activity = appHandleWrapper?.activity?.get() ?: return
@@ -294,7 +317,8 @@ class RowndClient constructor(
         }
     }
 
-    private fun signInWithGoogle() {
+    private fun signInWithGoogle(intent: RowndSignInIntent?) {
+        googleSignInIntent = intent
         val googleSignInMethodConfig =
             state.value.appConfig.config.hub.auth.signInMethods.google
         if (!googleSignInMethodConfig.enabled) {
@@ -328,7 +352,7 @@ class RowndClient constructor(
             if (account.idToken == "") {
                 Log.w("Rownd", "Google sign-in failed: missing idToken")
             } else {
-                account.idToken?.let { idToken -> authRepo.getAccessToken(idToken) }
+                account.idToken?.let { idToken -> authRepo.getAccessToken(idToken, intent = googleSignInIntent, type = AuthRepo.AccessTokenType.google ) }
             }
         } catch (e: ApiException) {
             // The ApiException status code indicates the detailed failure reason.
@@ -425,7 +449,7 @@ class RowndClient constructor(
     // Internal stuff
     private fun displayHub(
         targetPage: HubPageSelector,
-        jsFnOptions: RowndSignInOptions? = null
+        jsFnOptions: RowndSignInOptionsBase? = null
     ) {
         try {
             val activity = appHandleWrapper?.activity?.get() as FragmentActivity
@@ -436,8 +460,11 @@ class RowndClient constructor(
 
             var jsFnOptionsStr: String? = null
             if (jsFnOptions != null) {
-                jsFnOptionsStr =
-                    json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions)
+                jsFnOptionsStr = if (jsFnOptions::class === RowndSignInJsOptions::class) {
+                    json.encodeToString(RowndSignInJsOptions.serializer(), jsFnOptions as RowndSignInJsOptions)
+                } else {
+                    json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions as RowndSignInOptions)
+                }
             }
 
             val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
@@ -449,12 +476,54 @@ class RowndClient constructor(
 }
 
 @Serializable
+open class RowndSignInOptionsBase()
+
+@Serializable
 data class RowndSignInOptions(
     @SerialName("post_login_redirect")
-    var postSignInRedirect: String? = Rownd.config.postSignInRedirect
-)
+    var postSignInRedirect: String? = Rownd.config.postSignInRedirect,
+    var intent: RowndSignInIntent? = null
+): RowndSignInOptionsBase()
+
+@Serializable
+internal data class RowndSignInJsOptions (
+    @SerialName("post_login_redirect")
+    var postSignInRedirect: String? = Rownd.config.postSignInRedirect,
+    var token: String? = null,
+    @SerialName("login_step")
+    var loginStep: RowndSignInLoginStep? = null,
+    var intent: RowndSignInIntent? = null,
+    @SerialName("user_type")
+    var userType: RowndSignInUserType? = null,
+): RowndSignInOptionsBase()
 
 enum class RowndSignInHint {
     Google,
     OneTap,
+}
+
+@Serializable
+enum class RowndSignInIntent {
+    @SerialName("sign_in")
+    SignIn,
+    @SerialName("sign_up")
+    SignUp,
+}
+
+@Serializable
+enum class RowndSignInUserType {
+    @SerialName("new_user")
+    NewUser,
+    @SerialName("existing_user")
+    ExistingUser,
+}
+
+@Serializable
+enum class RowndSignInLoginStep {
+    @SerialName("init")
+    Init,
+    @SerialName("success")
+    Success,
+    @SerialName("no_account")
+    NoAccount,
 }

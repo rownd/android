@@ -1,5 +1,6 @@
 package io.rownd.android.models
 
+import io.rownd.android.RowndSignInIntent
 import io.rownd.android.models.network.User
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerialName
@@ -60,8 +61,15 @@ data class TryAgainMessage(
 
 @Serializable
 data class TriggerSignInWithGoogleMessage(
-    override var type: MessageType = MessageType.triggerSignInWithGoogle
+    override var type: MessageType = MessageType.triggerSignInWithGoogle,
+    var payload: TriggerSignInWithGooglePayload? = null
 ) : RowndHubInteropMessage()
+
+@Serializable
+data class TriggerSignInWithGooglePayload(
+    @SerialName("intent")
+    var intent: RowndSignInIntent? = null,
+)
 
 @Serializable
 data class UserDataUpdateMessage(

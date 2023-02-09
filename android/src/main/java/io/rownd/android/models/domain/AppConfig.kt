@@ -82,6 +82,8 @@ data class HubAuthConfig @OptIn(ExperimentalSerializationApi::class) constructor
     @SerialName("sign_in_methods")
     @JsonNames("signInMethods")
     val signInMethods: SignInMethods = SignInMethods(),
+    @SerialName("use_explicit_sign_up_flow")
+    val useExplicitSignUpFlow: Boolean? = null
 )
 
 @Serializable
