@@ -1,5 +1,7 @@
 package io.rownd.android.views
 
+//import android.webkit.*
+//import android.webkit.WebView.setWebContentsDebuggingEnabled
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -17,10 +19,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetValue
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.*
-import io.rownd.android.Rownd
-import io.rownd.android.RowndClient
-import io.rownd.android.RowndSignInHint
-import io.rownd.android.RowndSignInOptions
+import io.rownd.android.*
 import io.rownd.android.models.*
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
@@ -45,6 +44,7 @@ enum class HubPageSelector {
     SignOut,
     QrCode,
     ManageAccount,
+    ConnectAuthenticator,
     Unknown
 }
 
@@ -65,7 +65,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal lateinit var rowndClient: RowndClient
 
     init {
-        this.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
+        this.setLayerType(LAYER_TYPE_HARDWARE, null)
         this.setBackgroundColor(0x00000000)
         this.isHorizontalScrollBarEnabled = false
         this.isVerticalScrollBarEnabled = false
@@ -97,9 +97,19 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         }
         return super.onKeyDown(keyCode, event)
     }
+
+    internal fun loadNewPage(targetPage: HubPageSelector = HubPageSelector.SignIn, jsFnOptions: RowndSignInOptionsBase) {
+        jsFunctionArgsAsJson = jsFnOptions.toJsonString()
+        this.targetPage = targetPage
+
+        val parentScope = this
+        CoroutineScope(Dispatchers.Main).launch {
+            parentScope.loadUrl(Rownd.config.hubLoaderUrl())
+        }
+    }
 }
 
-class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClient() {
+class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClientCompat() {
     private val webView: RowndWebView
     private val context: Context
     private var timeout: Boolean = true
@@ -157,10 +167,10 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
     }
 
-    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
-        val url = request?.url
+    override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
+        val url = request.url
         return if (shouldOpenInSeparateActivity(url)) {
-            view?.context?.startActivity(
+            view.context?.startActivity(
                 Intent(Intent.ACTION_VIEW, Uri.parse(url.toString()))
             )
             true
@@ -203,22 +213,30 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
     }
 
     @OptIn(ExperimentalMaterialApi::class)
-    override fun onPageFinished(view: WebView?, url: String?) {
+    override fun onPageFinished(view: WebView, url: String) {
         super.onPageFinished(view, url)
-        view?.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
+        view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
-        when ((view as RowndWebView).targetPage) {
-            HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
-            HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
-            HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson})")
-            HubPageSelector.ManageAccount -> evaluateJavascript("rownd.user.manageAccount()")
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.VISUAL_STATE_CALLBACK)) {
+            WebViewCompat.postVisualStateCallback(view, 1) {
+                when ((view as RowndWebView).targetPage) {
+                    HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
+                    HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
+                    HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson})")
+                    HubPageSelector.ManageAccount -> evaluateJavascript("rownd.user.manageAccount()")
+                    HubPageSelector.ConnectAuthenticator -> evaluateJavascript("rownd.connectAuthenticator(${webView.jsFunctionArgsAsJson})")
+                }
+
+                setIsLoading(false)
+            }
         }
 
-        if (view.progress == 100) {
-            setIsLoading(false)
-        }
+        Log.d("Rownd.hub", "View progress: ${view?.progress}")
+//        if (view.progress == 100) {
+//
+//        }
 
-        if (url?.startsWith(Rownd.config.baseUrl) == false && url != "about:blank") {
+        if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
             webView.animateBottomSheet?.invoke(ModalBottomSheetValue.Expanded)
         }
     }
@@ -242,69 +260,86 @@ class RowndJavascriptInterface(
     fun postMessage(message: String) {
         Log.d("Rownd.hub", "postMessage: $message")
 
-        val interopMessage = json.decodeFromString(RowndHubInteropMessage.serializer(), message)
-        Log.d("Rownd.hub", interopMessage.toString())
+        try {
+            val interopMessage = json.decodeFromString(RowndHubInteropMessage.serializer(), message)
+            Log.d("Rownd.hub", interopMessage.toString())
 
-        when (interopMessage.type) {
-            MessageType.authentication -> {
-                if (parentWebView.targetPage != HubPageSelector.SignIn) {
-                    return
-                }
+            when (interopMessage.type) {
+                MessageType.authentication -> {
+                    if (parentWebView.targetPage != HubPageSelector.SignIn) {
+                        return
+                    }
 
-                Rownd.store.dispatch(
-                    StateAction.SetAuth(
-                        AuthState(
-                            accessToken = (interopMessage as AuthenticationMessage).payload.accessToken,
-                            refreshToken = interopMessage.payload.refreshToken
+                    Rownd.store.dispatch(
+                        StateAction.SetAuth(
+                            AuthState(
+                                accessToken = (interopMessage as AuthenticationMessage).payload.accessToken,
+                                refreshToken = interopMessage.payload.refreshToken
+                            )
                         )
                     )
-                )
-                parentWebView.rowndClient.userRepo.loadUserAsync()
+                    parentWebView.rowndClient.userRepo.loadUserAsync()
 
-                Executors.newSingleThreadScheduledExecutor().schedule({
-                    parentWebView.dismiss?.invoke()
-                }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
-            }
-
-            MessageType.signOut -> {
-                if (parentWebView.targetPage != HubPageSelector.SignOut) {
-                    return
+                    Executors.newSingleThreadScheduledExecutor().schedule({
+                        parentWebView.dismiss?.invoke()
+                    }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
                 }
 
-                Executors.newSingleThreadScheduledExecutor().schedule({
-                    parentWebView.dismiss?.invoke()
-                }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
+                MessageType.signOut -> {
+                    if (parentWebView.targetPage != HubPageSelector.SignOut) {
+                        return
+                    }
 
-                Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
-                Rownd.store.dispatch(StateAction.SetUser(User()))
-            }
+                    Executors.newSingleThreadScheduledExecutor().schedule({
+                        parentWebView.dismiss?.invoke()
+                    }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
 
-            MessageType.triggerSignInWithGoogle -> {
-                Rownd.requestSignIn(with = RowndSignInHint.Google, RowndSignInOptions(intent = (interopMessage as TriggerSignInWithGoogleMessage).payload?.intent))
-                parentWebView.dismiss?.invoke()
-            }
+                    Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
+                    Rownd.store.dispatch(StateAction.SetUser(User()))
+                }
 
-            MessageType.UserDataUpdate -> {
-                Rownd.store.dispatch(
-                    StateAction.SetUser(
-                        (interopMessage as UserDataUpdateMessage).payload.asDomainModel(parentWebView.rowndClient.stateRepo, parentWebView.rowndClient.userRepo)
+                MessageType.triggerSignInWithGoogle -> {
+                    Rownd.requestSignIn(
+                        with = RowndSignInHint.Google,
+                        RowndSignInOptions(intent = (interopMessage as TriggerSignInWithGoogleMessage).payload?.intent)
                     )
-                )
-                parentWebView.rowndClient.userRepo.loadUserAsync()
-            }
+                    parentWebView.dismiss?.invoke()
+                }
 
-            MessageType.CloseHubView -> {
-                parentWebView.dismiss?.invoke()
-            }
+                MessageType.UserDataUpdate -> {
+                    Rownd.store.dispatch(
+                        StateAction.SetUser(
+                            (interopMessage as UserDataUpdateMessage).payload.asDomainModel(
+                                parentWebView.rowndClient.stateRepo,
+                                parentWebView.rowndClient.userRepo
+                            )
+                        )
+                    )
+                    parentWebView.rowndClient.userRepo.loadUserAsync()
+                }
 
-            MessageType.tryAgain -> {
-                CoroutineScope(Dispatchers.Main).launch {
-                    parentWebView.loadUrl(Rownd.config.hubLoaderUrl())
+                MessageType.CloseHubView -> {
+                    parentWebView.dismiss?.invoke()
+                }
+
+                MessageType.tryAgain -> {
+                    CoroutineScope(Dispatchers.Main).launch {
+                        parentWebView.loadUrl(Rownd.config.hubLoaderUrl())
+                    }
+                }
+
+                MessageType.AuthenticateWithPasskey -> {
+                    parentWebView.rowndClient.requestSignIn(with = RowndSignInHint.Passkey)
+                }
+
+                else -> {
+                    Log.w("RowndHub", "An unknown message was received")
                 }
             }
-            else -> {
-                Log.w("RowndHub", "An unknown message was received")
-            }
+        } catch (e : Exception) {
+            Log.w("Rownd.hub", "Unparseable message", e)
+        } catch (e : Error) {
+            Log.w("Rownd.hub", "Unparseable message", e)
         }
     }
 }

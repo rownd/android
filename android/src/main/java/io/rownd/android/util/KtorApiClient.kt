@@ -8,6 +8,7 @@ import io.ktor.client.plugins.compression.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.plugins.resources.*
+import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.coroutines.Dispatchers
@@ -73,6 +74,9 @@ open class KtorApiClient constructor(rowndContext: RowndContext)  {
         defaultRequest {
             url(rowndContext.config.apiUrl)
             contentType(ContentType.Application.Json)
+            headers {
+                rowndContext.config.appKey?.let { this.append("x-rownd-app-key", it) }
+            }
         }
     }
 

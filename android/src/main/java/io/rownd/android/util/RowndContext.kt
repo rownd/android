@@ -7,6 +7,9 @@ import io.rownd.android.models.Store
 import io.rownd.android.models.repos.AuthRepo
 import io.rownd.android.models.repos.GlobalState
 import io.rownd.android.models.repos.StateAction
+import io.rownd.android.views.ComposableBottomSheetFragment
+import io.rownd.android.views.RowndWebViewModel
+import java.lang.ref.WeakReference
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,4 +21,6 @@ class RowndContext @Inject constructor() {
     var store: Store<GlobalState, StateAction>? = null
 
     var authRepo: AuthRepo? = null
+    var hubView: WeakReference<ComposableBottomSheetFragment>? = null
+    var hubViewModel: RowndWebViewModel? = null
 }
