@@ -6,12 +6,10 @@ import androidx.credentials.*
 import androidx.credentials.exceptions.GetCredentialException
 import io.ktor.client.call.*
 import io.ktor.client.request.*
-import io.ktor.client.utils.EmptyContent.headers
 import io.rownd.android.*
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.network.TokenResponse
 import io.rownd.android.models.repos.StateAction
-import io.rownd.android.util.KtorApiClient
 import io.rownd.android.views.HubPageSelector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,7 +67,7 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val getPublicKeyCredentialOption = GetPublicKeyCredentialOption(
-                    requestJson = fetchAuthenticatorOptions(activity.packageName),
+                    requestJson = fetchAuthenticatorOptions(passkeys.computeRpId()),
                     preferImmediatelyAvailableCredentials = true
                 )
 

@@ -218,6 +218,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.VISUAL_STATE_CALLBACK)) {
+            Log.d("Rownd.hub", "VISUAL_STATE_CALLBACK is supported")
             WebViewCompat.postVisualStateCallback(view, 1) {
                 when ((view as RowndWebView).targetPage) {
                     HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
@@ -229,6 +230,17 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
 
                 setIsLoading(false)
             }
+        } else {
+            Log.w("Rownd.hub", "VISUAL_STATE_CALLBACK is NOT supported")
+            when ((view as RowndWebView).targetPage) {
+                HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
+                HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
+                HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson})")
+                HubPageSelector.ManageAccount -> evaluateJavascript("rownd.user.manageAccount()")
+                HubPageSelector.ConnectAuthenticator -> evaluateJavascript("rownd.connectAuthenticator(${webView.jsFunctionArgsAsJson})")
+            }
+
+            setIsLoading(false)
         }
 
         Log.d("Rownd.hub", "View progress: ${view?.progress}")

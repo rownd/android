@@ -465,11 +465,6 @@ class RowndClient constructor(
 
             var jsFnOptionsStr: String? = null
             if (jsFnOptions != null) {
-//                jsFnOptionsStr = if (jsFnOptions::class === RowndSignInJsOptions::class) {
-//                    json.encodeToString(RowndSignInJsOptions.serializer(), jsFnOptions as RowndSignInJsOptions)
-//                } else {
-//                    json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions as RowndSignInOptions)
-//                }
                 jsFnOptionsStr = jsFnOptions.toJsonString()
             }
 
