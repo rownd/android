@@ -55,6 +55,17 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                         )
                     )
                 )
+
+                val hubWebView = rowndContext.hubViewModel?.webView()?.value ?: return@launch
+
+                val jsFnOptions = RowndSignInJsOptions(
+                    loginStep = RowndSignInLoginStep.Success,
+                    signInType = RowndSignInType.Passkey,
+                    intent = RowndSignInIntent.SignIn,
+                    userType = RowndSignInUserType.ExistingUser,
+                )
+
+                hubWebView.loadNewPage(targetPage = HubPageSelector.SignIn, jsFnOptions = jsFnOptions)
             } catch (e : Exception) {
                 handleFailure(e)
             }
@@ -75,11 +86,17 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                     listOf(getPublicKeyCredentialOption)
                 )
 
-                val result = credentialManager.getCredential(
-                    request = getCredRequest,
-                    activity = activity,
-                )
-                handleSignIn(result)
+                CoroutineScope(Dispatchers.Main).launch {
+                    try {
+                        val result = credentialManager.getCredential(
+                            request = getCredRequest,
+                            activity = activity,
+                        )
+                        handleSignIn(result)
+                    } catch (e : Exception) {
+                        handleFailure(e)
+                    }
+                }
             } catch (e : GetCredentialException) {
                 handleFailure(e)
             } catch (e : Exception) {
@@ -103,6 +120,7 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
     }
 
     private fun handleFailure(reason: Exception?) {
+        Log.d(TAG, "Passkey authentication failure", reason)
         val hubWebView = rowndContext.hubViewModel?.webView()?.value ?: return
 
         val jsFnOptions = RowndSignInJsOptions(

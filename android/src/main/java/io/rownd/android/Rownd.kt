@@ -36,6 +36,7 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
+import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
@@ -291,6 +292,13 @@ class RowndClient constructor(
         displayHub(HubPageSelector.ManageAccount)
     }
 
+    fun connectAuthenticator(with: RowndConnectAuthenticatorHint) {
+        displayHub(
+            targetPage = HubPageSelector.ConnectAuthenticator,
+            jsFnOptions = RowndAuthenticatorRegistrationOptions()
+        )
+    }
+
     fun transferEncryptionKey() {
         val activity = appHandleWrapper?.activity?.get() as AppCompatActivity
 
@@ -299,7 +307,6 @@ class RowndClient constructor(
     }
 
     private fun determineSignInOptions(signInOptions: RowndSignInOptions) :RowndSignInOptions {
-        var signInOptions = signInOptions
         if (signInOptions.intent == RowndSignInIntent.SignUp || signInOptions.intent == RowndSignInIntent.SignIn) {
             if (state.value.appConfig.config.hub.auth.useExplicitSignUpFlow != true) {
                 signInOptions.intent = null
@@ -518,6 +525,10 @@ internal data class RowndSignInJsOptions (
 enum class RowndSignInHint {
     Google,
     OneTap,
+    Passkey,
+}
+
+enum class RowndConnectAuthenticatorHint {
     Passkey,
 }
 

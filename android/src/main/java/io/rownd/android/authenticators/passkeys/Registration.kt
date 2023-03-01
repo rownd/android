@@ -20,7 +20,6 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
 
     private val TAG = "Rownd.PasskeyAuthenticator"
 
-
     private val rowndContext = passkeys.rowndContext
     private val authenticatedApi = passkeys.authenticatedApi
 
@@ -119,6 +118,11 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
     }
 
     private fun handleFailure(e: Exception) {
+        Log.e(TAG, "Something went wrong during passkey registration", e)
+        val jsFnOptions = RowndAuthenticatorRegistrationOptions(
+            status = PasskeyStatus.Failed,
+        )
 
+        displayRegistrationStatus(jsFnOptions)
     }
 }

@@ -218,39 +218,30 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.VISUAL_STATE_CALLBACK)) {
-            Log.d("Rownd.hub", "VISUAL_STATE_CALLBACK is supported")
             WebViewCompat.postVisualStateCallback(view, 1) {
-                when ((view as RowndWebView).targetPage) {
-                    HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
-                    HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
-                    HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson})")
-                    HubPageSelector.ManageAccount -> evaluateJavascript("rownd.user.manageAccount()")
-                    HubPageSelector.ConnectAuthenticator -> evaluateJavascript("rownd.connectAuthenticator(${webView.jsFunctionArgsAsJson})")
-                }
-
-                setIsLoading(false)
+                displayTargetPage(view)
             }
         } else {
-            Log.w("Rownd.hub", "VISUAL_STATE_CALLBACK is NOT supported")
-            when ((view as RowndWebView).targetPage) {
-                HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
-                HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
-                HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson})")
-                HubPageSelector.ManageAccount -> evaluateJavascript("rownd.user.manageAccount()")
-                HubPageSelector.ConnectAuthenticator -> evaluateJavascript("rownd.connectAuthenticator(${webView.jsFunctionArgsAsJson})")
-            }
-
-            setIsLoading(false)
+            // If VISUAL_STATE_CALLBACK isn't supported on this platform, try to display the
+            // appropriate content.
+            displayTargetPage(view)
         }
-
-        Log.d("Rownd.hub", "View progress: ${view?.progress}")
-//        if (view.progress == 100) {
-//
-//        }
 
         if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
             webView.animateBottomSheet?.invoke(ModalBottomSheetValue.Expanded)
         }
+    }
+
+    private fun displayTargetPage(view: WebView) {
+        when ((view as RowndWebView).targetPage) {
+            HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
+            HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
+            HubPageSelector.QrCode -> evaluateJavascript("rownd.generateQrCode(${webView.jsFunctionArgsAsJson})")
+            HubPageSelector.ManageAccount -> evaluateJavascript("rownd.user.manageAccount()")
+            HubPageSelector.ConnectAuthenticator -> evaluateJavascript("rownd.connectAuthenticator(${webView.jsFunctionArgsAsJson})")
+        }
+
+        setIsLoading(false)
     }
 
     private fun handleScriptReturn(value: String) {
@@ -337,6 +328,12 @@ class RowndJavascriptInterface(
                 MessageType.tryAgain -> {
                     CoroutineScope(Dispatchers.Main).launch {
                         parentWebView.loadUrl(Rownd.config.hubLoaderUrl())
+                    }
+                }
+
+                MessageType.CreatePasskey -> {
+                    parentWebView.rowndClient.appHandleWrapper?.activity?.get()?.let {
+                        parentWebView.rowndClient.passkeyAuthenticator.registration.register(it)
                     }
                 }
 
