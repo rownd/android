@@ -4,7 +4,9 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import io.rownd.android.models.domain.AuthState
+import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.repos.AuthRepo
+import io.rownd.android.models.repos.SignInRepo
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
 import kotlinx.serialization.Serializable
@@ -38,12 +40,20 @@ data class RowndConfig(
     @Transient
     lateinit var authRepo: AuthRepo
 
+    @Inject
+    @Transient
+    lateinit var signInRepo: SignInRepo
+
     suspend fun hubLoaderUrl(): String {
         val jsonConfig = json.encodeToString(serializer(), this)
         val base64Config = Base64.encodeToString(jsonConfig.encodeToByteArray(), Base64.NO_WRAP)
 
         val uriBuilder = Uri.parse("$baseUrl/mobile_app").buildUpon()
         uriBuilder.appendQueryParameter("config", base64Config)
+
+        val signInState = signInRepo.get()
+        val signInInitStr = signInState.toSignInInitHash()
+        uriBuilder.appendQueryParameter("sign_in", signInInitStr)
 
         try {
             val authState = authRepo.getLatestAuthState() ?: AuthState()
