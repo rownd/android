@@ -20,18 +20,18 @@ data class SignInState @OptIn(ExperimentalSerializationApi::class) constructor(
 ) {
 
     internal fun toSignInInitHash(): String {
-        val rphInit = RphSignInInitObj(
+        val rphInit = SignInInitObj(
             lastSignIn,
             lastSignInDate
         )
 
-        val encoded = json.encodeToString(RphSignInInitObj.serializer(), rphInit)
+        val encoded = json.encodeToString(SignInInitObj.serializer(), rphInit)
         return encoded.toByteArray().toBase64()
     }
 }
 
 @Serializable
-data class RphSignInInitObj(
+data class SignInInitObj(
     @SerialName("last_sign_in")
     val lastSignIn: String?,
     @SerialName("last_sign_in_date")
