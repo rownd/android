@@ -35,6 +35,8 @@ import io.ktor.client.*
 import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
+import io.rownd.android.authenticators.passkeys.PasskeysCommon
+import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
@@ -50,11 +52,10 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
+import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
+import java.lang.ref.WeakReference
 import javax.inject.Singleton
-
 
 // The default Rownd instance
 val Rownd = RowndClient(DaggerRowndGraph.create())
@@ -67,6 +68,7 @@ interface RowndGraph {
     fun authRepo(): AuthRepo
     fun signInLinkApi(): SignInLinkApi
     fun rowndContext(): RowndContext
+    fun passkeyAuthenticator(): PasskeysCommon
     fun inject(rowndConfig: RowndConfig)
 }
 
@@ -84,11 +86,11 @@ class RowndClient constructor(
     var authRepo: AuthRepo = graph.authRepo()
     var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
     var rowndContext = graph.rowndContext()
+    var passkeyAuthenticator = graph.passkeyAuthenticator()
 
     var state = stateRepo.state
     private var intentLaunchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private var intentSenderRequestLaunchers: MutableMap<String, ActivityResultLauncher<IntentSenderRequest>> = mutableMapOf()
-    private lateinit var hubViewModel: RowndWebViewModel
     private var hasDisplayedOneTap = false
     private var googleSignInIntent: RowndSignInIntent? = null
 
@@ -97,6 +99,7 @@ class RowndClient constructor(
         rowndContext.config = config
         rowndContext.client = this
         rowndContext.authRepo = authRepo
+        rowndContext.store = stateRepo.getStore()
         stateRepo.userRepo = userRepo
     }
 
@@ -127,13 +130,13 @@ class RowndClient constructor(
             if (it !is ViewModelStoreOwner) {
                 return@registerActivityListener
             }
-            hubViewModel = ViewModelProvider(
+            rowndContext.hubViewModel = ViewModelProvider(
                 it as ViewModelStoreOwner,
                 hubViewModelFactory
             )[RowndWebViewModel::class.java]
 
             // Re-triggers the sign-in sheet in the event that the activity restarted during sign-in
-            if (hubViewModel.webView().value != null) {
+            if ((rowndContext.hubViewModel)?.webView()?.value != null) {
                 displayHub(HubPageSelector.Unknown)
             }
         }
@@ -256,10 +259,13 @@ class RowndClient constructor(
     }
 
     fun requestSignIn(with: RowndSignInHint, signInOptions: RowndSignInOptions) {
-        var signInOptions = determineSignInOptions(signInOptions)
+        val signInOptions = determineSignInOptions(signInOptions)
         when (with) {
             RowndSignInHint.Google -> signInWithGoogle(intent = signInOptions.intent)
             RowndSignInHint.OneTap -> showGoogleOneTap()
+            RowndSignInHint.Passkey -> {
+                appHandleWrapper?.activity?.get()?.let { passkeyAuthenticator.authentication.authenticate(it) }
+            }
         }
     }
 
@@ -268,7 +274,7 @@ class RowndClient constructor(
     }
 
     fun signOut() {
-        hubViewModel.webView().postValue(null)
+        rowndContext.hubViewModel?.webView()?.postValue(null)
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
 
@@ -286,6 +292,13 @@ class RowndClient constructor(
         displayHub(HubPageSelector.ManageAccount)
     }
 
+    fun connectAuthenticator(with: RowndConnectAuthenticatorHint) {
+        displayHub(
+            targetPage = HubPageSelector.ConnectAuthenticator,
+            jsFnOptions = RowndAuthenticatorRegistrationOptions()
+        )
+    }
+
     fun transferEncryptionKey() {
         val activity = appHandleWrapper?.activity?.get() as AppCompatActivity
 
@@ -294,7 +307,6 @@ class RowndClient constructor(
     }
 
     private fun determineSignInOptions(signInOptions: RowndSignInOptions) :RowndSignInOptions {
-        var signInOptions = signInOptions
         if (signInOptions.intent == RowndSignInIntent.SignUp || signInOptions.intent == RowndSignInIntent.SignIn) {
             if (state.value.appConfig.config.hub.auth.useExplicitSignUpFlow != true) {
                 signInOptions.intent = null
@@ -447,7 +459,7 @@ class RowndClient constructor(
     }
 
     // Internal stuff
-    private fun displayHub(
+    internal fun displayHub(
         targetPage: HubPageSelector,
         jsFnOptions: RowndSignInOptionsBase? = null
     ) {
@@ -460,15 +472,12 @@ class RowndClient constructor(
 
             var jsFnOptionsStr: String? = null
             if (jsFnOptions != null) {
-                jsFnOptionsStr = if (jsFnOptions::class === RowndSignInJsOptions::class) {
-                    json.encodeToString(RowndSignInJsOptions.serializer(), jsFnOptions as RowndSignInJsOptions)
-                } else {
-                    json.encodeToString(RowndSignInOptions.serializer(), jsFnOptions as RowndSignInOptions)
-                }
+                jsFnOptionsStr = jsFnOptions.toJsonString()
             }
 
             val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
             bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
+            rowndContext.hubView = WeakReference(bottomSheet)
         } catch (exception: Exception) {
             Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage")
         }
@@ -476,14 +485,22 @@ class RowndClient constructor(
 }
 
 @Serializable
-open class RowndSignInOptionsBase()
+abstract class RowndSignInOptionsBase() {
+    @Transient
+    protected val json = Json { encodeDefaults = true }
+    abstract fun toJsonString(): String
+}
 
 @Serializable
 data class RowndSignInOptions(
     @SerialName("post_login_redirect")
     var postSignInRedirect: String? = Rownd.config.postSignInRedirect,
     var intent: RowndSignInIntent? = null
-): RowndSignInOptionsBase()
+): RowndSignInOptionsBase() {
+    override fun toJsonString(): String {
+        return json.encodeToString(serializer(), this)
+    }
+}
 
 @Serializable
 internal data class RowndSignInJsOptions (
@@ -495,11 +512,24 @@ internal data class RowndSignInJsOptions (
     var intent: RowndSignInIntent? = null,
     @SerialName("user_type")
     var userType: RowndSignInUserType? = null,
-): RowndSignInOptionsBase()
+    @SerialName("sign_in_type")
+    var signInType: RowndSignInType? = null,
+    @SerialName("error_message")
+    var errorMessage: String? = null
+): RowndSignInOptionsBase() {
+    override fun toJsonString(): String {
+        return json.encodeToString(serializer(), this)
+    }
+}
 
 enum class RowndSignInHint {
     Google,
     OneTap,
+    Passkey,
+}
+
+enum class RowndConnectAuthenticatorHint {
+    Passkey,
 }
 
 @Serializable
@@ -519,6 +549,12 @@ enum class RowndSignInUserType {
 }
 
 @Serializable
+enum class RowndSignInType {
+    @SerialName("passkey")
+    Passkey
+}
+
+@Serializable
 enum class RowndSignInLoginStep {
     @SerialName("init")
     Init,
@@ -526,4 +562,6 @@ enum class RowndSignInLoginStep {
     Success,
     @SerialName("no_account")
     NoAccount,
+    @SerialName("error")
+    Error,
 }

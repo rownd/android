@@ -1,24 +1,24 @@
 package io.rownd.android.models.network
 
 import io.rownd.android.models.domain.AppConfigState
-import io.rownd.android.models.domain.AppSchemaField as DomainAppSchemaField
-import io.rownd.android.models.domain.AppSchemaFieldEncryption as DomainAppSchemaFieldEncryption
-import io.rownd.android.models.domain.AppSchemaEncryptionState as DomainAppSchemaEncryptionState
-import io.rownd.android.models.domain.AppConfigConfig as DomainAppConfigConfig
-import io.rownd.android.models.domain.HubConfig as DomainHubConfig
-import io.rownd.android.models.domain.HubAuthConfig as DomainHubAuthConfig
-import io.rownd.android.models.domain.HubCustomStylesConfig as DomainHubCustomStylesConfig
-import io.rownd.android.models.domain.SignInMethods as DomainSignInMethods
-import io.rownd.android.models.domain.GoogleSignInMethod as DomainGoogleSignInMethod
-import io.rownd.android.models.domain.GoogleOneTap as DomainGoogleOneTap
-import io.rownd.android.models.domain.GoogleOneTapMobileApp as DomainGoogleOneTapMobileApp
-import io.rownd.android.models.domain.HubCustomizationsConfig as DomainHubCustomizationsConfig
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.http.GET
 import javax.inject.Inject
+import io.rownd.android.models.domain.AppConfigConfig as DomainAppConfigConfig
+import io.rownd.android.models.domain.AppSchemaEncryptionState as DomainAppSchemaEncryptionState
+import io.rownd.android.models.domain.AppSchemaField as DomainAppSchemaField
+import io.rownd.android.models.domain.AppSchemaFieldEncryption as DomainAppSchemaFieldEncryption
 import io.rownd.android.models.domain.CustomizationsConfig as DomainCustomizationsConfig
+import io.rownd.android.models.domain.GoogleOneTap as DomainGoogleOneTap
+import io.rownd.android.models.domain.GoogleOneTapMobileApp as DomainGoogleOneTapMobileApp
+import io.rownd.android.models.domain.GoogleSignInMethod as DomainGoogleSignInMethod
+import io.rownd.android.models.domain.HubAuthConfig as DomainHubAuthConfig
+import io.rownd.android.models.domain.HubConfig as DomainHubConfig
+import io.rownd.android.models.domain.HubCustomStylesConfig as DomainHubCustomStylesConfig
+import io.rownd.android.models.domain.HubCustomizationsConfig as DomainHubCustomizationsConfig
+import io.rownd.android.models.domain.SignInMethods as DomainSignInMethods
 
 @Serializable
 data class AppConfig(
@@ -94,12 +94,14 @@ enum class AppSchemaEncryptionState {
 @Serializable
 data class AppConfigConfig(
     var hub: HubConfig = HubConfig(),
-    var customizations: CustomizationsConfig = CustomizationsConfig()
+    var customizations: CustomizationsConfig = CustomizationsConfig(),
+    var subdomain: String? = null
 ) {
     fun asDomainModel(): DomainAppConfigConfig {
         return DomainAppConfigConfig(
             hub.asDomainModel(),
             customizations.asDomainModel(),
+            subdomain,
         )
     }
 }

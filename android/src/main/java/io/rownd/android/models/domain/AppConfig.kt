@@ -18,7 +18,7 @@ data class AppConfigState @OptIn(ExperimentalSerializationApi::class) constructo
     @JsonNames("userVerificationFields")
     val userVerificationFields: List<String> = listOf(),
     val schema: Map<String, AppSchemaField> = HashMap(),
-    val config: AppConfigConfig = AppConfigConfig()
+    val config: AppConfigConfig = AppConfigConfig(),
 )
 
 @Serializable
@@ -47,7 +47,8 @@ enum class AppSchemaEncryptionState {
 @Serializable
 data class AppConfigConfig constructor(
     val hub: HubConfig = HubConfig(),
-    val customizations: CustomizationsConfig = CustomizationsConfig()
+    val customizations: CustomizationsConfig = CustomizationsConfig(),
+    val subdomain: String? = null
 )
 
 @Serializable

@@ -30,6 +30,10 @@ enum class MessageType {
     UserDataUpdate,
     @SerialName("close_hub_view_controller")
     CloseHubView,
+    @SerialName("trigger_sign_up_with_passkey")
+    CreatePasskey,
+    @SerialName("trigger_sign_in_with_passkey")
+    AuthenticateWithPasskey,
     unknown
 }
 
@@ -82,6 +86,16 @@ data class CloseHubViewMessage(
     override var type: MessageType = MessageType.CloseHubView
 ) : RowndHubInteropMessage()
 
+@Serializable
+data class SignUpWithPasskeyMessage(
+    override var type: MessageType = MessageType.CreatePasskey
+) : RowndHubInteropMessage()
+
+@Serializable
+data class SignInWithPasskeyMessage(
+    override var type: MessageType = MessageType.AuthenticateWithPasskey
+) : RowndHubInteropMessage()
+
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
         return when (val messageType = element.jsonObject["type"]?.jsonPrimitive?.content) {
@@ -91,7 +105,9 @@ object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<Rownd
             "trigger_sign_in_with_google" -> TriggerSignInWithGoogleMessage.serializer()
             "user_data_update" -> UserDataUpdateMessage.serializer()
             "close_hub_view_controller" -> CloseHubViewMessage.serializer()
-            else -> RowndHubInteropMessage.serializer() // This may not work--might need to throw
+            "trigger_sign_up_with_passkey" -> SignUpWithPasskeyMessage.serializer()
+            "trigger_sign_in_with_passkey" -> SignInWithPasskeyMessage.serializer()
+            else -> throw Error("Key '$messageType' did not match a known serializer.")
         }
     }
 }
