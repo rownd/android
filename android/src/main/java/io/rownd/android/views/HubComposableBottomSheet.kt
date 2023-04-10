@@ -76,7 +76,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                 this.hubWebview.dialog = parent
                 this.hubWebview.progressBar = this.hubProgressBar
                 this.hubWebview.setIsLoading = setIsLoading
-                this.hubWebview.targetPage = targetPage ?: HubPageSelector.SignIn
+                this.hubWebview.targetPage = targetPage
                 this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: "{}"
                 this.hubWebview.animateBottomSheet = {
                     coroutineScope.launch {
