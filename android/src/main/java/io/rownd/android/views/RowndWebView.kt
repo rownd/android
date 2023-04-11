@@ -281,6 +281,8 @@ class RowndJavascriptInterface(
                             )
                         )
                     )
+
+                    parentWebView.rowndClient.signInRepo.reset()
                     parentWebView.rowndClient.userRepo.loadUserAsync()
 
                     Executors.newSingleThreadScheduledExecutor().schedule({

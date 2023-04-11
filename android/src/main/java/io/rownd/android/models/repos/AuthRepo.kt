@@ -9,6 +9,7 @@ import io.ktor.http.*
 import io.rownd.android.*
 import io.rownd.android.RowndSignInJsOptions
 import io.rownd.android.models.domain.AuthState
+import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.*
 import io.rownd.android.util.RowndContext
@@ -34,6 +35,9 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
 
     @Inject
     lateinit var userRepo: UserRepo
+
+    @Inject
+    lateinit var signInRepo: SignInRepo
 
     // TODO: Should be able to use Dagger to inject this
     private val tokenApi: TokenApi by lazy { TokenApi(rowndContext) }
@@ -158,6 +162,10 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                             userType = tokenResponse.userType
                         )
                     )
+                }
+
+                if (type === AccessTokenType.google) {
+                    signInRepo.setLastSignInMethod("google")
                 }
 
                 stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState(accessToken = tokenResponse.accessToken, refreshToken = tokenResponse.refreshToken)))

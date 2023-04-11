@@ -11,6 +11,7 @@ import io.rownd.android.models.State
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AppConfigState
 import io.rownd.android.models.domain.AuthState
+import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.domain.User
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,7 @@ data class GlobalState(
     val appConfig: AppConfigState = AppConfigState(),
     val auth: AuthState = AuthState(),
     val user: User = User(),
+    val signIn: SignInState = SignInState(),
 
     @Transient
     val isInitialized: Boolean = false,
@@ -68,6 +70,7 @@ object GlobalStateSerializer : Serializer<GlobalState> {
 sealed class StateAction : Action {
     data class SetGlobalState(val value: GlobalState) : StateAction()
     data class SetAuth(val value: AuthState) : StateAction()
+    data class SetSignIn(val value: SignInState): StateAction()
     data class SetAppConfig(val value: AppConfigState) : StateAction()
     data class SetUser(val value: User) : StateAction()
 }
@@ -86,6 +89,7 @@ class StateRepo @Inject constructor() {
     private val store = Store<GlobalState, StateAction>(GlobalState()) { state, action ->
         when (action) {
             is StateAction.SetAuth -> state.copy(auth = action.value)
+            is StateAction.SetSignIn -> state.copy(signIn = action.value)
             is StateAction.SetAppConfig -> state.copy(appConfig = action.value)
             is StateAction.SetUser -> state.copy(user = action.value)
             is StateAction.SetGlobalState -> action.value

@@ -40,6 +40,7 @@ import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
+import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
@@ -66,6 +67,7 @@ interface RowndGraph {
     fun stateRepo(): StateRepo
     fun userRepo(): UserRepo
     fun authRepo(): AuthRepo
+    fun signInRepo(): SignInRepo
     fun signInLinkApi(): SignInLinkApi
     fun rowndContext(): RowndContext
     fun passkeyAuthenticator(): PasskeysCommon
@@ -84,6 +86,7 @@ class RowndClient constructor(
     var stateRepo: StateRepo = graph.stateRepo()
     var userRepo: UserRepo = graph.userRepo()
     var authRepo: AuthRepo = graph.authRepo()
+    var signInRepo: SignInRepo = graph.signInRepo()
     var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
     var rowndContext = graph.rowndContext()
     var passkeyAuthenticator = graph.passkeyAuthenticator()
@@ -383,7 +386,7 @@ class RowndClient constructor(
             if (credential.googleIdToken == "") {
                 Log.e("Rownd.OneTap", "Google One Tap sign-in failed: missing idToken")
             } else {
-                credential.googleIdToken?.let { idToken -> authRepo.getAccessToken(idToken) }
+                credential.googleIdToken?.let { idToken -> authRepo.getAccessToken(idToken, intent = null, type = AuthRepo.AccessTokenType.google) }
             }
         } catch (e: ApiException) {
             if (e.statusCode == CommonStatusCodes.CANCELED) {
