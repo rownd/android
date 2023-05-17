@@ -270,7 +270,7 @@ Opens the Rownd sign-in dialog for authentication.
 Initiates a sign-in using the method specified by the `with` argument, bypassing the authentication method selector. For example, this could be used to steer a new user toward a specific sign-in method.
 
 Supported options:
-- `RowndSignInHint.Google` - Prompt user to sign in with their Google
+- `RowndSignInHint.Google` - Prompt user to sign in with their Google account
 - `RowndSignInHint.OneTap` - Prompt user to sign into their account with Google One Tap
 - `RowndSignInHint.Passkey` - Prompt user to sign in with a passkey if they've previously set one up
 
@@ -280,7 +280,7 @@ Example:
 Rownd.requestSignIn(with = RowndSignInHint.Google)
 ```
 
-### Rownd.requestSignIn(RowndSignInOpts(...)): Void
+### Rownd.requestSignIn(RowndSignInOpts(...)): Unit
 Opens the Rownd sign-in dialog for authentication, as before, but allows passing additional context options as shown below.
 
 - `intent: RowndSignInIntent` - This option applies only when you have opted to split the sign-up/sign-in flow via the Rownd dashboard. Valid values are `.SignIn` or `.SignUp`. If you don’t set this value, the user will be presented with the unified sign-in/sign-up flow. Please reach out to [support@rownd.io](mailto:support@rownd.io) to enable.
