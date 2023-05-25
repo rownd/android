@@ -90,6 +90,12 @@ data class HubAuthConfig @OptIn(ExperimentalSerializationApi::class) constructor
 @Serializable
 data class SignInMethods constructor(
     val google: GoogleSignInMethod = GoogleSignInMethod(),
+    val anonymous: AnonymousSignInMethod = AnonymousSignInMethod(),
+)
+
+@Serializable
+data class AnonymousSignInMethod constructor(
+    val enabled: Boolean = false,
 )
 
 @Serializable

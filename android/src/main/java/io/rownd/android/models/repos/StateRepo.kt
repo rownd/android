@@ -81,8 +81,9 @@ class StateRepo @Inject constructor() {
     @Inject
     lateinit var appConfigRepo: AppConfigRepo
 
-    // Manually inject this one
+    // Manually inject these
     lateinit var userRepo: UserRepo
+    lateinit var authRepo: AuthRepo
 
     private lateinit var dataStore: DataStore<GlobalState>
 

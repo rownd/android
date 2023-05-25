@@ -40,7 +40,6 @@ import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
-import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
@@ -104,6 +103,7 @@ class RowndClient constructor(
         rowndContext.authRepo = authRepo
         rowndContext.store = stateRepo.getStore()
         stateRepo.userRepo = userRepo
+        stateRepo.authRepo = authRepo
     }
 
     private fun configure(appKey: String) {
@@ -268,6 +268,12 @@ class RowndClient constructor(
             RowndSignInHint.OneTap -> showGoogleOneTap()
             RowndSignInHint.Passkey -> {
                 appHandleWrapper?.activity?.get()?.let { passkeyAuthenticator.authentication.authenticate(it) }
+            }
+            RowndSignInHint.Guest -> {
+                displayHub(
+                    HubPageSelector.SignIn,
+                    jsFnOptions = RowndSignInJsOptions(signInType = RowndSignInType.Anonymous)
+                )
             }
         }
     }
@@ -529,6 +535,7 @@ enum class RowndSignInHint {
     Google,
     OneTap,
     Passkey,
+    Guest,
 }
 
 enum class RowndConnectAuthenticatorHint {
@@ -554,7 +561,9 @@ enum class RowndSignInUserType {
 @Serializable
 enum class RowndSignInType {
     @SerialName("passkey")
-    Passkey
+    Passkey,
+    @SerialName("anonymous")
+    Anonymous
 }
 
 @Serializable
