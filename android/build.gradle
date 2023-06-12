@@ -57,15 +57,9 @@ android {
     }
 
     publishing {
-        singleVariant('release') {
-            withSourcesJar()
-            withJavadocJar()
-        }
+        singleVariant('release') {}
 
-        singleVariant('debug') {
-            withSourcesJar()
-            withJavadocJar()
-        }
+        singleVariant('debug') {}
     }
 }
 
