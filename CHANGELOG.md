@@ -1,5 +1,19 @@
 
 
+# [2.6.0](https://github.com/rownd/android/compare/2.5.0...2.6.0) (2023-06-12)
+
+
+### Bug Fixes
+
+* postSignInRedirect not recommended ([a918130](https://github.com/rownd/android/commit/a918130f51aa09dd632071eef0aa7e62bf47e621))
+
+
+### Features
+
+* **auth:** support direct sign-in as guest ([7008c47](https://github.com/rownd/android/commit/7008c470fd159816ed065b0b15340dcccb6ed3f7))
+* included passkey and intent ([0aeab7d](https://github.com/rownd/android/commit/0aeab7d68e4f0c515881f3a91dae0e5f6e950185))
+* **passkeys:** initial support ([#34](https://github.com/rownd/android/issues/34)) ([1fd866e](https://github.com/rownd/android/commit/1fd866e067582c270a8f658c5b656b0758a13708))
+
 # [2.5.0](https://github.com/rownd/android/compare/2.4.2...2.5.0) (2023-02-09)
 
 
