@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.activity.compose.BackHandler
+import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetValue
@@ -91,6 +92,7 @@ private fun isCameraPermissionGranted(baseContext: Context): Boolean {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
+@ExperimentalGetImage
 internal fun KeyTransferNavHost(
     hostController: KeyTransferBottomSheet,
     navController: NavHostController = rememberNavController(),

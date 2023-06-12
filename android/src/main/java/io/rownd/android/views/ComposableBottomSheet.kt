@@ -8,7 +8,13 @@ import android.view.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.ModalBottomSheetLayout
+import androidx.compose.material.ModalBottomSheetState
+import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material.Text
+import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -108,6 +114,8 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
             // confirmStateChange = { false }
         )
 
+
+
         SideEffect {
             sheetState = bottomSheetState
         }
@@ -149,7 +157,10 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         ModalBottomSheetLayout(
             sheetState = bottomSheetState,
             sheetBackgroundColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
-            sheetShape = RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius),
+            sheetShape = RoundedCornerShape(
+                topStart = Rownd.config.customizations.sheetCornerBorderRadius,
+                topEnd = Rownd.config.customizations.sheetCornerBorderRadius
+            ),
             sheetContent = {
                 BoxWithConstraints(
                     modifier = Modifier
@@ -182,8 +193,8 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                         }
                     }
                 }
-            }
-        ) {
+            })
+        {
             Text("")
         }
 
