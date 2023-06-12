@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.ExperimentalGetImage
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.ModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ class KeyTransferBottomSheet : ComposableBottomSheetFragment() {
 
     @OptIn(ExperimentalMaterialApi::class)
     @Composable
+    @ExperimentalGetImage
     override fun Content(bottomSheetState: ModalBottomSheetState, setIsLoading: (isLoading: Boolean) -> Unit) {
         KeyTransferNavHost(hostController = this)
     }

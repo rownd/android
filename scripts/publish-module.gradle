@@ -25,6 +25,7 @@ afterEvaluate {
     publishing {
         publications {
             release(MavenPublication) {
+                components.getByName('release')
                 // The coordinates of the library, being set from variables that
                 // we'll set up later
                 groupId PUBLISH_GROUP_ID
