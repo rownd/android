@@ -122,6 +122,7 @@ import kotlinx.coroutines.launch
 fun ModalBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    dynamicOffset: Float?,
     sheetState: SheetState = rememberModalBottomSheetState(),
     shape: Shape = BottomSheetDefaults.ExpandedShape,
     containerColor: Color = BottomSheetDefaults.ContainerColor,
@@ -209,6 +210,7 @@ fun ModalBottomSheet(
                         sheetState = sheetState,
                         anchorChangeHandler = anchorChangeHandler,
                         screenHeight = fullHeight.toFloat(),
+                        dynamicOffset = dynamicOffset,
                         onDragStopped = {
                             settleToDismiss(it)
                         },
@@ -321,9 +323,10 @@ private fun Scrim(
 @ExperimentalMaterial3Api
 private fun Modifier.modalBottomSheetSwipeable(
     sheetState: SheetState,
-    anchorChangeHandler: AnchorChangeHandler<SheetValue>,
+    anchorChangeHandler: AnchorChangeHandler<SheetValue>?,
     screenHeight: Float,
     onDragStopped: CoroutineScope.(velocity: Float) -> Unit,
+    dynamicOffset: Float?
 ) = draggable(
     state = sheetState.swipeableState.swipeDraggableState,
     orientation = Orientation.Vertical,
@@ -339,6 +342,7 @@ private fun Modifier.modalBottomSheetSwipeable(
         when (value) {
             SheetValue.Hidden -> screenHeight
             SheetValue.PartiallyExpanded -> when {
+                dynamicOffset != null -> dynamicOffset
                 sheetSize.height < screenHeight / 2 -> null
                 sheetState.skipPartiallyExpanded -> null
                 else -> screenHeight / 2f
@@ -366,8 +370,6 @@ private fun ModalBottomSheetAnchorChangeHandler(
         }
     }
     val newTargetOffset = newAnchors.getValue(newTarget)
-    println("NEW TARGET $newTarget")
-    println("NEW TARGET OFFSET ${newTargetOffset}")
     if (newTargetOffset != previousTargetOffset) {
         if (state.swipeableState.isAnimationRunning || previousAnchors.isEmpty()) {
             // Re-target the animation to the new offset if it changed
