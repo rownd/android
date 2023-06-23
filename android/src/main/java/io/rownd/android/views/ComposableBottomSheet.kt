@@ -8,7 +8,6 @@ import android.view.*
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,12 +30,19 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import io.rownd.android.Rownd
 import kotlinx.coroutines.launch
 
+import androidx.compose.material3.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import io.rownd.android.util.convertStringToColor
+import io.rownd.android.util.bottom.sheet.*
+import io.rownd.android.util.bottom.sheet.SheetState
+import io.rownd.android.util.bottom.sheet.SheetValue
+
 
 abstract class ComposableBottomSheetFragment : DialogFragment() {
     open val shouldDisplayLoader = false
 
-    @OptIn(ExperimentalMaterialApi::class)
-    var sheetState: ModalBottomSheetState? = null
+    @OptIn(ExperimentalMaterial3Api::class)
+    var sheetState: SheetState? = null
 
     override fun onStart() {
         super.onStart()
@@ -49,19 +55,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
-    // Might be needed for better display over device "safe areas"
-//    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog? {
-//        val dialog: BottomSheetDialog = super.onCreateDialog(savedInstanceState)
-//        val window: Window? = dialog.window
-//        window.setFlags(
-//            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-//            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-//        )
-//        window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-//        return dialog
-//    }
-
-    @OptIn(ExperimentalMaterialApi::class)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -93,15 +86,17 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
-    @ExperimentalMaterialApi
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun BottomSheet() {
         val coroutineScope = rememberCoroutineScope()
 
         // Declaring a Boolean value to
         // store bottom sheet collapsed state
-        val bottomSheetState = rememberModalBottomSheetState(
-            initialValue = ModalBottomSheetValue.HalfExpanded,
+        var openBottomSheet by rememberSaveable { mutableStateOf(false) }
+        var skipPartiallyExpanded by remember { mutableStateOf(false) }
+        val bottomSheetState = io.rownd.android.util.bottom.sheet.rememberModalBottomSheetState(
+            skipPartiallyExpanded = skipPartiallyExpanded,
 
             // TODO: Perhaps we should support blocking the bottom sheet from closing
             //  when certain operations are in progress.
@@ -115,6 +110,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         val (isLoading, setIsLoading) = remember { mutableStateOf(shouldDisplayLoader) }
         val contentAlpha: Float by animateFloatAsState(if (!isLoading) 1f else 0f)
         var loadingLottieComposition: LottieComposition? = null
+        val (dynamicOffset, setDynamicOffset) = remember { mutableStateOf<Float?>(null) }
 
         Rownd.config.customizations.loadingAnimation?.let { loadingAnimation ->
             loadingLottieComposition =
@@ -130,27 +126,20 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                 ).value
         }
 
+        val primaryColor: Color = convertStringToColor(Rownd.store.currentState.appConfig.config.hub.customizations?.primaryColor ?: "#5b13df")
 
         val configuration = LocalConfiguration.current
         val fullScreenHeight = configuration.screenHeightDp.dp
 
-        // State change callback
-        LaunchedEffect(bottomSheetState) {
-            snapshotFlow { bottomSheetState.isVisible }.collect { isVisible ->
-                if (isVisible) {
-                    // Sheet is visible
-                } else {
-                    dismiss()
-                }
-            }
-        }
 
         // Creating a Bottom Sheet
-        ModalBottomSheetLayout(
+        ModalBottomSheet(
             sheetState = bottomSheetState,
-            sheetBackgroundColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
-            sheetShape = RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius),
-            sheetContent = {
+            dynamicOffset = dynamicOffset,
+            contentColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
+            shape = RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius),
+            onDismissRequest = { dismiss() },
+            content = {
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize(),
@@ -160,7 +149,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                         modifier = Modifier
                             .alpha(contentAlpha)
                     ) {
-                        Content(bottomSheetState, setIsLoading)
+                        Content(bottomSheetState, setIsLoading, setDynamicOffset)
                     }
 
                     if (isLoading) {
@@ -176,16 +165,15 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                                 )
                             } else {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.align(Alignment.Center)
+                                    modifier = Modifier.align(Alignment.Center),
+                                    color = primaryColor
                                 )
                             }
                         }
                     }
                 }
             }
-        ) {
-            Text("")
-        }
+        )
 
 
         val view = LocalView.current
@@ -195,7 +183,11 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                     ?.isVisible(WindowInsetsCompat.Type.ime()) ?: true
                 if (isKeyboardOpen) {
                     coroutineScope.launch {
-                        bottomSheetState.animateTo(ModalBottomSheetValue.Expanded)
+                        bottomSheetState.animateTo(SheetValue.Expanded)
+                    }
+                } else {
+                    coroutineScope.launch {
+                        bottomSheetState.animateTo(SheetValue.PartiallyExpanded)
                     }
                 }
             }
@@ -207,10 +199,11 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
-    @OptIn(ExperimentalMaterialApi::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     abstract fun Content(
-        bottomSheetState: ModalBottomSheetState,
-        setIsLoading: (isLoading: Boolean) -> Unit
+        bottomSheetState: SheetState,
+        setIsLoading: (isLoading: Boolean) -> Unit,
+        setDynamicOffset: (dynamicOffset: Float) -> Unit
     )
 }

@@ -71,6 +71,8 @@ data class HubCustomizationsConfig constructor(
     val fontFamily: String? = null,
     @SerialName("dark_mode")
     val darkMode: String? = null,
+    @SerialName("primary_color")
+    val primaryColor: String? = null,
 )
 
 @Serializable

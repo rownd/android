@@ -4,17 +4,15 @@ import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.runtime.*
 import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.lifecycle.ViewModelProvider
 import io.rownd.android.databinding.HubViewLayoutBinding
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
+
+import io.rownd.android.util.bottom.sheet.*
 
 enum class HubBottomSheetBundleKeys(val key: String) {
     TargetPage("target_page")
@@ -41,9 +39,9 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
         dismissAllowingStateLoss()
     }
 
-    @OptIn(ExperimentalMaterialApi::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(bottomSheetState: ModalBottomSheetState, setIsLoading: (isLoading: Boolean) -> Unit) {
+    override fun Content(bottomSheetState: SheetState, setIsLoading: (isLoading: Boolean) -> Unit, setDynamicHeight: (dynamicHeight: Float) -> Unit) {
         val bundle = this.arguments
         val targetPage: HubPageSelector =
             (bundle?.getSerializable(HubBottomSheetBundleKeys.TargetPage.key)
@@ -80,7 +78,8 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                 this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: "{}"
                 this.hubWebview.animateBottomSheet = {
                     coroutineScope.launch {
-                        bottomSheetState.animateTo(it)
+                        bottomSheetState.animateToExact(it)
+                        setDynamicHeight(it)
                     }
                 }
                 this.hubWebview.dismiss = {

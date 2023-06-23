@@ -120,7 +120,7 @@ internal fun KeyTransferNavHost(
                 composable("key_transfer_scanner") {
 //                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     LaunchedEffect(key1 = "key_transfer_scanner") {
-                        hostController.sheetState?.animateTo(ModalBottomSheetValue.Expanded)
+                        // hostController.sheetState?.animateTo(ModalBottomSheetValue.Expanded)
                     }
                     KeyTransferScanner(
                         hostController = hostController,
@@ -133,7 +133,7 @@ internal fun KeyTransferNavHost(
                 composable("key_transfer_code") {
 //                    hostController.sheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
                     LaunchedEffect(key1 = "key_transfer_code") {
-                        hostController.sheetState?.animateTo(ModalBottomSheetValue.Expanded)
+                        // hostController.sheetState?.animateTo(ModalBottomSheetValue.Expanded)
                     }
                     KeyTransferCode(
                         onNavBack = { backFn() },

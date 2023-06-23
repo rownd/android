@@ -34,6 +34,8 @@ enum class MessageType {
     CreatePasskey,
     @SerialName("trigger_sign_in_with_passkey")
     AuthenticateWithPasskey,
+    @SerialName("hub_resize")
+    HubResize,
     unknown
 }
 
@@ -96,6 +98,18 @@ data class SignInWithPasskeyMessage(
     override var type: MessageType = MessageType.AuthenticateWithPasskey
 ) : RowndHubInteropMessage()
 
+@Serializable
+data class HubResizePayload(
+    @SerialName("height")
+    var height: String? = null,
+)
+
+@Serializable
+data class HubResizeMessage(
+    override var type: MessageType = MessageType.HubResize,
+    var payload: HubResizePayload
+) : RowndHubInteropMessage()
+
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
         return when (val messageType = element.jsonObject["type"]?.jsonPrimitive?.content) {
@@ -107,6 +121,7 @@ object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<Rownd
             "close_hub_view_controller" -> CloseHubViewMessage.serializer()
             "trigger_sign_up_with_passkey" -> SignUpWithPasskeyMessage.serializer()
             "trigger_sign_in_with_passkey" -> SignInWithPasskeyMessage.serializer()
+            "hub_resize" -> HubResizeMessage.serializer()
             else -> throw Error("Key '$messageType' did not match a known serializer.")
         }
     }

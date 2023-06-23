@@ -3,11 +3,15 @@
 package io.rownd.android
 
 import android.app.Application
+import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.util.DisplayMetrics
 import android.util.Log
+import android.view.WindowManager
 import android.webkit.WebView
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.ActivityResultCaller
@@ -484,6 +488,19 @@ class RowndClient constructor(
         } catch (exception: Exception) {
             Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage")
         }
+    }
+
+    internal fun getDeviceSize(context: Context): DisplayMetrics {
+        val metrics = DisplayMetrics()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val display = context.display
+            display?.getMetrics(metrics)
+        } else {
+            @Suppress("DEPRECATION")
+            val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+            wm.defaultDisplay.getMetrics(metrics)
+        }
+        return metrics
     }
 }
 
