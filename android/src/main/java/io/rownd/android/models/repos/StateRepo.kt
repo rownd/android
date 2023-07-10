@@ -9,10 +9,7 @@ import androidx.datastore.dataStore
 import io.rownd.android.models.Action
 import io.rownd.android.models.State
 import io.rownd.android.models.Store
-import io.rownd.android.models.domain.AppConfigState
-import io.rownd.android.models.domain.AuthState
-import io.rownd.android.models.domain.SignInState
-import io.rownd.android.models.domain.User
+import io.rownd.android.models.domain.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -35,6 +32,7 @@ data class GlobalState(
     val auth: AuthState = AuthState(),
     val user: User = User(),
     val signIn: SignInState = SignInState(),
+    val passkeys: PasskeysState = PasskeysState(),
 
     @Transient
     val isInitialized: Boolean = false,
@@ -73,6 +71,7 @@ sealed class StateAction : Action {
     data class SetSignIn(val value: SignInState): StateAction()
     data class SetAppConfig(val value: AppConfigState) : StateAction()
     data class SetUser(val value: User) : StateAction()
+    data class SetPasskeys(val value: PasskeysState): StateAction()
 }
 
 @Singleton
@@ -94,6 +93,7 @@ class StateRepo @Inject constructor() {
             is StateAction.SetAppConfig -> state.copy(appConfig = action.value)
             is StateAction.SetUser -> state.copy(user = action.value)
             is StateAction.SetGlobalState -> action.value
+            is StateAction.SetPasskeys -> state.copy(passkeys = action.value)
         }
     }
 
