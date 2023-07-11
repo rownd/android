@@ -11,6 +11,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
+import kotlinx.serialization.Serializable
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.collections.set
@@ -67,6 +68,38 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
         }
     }
 
+    @Serializable
+    data class UserMetaDataResponse constructor(
+        val id: String = "",
+        val meta: Map<String, @Serializable(with = AnyValueSerializer::class) Any?> = HashMap<String, Any?>()
+    )
+
+    internal fun saveMetaUserAsync(user: User): Deferred<User?> {
+        // Create network user based on domain user
+        val networkUser = user.asNetworkModel(stateRepo, this)
+        return CoroutineScope(Dispatchers.IO).async {
+            try {
+                val savedMetaData: UserMetaDataResponse =
+                    userApi.client.put("me/meta") {
+                        setBody(
+                            networkUser
+                        )
+                    }.body()
+                Log.i("RowndUsersApi", "Successfully saved user meta data: $savedMetaData")
+                val existingUser = stateRepo.state.value.user
+                val updatedUser = existingUser.copy(
+                    data = existingUser.data,
+                    meta = savedMetaData.meta
+                )
+                stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
+                return@async updatedUser
+            } catch (ex: Exception) {
+                Log.e("RowndUsersApi", "Failed to save the user: ${ex.message}")
+                throw RowndException("Failed to save the user: ${ex.message}")
+            }
+        }
+    }
+
     fun get(): User {
         return stateRepo.state.value.user
     }
@@ -83,7 +116,8 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
 
     fun set(data: Map<String, Any>) {
         val updatedUser = User(
-            data = data
+            data = data,
+            meta = stateRepo.state.value.user.meta
         )
         stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
 
@@ -99,6 +133,28 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
         )
         stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
         saveUserAsync(updatedUser)
+    }
+
+    fun setMetaData(meta: Map<String, Any>) {
+        val updatedUser = User(
+            data = stateRepo.state.value.user.data,
+            meta = meta
+        )
+        stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
+
+        saveMetaUserAsync(updatedUser)
+    }
+
+    fun setMetaData(field: String, data: Any) {
+        val existingUser = stateRepo.state.value.user
+        val userMetaData = existingUser.meta.toMutableMap()
+        userMetaData[field] = data
+        val updatedUser = existingUser.copy(
+            meta = userMetaData
+        )
+        stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
+
+        saveMetaUserAsync(updatedUser)
     }
 
     fun getKeyId(user: User): String {

@@ -19,19 +19,22 @@ import io.rownd.android.models.domain.User as DomainUser
 @Serializable
 data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?>,
+    val meta: Map<String, @Serializable(with = AnyValueSerializer::class) Any?>,
     val redacted: List<String> = listOf()
 ) {
     fun asDomainModel(stateRepo: StateRepo, userRepo: UserRepo): DomainUser {
         return DomainUser(
-            data = dataAsDecrypted(stateRepo, userRepo),
+            data = dataAsDecrypted(stateRepo, userRepo, data),
+            meta = dataAsDecrypted(stateRepo, userRepo, meta),
             redacted = redacted.toMutableList()
         )
     }
 
-    internal fun dataAsDecrypted(stateRepo: StateRepo, userRepo: UserRepo): Map<String, Any?> {
-        val encKeyId = userRepo.ensureEncryptionKey(DomainUser(data = data)) ?: return data
+    internal fun dataAsDecrypted(stateRepo: StateRepo, userRepo: UserRepo, userData: Map<String, @Serializable(with = AnyValueSerializer::class) Any?>): Map<String, Any?> {
 
-        val data = data.toMutableMap()
+        val encKeyId = userRepo.ensureEncryptionKey(DomainUser(data = data)) ?: return userData
+
+        val data = userData.toMutableMap()
 
         // Decrypt user fields
         for (entry in data.entries) {

@@ -11,19 +11,21 @@ import io.rownd.android.models.network.User as NetworkUser
 @Serializable
 data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?> = HashMap<String, Any?>(),
+    val meta: Map<String, @Serializable(with = AnyValueSerializer::class) Any?> = HashMap<String, Any?>(),
     val redacted: MutableList<String> = mutableListOf()
 ) {
     fun asNetworkModel(stateRepo: StateRepo, userRepo: UserRepo): NetworkUser {
         return NetworkUser(
-            data = dataAsEncrypted(stateRepo, userRepo),
+            data = dataAsEncrypted(stateRepo, userRepo, data),
+            meta = dataAsEncrypted(stateRepo, userRepo, meta),
             redacted = redacted
         )
     }
 
-    internal fun dataAsEncrypted(stateRepo: StateRepo, userRepo: UserRepo): Map<String, Any?> {
-        val encKeyId = userRepo.ensureEncryptionKey(this) ?: return data
+    internal fun dataAsEncrypted(stateRepo: StateRepo, userRepo: UserRepo, userData: Map<String, @Serializable(with = AnyValueSerializer::class) Any?>): Map<String, Any?> {
+        val encKeyId = userRepo.ensureEncryptionKey(this) ?: return userData
 
-        val data = data.toMutableMap()
+        val data = userData.toMutableMap()
 
         // Encrypt user fields
         for (entry in data.entries) {
