@@ -36,10 +36,12 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.auth.*
 import io.ktor.client.plugins.auth.providers.*
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
+import io.rownd.android.automations.AutomationsCoordinator
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
+import io.rownd.android.models.domain.PasskeysState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
@@ -67,6 +69,7 @@ interface RowndGraph {
     fun userRepo(): UserRepo
     fun authRepo(): AuthRepo
     fun signInRepo(): SignInRepo
+    fun passkeysRepo(): PasskeysRepo
     fun signInLinkApi(): SignInLinkApi
     fun rowndContext(): RowndContext
     fun passkeyAuthenticator(): PasskeysCommon
@@ -86,6 +89,7 @@ class RowndClient constructor(
     var userRepo: UserRepo = graph.userRepo()
     var authRepo: AuthRepo = graph.authRepo()
     var signInRepo: SignInRepo = graph.signInRepo()
+    var passkeysRepo: PasskeysRepo = graph.passkeysRepo()
     var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
     var rowndContext = graph.rowndContext()
     var passkeyAuthenticator = graph.passkeyAuthenticator()
@@ -95,6 +99,7 @@ class RowndClient constructor(
     private var intentSenderRequestLaunchers: MutableMap<String, ActivityResultLauncher<IntentSenderRequest>> = mutableMapOf()
     private var hasDisplayedOneTap = false
     private var googleSignInIntent: RowndSignInIntent? = null
+    private var automationsCoordinator: AutomationsCoordinator? = null
 
     init {
         graph.inject(config)
@@ -170,6 +175,8 @@ class RowndClient constructor(
                 }
             }
         }
+
+        automationsCoordinator = AutomationsCoordinator(rowndContext)
     }
 
     fun configure(app: Application, appKey: String) {
@@ -286,6 +293,7 @@ class RowndClient constructor(
         rowndContext.hubViewModel?.webView()?.postValue(null)
         store.dispatch(StateAction.SetAuth(AuthState()))
         store.dispatch(StateAction.SetUser(User()))
+        store.dispatch(StateAction.SetPasskeys(PasskeysState()))
 
         // Remove any cached access/refresh tokens in authenticatedApi client
         userRepo.userApi.client.plugin(Auth).providers.filterIsInstance<BearerAuthProvider>().firstOrNull()?.clearToken()
@@ -305,6 +313,13 @@ class RowndClient constructor(
         displayHub(
             targetPage = HubPageSelector.ConnectAuthenticator,
             jsFnOptions = RowndAuthenticatorRegistrationOptions()
+        )
+    }
+
+    internal fun connectAuthenticator(with: RowndConnectAuthenticatorHint, jsFnOptionsStr: String?) {
+        displayHub(
+            targetPage = HubPageSelector.ConnectAuthenticator,
+            jsFnOptionsStr = jsFnOptionsStr
         )
     }
 
@@ -472,16 +487,24 @@ class RowndClient constructor(
         targetPage: HubPageSelector,
         jsFnOptions: RowndSignInOptionsBase? = null
     ) {
+        var jsFnOptionsStr: String? = null
+        if (jsFnOptions != null) {
+            jsFnOptionsStr = jsFnOptions.toJsonString()
+        }
+
+        displayHub(targetPage = targetPage, jsFnOptionsStr = jsFnOptionsStr)
+    }
+
+    // Internal stuff
+    internal fun displayHub(
+        targetPage: HubPageSelector,
+        jsFnOptionsStr: String?
+    ) {
         try {
             val activity = appHandleWrapper?.activity?.get() as FragmentActivity
 
             if (activity.isFinishing) {
                 return
-            }
-
-            var jsFnOptionsStr: String? = null
-            if (jsFnOptions != null) {
-                jsFnOptionsStr = jsFnOptions.toJsonString()
             }
 
             val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
