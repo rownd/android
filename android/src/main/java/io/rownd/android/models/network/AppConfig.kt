@@ -1,6 +1,6 @@
 package io.rownd.android.models.network
 
-import io.rownd.android.models.domain.AppConfigState
+import io.rownd.android.models.domain.*
 import io.rownd.android.util.ApiClient
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -96,16 +96,19 @@ enum class AppSchemaEncryptionState {
 data class AppConfigConfig(
     var hub: HubConfig = HubConfig(),
     var customizations: CustomizationsConfig = CustomizationsConfig(),
+    var automations: List<Automation>? = null,
     var subdomain: String? = null
 ) {
     fun asDomainModel(): DomainAppConfigConfig {
         return DomainAppConfigConfig(
             hub.asDomainModel(),
             customizations.asDomainModel(),
+            automations,
             subdomain,
         )
     }
 }
+
 
 @Serializable
 data class CustomizationsConfig(
