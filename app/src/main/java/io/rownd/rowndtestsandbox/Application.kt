@@ -21,15 +21,14 @@ class AppCustomizations(app: Application) : RowndCustomizations() {
     get() {
             val uiMode = app.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
             return if (uiMode == Configuration.UI_MODE_NIGHT_YES) {
-                Color(0xff123456)
+                Color(red = 30, green = 30, blue = 30)
             } else {
-                Color(0xfffedcba)
-
+                Color(red = 30, green = 30, blue = 30)
             }
         }
 
     override var sheetCornerBorderRadius: Dp = 25.dp
-    override var loadingAnimation: Int? = R.raw.loading_indicator_small
+    //override var loadingAnimation: Int? = R.raw.loading_indicator_small
 }
 
 
@@ -39,13 +38,13 @@ class RowndTestSandbox: Application() {
         super.onCreate()
         instance = this
 
-        Rownd.configure(this, "b60bc454-c45f-47a2-8f8a-12b2062f5a77")
+        Rownd.configure(this, "key_a8ccn19a5i7j0loh0jy2eo4v")
         Log.d("App.onCreate", "Rownd initialized: ${Rownd.state.value.isInitialized}")
         Rownd.config.apiUrl = "https://api.us-east-2.dev.rownd.io"
-        Rownd.config.baseUrl = "https://hub.rownd.workers.dev"
+        Rownd.config.baseUrl = "https://diagram-cir-expressed-northwest.trycloudflare.com"
         Rownd.config.customizations = AppCustomizations(this)
-//        Rownd.config.customizations.sheetBackgroundColor = Color(0xff25265a)
-//        Rownd.config.appleIdCallbackUrl = "https://api.us-east-2.dev.rownd.io/hub/auth/apple/callback"
+        Rownd.config.customizations.sheetBackgroundColor = Color(red = 50, green = 50, blue = 50)
+        Rownd.config.appleIdCallbackUrl = "https://api.us-east-2.dev.rownd.io/hub/auth/apple/callback"
     }
 
     companion object {

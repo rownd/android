@@ -36,6 +36,8 @@ enum class MessageType {
     AuthenticateWithPasskey,
     @SerialName("hub_resize")
     HubResize,
+    @SerialName("can_touch_background_to_dismiss")
+    CanTouchBackgroundToDismiss,
     unknown
 }
 
@@ -110,6 +112,18 @@ data class HubResizeMessage(
     var payload: HubResizePayload
 ) : RowndHubInteropMessage()
 
+@Serializable
+data class CanTouchBackgroundToDismissPayload(
+    @SerialName("enable")
+    var enable: String? = null,
+)
+
+@Serializable
+data class CanTouchBackgroundToDismissMessage(
+    override var type: MessageType = MessageType.CanTouchBackgroundToDismiss,
+    var payload: CanTouchBackgroundToDismissPayload
+) : RowndHubInteropMessage()
+
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
         return when (val messageType = element.jsonObject["type"]?.jsonPrimitive?.content) {
@@ -122,6 +136,7 @@ object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<Rownd
             "trigger_sign_up_with_passkey" -> SignUpWithPasskeyMessage.serializer()
             "trigger_sign_in_with_passkey" -> SignInWithPasskeyMessage.serializer()
             "hub_resize" -> HubResizeMessage.serializer()
+            "can_touch_background_to_dismiss" -> CanTouchBackgroundToDismissMessage.serializer()
             else -> throw Error("Key '$messageType' did not match a known serializer.")
         }
     }

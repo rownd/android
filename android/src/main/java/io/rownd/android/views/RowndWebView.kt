@@ -64,6 +64,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal var progressBar: ProgressBar? = null
     internal var setIsLoading: ((isLoading: Boolean) -> Unit)? = null
     internal var animateBottomSheet: ((to: Float) -> Unit)? = null
+    internal var setCanTouchBackgroundToDismiss: ((to: Boolean) -> Unit)? = null
 
     internal lateinit var rowndClient: RowndClient
 
@@ -88,9 +89,13 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
 
         }
 
-        val richard = RowndJavascriptInterface(this, ::dynamicBottomSheet)
+        fun setCanTouchBackground(enable: Boolean) {
+            setCanTouchBackgroundToDismiss?.let { it(enable) }
+        }
 
-        this.addJavascriptInterface(richard, "rowndAndroidSDK")
+        val rowndJavascriptInterface = RowndJavascriptInterface(this, ::dynamicBottomSheet, ::setCanTouchBackground)
+
+        this.addJavascriptInterface(rowndJavascriptInterface, "rowndAndroidSDK")
         this.webViewClient = RowndWebViewClient(this, context)
 
         val appFlags = Rownd.appHandleWrapper?.app?.get()?.applicationInfo?.flags ?: 0
@@ -268,13 +273,16 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
 
 class RowndJavascriptInterface constructor(
     private val parentWebView: RowndWebView,
-    dynamicBottomSheet: (to: String) -> Unit
+    dynamicBottomSheet: (to: String) -> Unit,
+    setCanTouchBackground: (to: Boolean) -> Unit,
     ) {
 
     private val dynamicBottomSheet: (to: String) -> Unit
+    private val setCanTouchBackground: (to: Boolean) -> Unit
 
     init {
         this.dynamicBottomSheet = dynamicBottomSheet
+        this.setCanTouchBackground = setCanTouchBackground
     }
 
     @JavascriptInterface
@@ -366,6 +374,11 @@ class RowndJavascriptInterface constructor(
                     if (height != null) {
                         dynamicBottomSheet(height)
                     }
+                }
+
+                MessageType.CanTouchBackgroundToDismiss -> {
+                    val enable = (interopMessage as CanTouchBackgroundToDismissMessage).payload.enable
+                    setCanTouchBackground(enable != "false")
                 }
 
                 else -> {

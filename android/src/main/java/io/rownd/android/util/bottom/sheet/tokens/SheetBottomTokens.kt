@@ -9,7 +9,7 @@ internal object SheetBottomTokens {
     val DockedDragHandleColor = ColorSchemeKeyTokens.OnSurfaceVariant
     val DockedDragHandleHeight = 4.0.dp
     const val DockedDragHandleOpacity = 0.4f
-    val DockedDragHandleWidth = 32.0.dp
+    val DockedDragHandleWidth = 70.0.dp
     val DockedMinimizedContainerShape = ShapeKeyTokens.CornerNone
     val DockedModalContainerElevation = ElevationTokens.Level1
     val DockedStandardContainerElevation = ElevationTokens.Level1

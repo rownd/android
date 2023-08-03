@@ -140,9 +140,11 @@ data class HubCustomizationsConfig(
     var fontFamily: String? = "",
     @SerialName("dark_mode")
     val darkMode: String? = null,
+    @SerialName("primary_color")
+    val primaryColor: String? = null,
 ) {
     fun asDomainModel(): DomainHubCustomizationsConfig {
-        return DomainHubCustomizationsConfig(fontFamily, darkMode)
+        return DomainHubCustomizationsConfig(fontFamily, darkMode, primaryColor)
     }
 }
 

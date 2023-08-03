@@ -23,6 +23,7 @@ import android.graphics.PixelFormat
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.compose.animation.core.TweenSpec
@@ -43,6 +44,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionContext
 import androidx.compose.runtime.DisposableEffect
@@ -74,12 +76,14 @@ import androidx.compose.ui.semantics.popup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.findViewTreeLifecycleOwner
 import androidx.lifecycle.findViewTreeViewModelStoreOwner
 import androidx.lifecycle.setViewTreeLifecycleOwner
 import androidx.lifecycle.setViewTreeViewModelStoreOwner
 import androidx.savedstate.findViewTreeSavedStateRegistryOwner
 import androidx.savedstate.setViewTreeSavedStateRegistryOwner
+import io.rownd.android.Rownd
 import java.util.UUID
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -122,6 +126,7 @@ import kotlinx.coroutines.launch
 fun ModalBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    canTouchBackgroundToDismiss: Boolean,
     dynamicOffset: Float?,
     sheetState: SheetState = rememberModalBottomSheetState(),
     shape: Shape = BottomSheetDefaults.ExpandedShape,
@@ -135,7 +140,7 @@ fun ModalBottomSheet(
 ) {
     val scope = rememberCoroutineScope()
     val animateToDismiss: () -> Unit = {
-        if (sheetState.swipeableState.confirmValueChange(SheetValue.Hidden)) {
+        if (sheetState.swipeableState.confirmValueChange(SheetValue.Hidden) && canTouchBackgroundToDismiss) {
             scope.launch { sheetState.hide() }.invokeOnCompletion {
                 if (!sheetState.isVisible) {
                     onDismissRequest()
@@ -215,7 +220,12 @@ fun ModalBottomSheet(
                             settleToDismiss(it)
                         },
                     ),
-                shape = shape,
+                shape = RoundedCornerShape(
+                    topEnd = Rownd.config.customizations.sheetCornerBorderRadius,
+                    topStart = Rownd.config.customizations.sheetCornerBorderRadius,
+                    bottomEnd = 0.dp,
+                    bottomStart = 0.dp
+                ),
                 color = containerColor,
                 contentColor = contentColor,
                 tonalElevation = tonalElevation,

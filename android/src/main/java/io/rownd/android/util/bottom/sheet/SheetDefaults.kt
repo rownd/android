@@ -22,6 +22,8 @@ import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.layout.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -342,7 +344,7 @@ object BottomSheetDefaults {
             modifier = modifier
                 .padding(vertical = DragHandleVerticalPadding)
                 .semantics { contentDescription = dragHandleDescription },
-            color = color,
+            color = Color(red = 0, green = 0, blue = 0, alpha = 50),
             shape = shape
         ) {
             Box(
@@ -431,5 +433,5 @@ internal fun rememberSheetState(
     }
 }
 
-private val DragHandleVerticalPadding = 22.dp
+private val DragHandleVerticalPadding = 10.dp
 internal val BottomSheetMaxWidth = 640.dp

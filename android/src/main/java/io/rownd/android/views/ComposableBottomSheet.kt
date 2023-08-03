@@ -111,6 +111,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         val contentAlpha: Float by animateFloatAsState(if (!isLoading) 1f else 0f)
         var loadingLottieComposition: LottieComposition? = null
         val (dynamicOffset, setDynamicOffset) = remember { mutableStateOf<Float?>(null) }
+        val (canTouchBackgroundToDismiss, setCanTouchBackgroundToDismiss) = remember { mutableStateOf<Boolean>(true) }
 
         Rownd.config.customizations.loadingAnimation?.let { loadingAnimation ->
             loadingLottieComposition =
@@ -136,7 +137,9 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         ModalBottomSheet(
             sheetState = bottomSheetState,
             dynamicOffset = dynamicOffset,
+            canTouchBackgroundToDismiss = canTouchBackgroundToDismiss,
             contentColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
+            containerColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
             shape = RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius),
             onDismissRequest = { dismiss() },
             content = {
@@ -148,8 +151,9 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                     Column(
                         modifier = Modifier
                             .alpha(contentAlpha)
+                            .offset(y = (-24).dp)
                     ) {
-                        Content(bottomSheetState, setIsLoading, setDynamicOffset)
+                        Content(bottomSheetState, setIsLoading, setDynamicOffset, setCanTouchBackgroundToDismiss)
                     }
 
                     if (isLoading) {
@@ -204,6 +208,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
     abstract fun Content(
         bottomSheetState: SheetState,
         setIsLoading: (isLoading: Boolean) -> Unit,
-        setDynamicOffset: (dynamicOffset: Float) -> Unit
+        setDynamicOffset: (dynamicOffset: Float) -> Unit,
+        setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit
     )
 }
