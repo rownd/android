@@ -38,6 +38,7 @@ import io.ktor.client.plugins.auth.providers.*
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
+import io.rownd.android.models.RowndConnectionAction
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
@@ -50,6 +51,7 @@ import io.rownd.android.views.RowndWebViewModel
 import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.*
@@ -66,6 +68,7 @@ interface RowndGraph {
     fun stateRepo(): StateRepo
     fun userRepo(): UserRepo
     fun authRepo(): AuthRepo
+    fun connectionAction(): RowndConnectionAction
     fun signInRepo(): SignInRepo
     fun signInLinkApi(): SignInLinkApi
     fun rowndContext(): RowndContext
@@ -89,6 +92,7 @@ class RowndClient constructor(
     var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
     var rowndContext = graph.rowndContext()
     var passkeyAuthenticator = graph.passkeyAuthenticator()
+    var connectionAction = graph.connectionAction()
 
     var state = stateRepo.state
     private var intentLaunchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
@@ -313,6 +317,12 @@ class RowndClient constructor(
 
         val bottomSheet = KeyTransferBottomSheet.newInstance()
         bottomSheet.show(activity.supportFragmentManager, KeyTransferBottomSheet.TAG)
+    }
+
+    inner class Firebase {
+        fun getIdToken(): Deferred<String?> {
+            return connectionAction.getFirebaseIdToken()
+        }
     }
 
     private fun determineSignInOptions(signInOptions: RowndSignInOptions) :RowndSignInOptions {
