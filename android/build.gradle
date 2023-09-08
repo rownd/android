@@ -7,6 +7,8 @@ plugins {
     id 'maven-publish'
 }
 
+apply from: "${rootProject.projectDir}/android/versioning.gradle"
+
 android {
     namespace "io.rownd.android"
     compileSdk 33
@@ -15,7 +17,7 @@ android {
         minSdk 26
         targetSdk 33
 
-        versionName '2.6.0'
+        versionName project.package_version
 
         aarMetadata {
             minCompileSdk 26
