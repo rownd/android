@@ -1,5 +1,7 @@
 
 
+## [2.6.1](https://github.com/rownd/android/compare/2.6.0...2.6.1) (2023-09-08)
+
 # [2.6.0](https://github.com/rownd/android/compare/2.5.0...2.6.0) (2023-06-12)
 
 
