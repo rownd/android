@@ -1,5 +1,12 @@
 
 
+## [2.6.2](https://github.com/rownd/android/compare/2.6.1...2.6.2) (2023-09-22)
+
+
+### Bug Fixes
+
+* **errors:** log vs. throwing errors when ux would be degraded ([#41](https://github.com/rownd/android/issues/41)) ([cd338b4](https://github.com/rownd/android/commit/cd338b47ad1dc413b9383c78b86cb932b8415c16))
+
 ## [2.6.1](https://github.com/rownd/android/compare/2.6.0...2.6.1) (2023-09-08)
 
 # [2.6.0](https://github.com/rownd/android/compare/2.5.0...2.6.0) (2023-06-12)
