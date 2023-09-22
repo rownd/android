@@ -1,12 +1,18 @@
 package io.rownd.android.models.repos
 
 import android.util.Log
-import io.ktor.client.call.*
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.call.body
+import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.request.get
+import io.ktor.client.request.put
+import io.ktor.client.request.setBody
+import io.ktor.http.HttpStatusCode
 import io.rownd.android.models.domain.User
-import io.rownd.android.util.*
+import io.rownd.android.util.AuthenticatedApi
+import io.rownd.android.util.Encryption
+import io.rownd.android.util.EncryptionException
+import io.rownd.android.util.RowndContext
+import io.rownd.android.util.RowndException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -41,7 +47,8 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
 
                 return@async null
             } catch (ex: Exception) {
-                throw RowndException("Failed to fetch the user: ${ex.message}")
+                Log.e("RowndUsersApi", "Failed to fetch the user: ${ex.message}")
+                return@async null
             }
         }
     }
