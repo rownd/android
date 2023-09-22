@@ -114,6 +114,11 @@ class StateRepo @Inject constructor() {
             // Fetch latest app config
             appConfigRepo.loadAppConfigAsync(this@StateRepo).await()
 
+            // Refresh token if needed
+            if (store.currentState.auth.isAuthenticated && !store.currentState.auth.isAccessTokenValid) {
+                authRepo.getAccessToken()
+            }
+
             // Fetch latest user data if we're authenticated
             if (store.currentState.auth.isAccessTokenValid) {
                 userRepo.loadUserAsync().await()

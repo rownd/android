@@ -349,14 +349,25 @@ class RowndClient constructor(
     }
 
     private fun signInWithGoogle(intent: RowndSignInIntent?) {
+        // We can't attempt this unless the app config is loaded
+        if (state.value.appConfig.isLoading) {
+            CoroutineScope(Dispatchers.IO).launch {
+                stateRepo.appConfigRepo.loadAppConfigAsync(stateRepo).await()
+                signInWithGoogle(intent);
+                return@launch
+            }
+            return
+        }
+
         googleSignInIntent = intent
         val googleSignInMethodConfig =
             state.value.appConfig.config.hub.auth.signInMethods.google
+
         if (!googleSignInMethodConfig.enabled) {
-            throw RowndException("Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
+            Log.e("Rownd","Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
         }
         if (googleSignInMethodConfig.clientId == "") {
-            throw RowndException("Cannot sign in with Google. Missing client configuration")
+            Log.e("Rownd","Cannot sign in with Google. Missing client configuration")
         }
 
         val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
