@@ -11,7 +11,7 @@ data class AppConfigState @OptIn(ExperimentalSerializationApi::class) constructo
     @Transient
     val isErrored: Boolean = false,
     @Transient
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val id: String = "",
     val icon: String = "",
     @SerialName("user_verification_fields")
@@ -71,6 +71,8 @@ data class HubCustomizationsConfig constructor(
     val fontFamily: String? = null,
     @SerialName("dark_mode")
     val darkMode: String? = null,
+    @SerialName("primary_color")
+    val primaryColor: String? = null,
 )
 
 @Serializable
