@@ -265,7 +265,7 @@ class RowndClient constructor(
         val isLoading = state.value.appConfig.isLoading
         if (isLoading) {
             scope.launch {
-                store.stateAsStateFlow().collect() {
+                store.stateAsStateFlow().collect {
                     // Callback when the appConfig has loaded
                     if (!it.appConfig.isLoading) {
                         callback()
@@ -278,7 +278,7 @@ class RowndClient constructor(
         return isLoading
     }
 
-    private fun isGoogleOneTapRequested(): Boolean {
+    private fun isOneTapRequestedAndNotDisplayedYet(): Boolean {
         var google = state.value.appConfig.config.hub.auth.signInMethods.google
         return google.enabled && google.oneTap.mobileApp.autoPrompt && google.oneTap.mobileApp.delay == 0 && !hasDisplayedOneTap
     }
@@ -295,7 +295,7 @@ class RowndClient constructor(
         }
 
         // Prevent Hub from displaying when Google One Tap is requested
-        if (isGoogleOneTapRequested()) {
+        if (isOneTapRequestedAndNotDisplayedYet()) {
             rememberedRequestSignIn = { requestSignIn(signInOptions) }
             return
         }
@@ -314,7 +314,7 @@ class RowndClient constructor(
         }
 
         // Prevent Hub from displaying when Google One Tap is requested
-        if (isGoogleOneTapRequested()) {
+        if (isOneTapRequestedAndNotDisplayedYet()) {
             rememberedRequestSignIn = { requestSignIn(signInJsOptions) }
             return
         }
@@ -338,7 +338,7 @@ class RowndClient constructor(
         }
 
         // Prevent Hub from displaying when Google One Tap is requested
-        if (isGoogleOneTapRequested()) {
+        if (isOneTapRequestedAndNotDisplayedYet()) {
             rememberedRequestSignIn = { requestSignIn(with, signInOptions) }
             return
         }
@@ -368,7 +368,7 @@ class RowndClient constructor(
         }
 
         // Prevent Hub from displaying when Google One Tap is requested
-        if (isGoogleOneTapRequested()) {
+        if (isOneTapRequestedAndNotDisplayedYet()) {
             rememberedRequestSignIn = { requestSignIn() }
             return
         }
@@ -449,7 +449,7 @@ class RowndClient constructor(
         }
 
         // Prevent Hub from displaying when Google One Tap is requested
-        if (isGoogleOneTapRequested()) {
+        if (isOneTapRequestedAndNotDisplayedYet()) {
             rememberedRequestSignIn = { signInWithGoogle(intent) }
             return
         }
