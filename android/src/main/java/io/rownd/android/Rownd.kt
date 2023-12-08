@@ -286,39 +286,11 @@ class RowndClient constructor(
     fun requestSignIn(
         signInOptions: RowndSignInOptions
     ) {
-        var isAppConfigLoading = isAppConfigLoadingWithCallback {
-            requestSignIn(signInOptions)
-        }
-
-        if (isAppConfigLoading) {
-            return
-        }
-
-        // Prevent Hub from displaying when Google One Tap is requested
-        if (isOneTapRequestedAndNotDisplayedYet()) {
-            rememberedRequestSignIn = { requestSignIn(signInOptions) }
-            return
-        }
-
         val signInOptions = determineSignInOptions(signInOptions)
         displayHub(HubPageSelector.SignIn, jsFnOptions = signInOptions)
     }
 
     internal fun requestSignIn(signInJsOptions: RowndSignInJsOptions) {
-        var isAppConfigLoading = isAppConfigLoadingWithCallback {
-            requestSignIn(signInJsOptions)
-        }
-
-        if (isAppConfigLoading) {
-            return
-        }
-
-        // Prevent Hub from displaying when Google One Tap is requested
-        if (isOneTapRequestedAndNotDisplayedYet()) {
-            rememberedRequestSignIn = { requestSignIn(signInJsOptions) }
-            return
-        }
-
         displayHub(HubPageSelector.SignIn, jsFnOptions = signInJsOptions)
     }
 
@@ -337,7 +309,7 @@ class RowndClient constructor(
             return
         }
 
-        // Prevent Hub from displaying when Google One Tap is requested
+        // Prevent Sign-in when Google One Tap is requested
         if (isOneTapRequestedAndNotDisplayedYet()) {
             rememberedRequestSignIn = { requestSignIn(with, signInOptions) }
             return
@@ -360,19 +332,6 @@ class RowndClient constructor(
     }
 
     fun requestSignIn() {
-        var isAppConfigLoading = isAppConfigLoadingWithCallback {
-            requestSignIn()
-        }
-        if (isAppConfigLoading) {
-            return
-        }
-
-        // Prevent Hub from displaying when Google One Tap is requested
-        if (isOneTapRequestedAndNotDisplayedYet()) {
-            rememberedRequestSignIn = { requestSignIn() }
-            return
-        }
-
         displayHub(HubPageSelector.SignIn)
     }
 
@@ -440,19 +399,6 @@ class RowndClient constructor(
 
     private fun signInWithGoogle(intent: RowndSignInIntent?) {
         // We can't attempt this unless the app config is loaded
-        var isAppConfigLoading = isAppConfigLoadingWithCallback {
-            signInWithGoogle(intent)
-        }
-
-        if (isAppConfigLoading) {
-            return
-        }
-
-        // Prevent Hub from displaying when Google One Tap is requested
-        if (isOneTapRequestedAndNotDisplayedYet()) {
-            rememberedRequestSignIn = { signInWithGoogle(intent) }
-            return
-        }
 
         googleSignInIntent = intent
         val googleSignInMethodConfig =
@@ -608,6 +554,22 @@ class RowndClient constructor(
         targetPage: HubPageSelector,
         jsFnOptions: RowndSignInOptionsBase? = null
     ) {
+        var isAppConfigLoading = isAppConfigLoadingWithCallback {
+            displayHub(targetPage, jsFnOptions)
+        }
+
+        if (isAppConfigLoading) {
+            return
+        }
+
+        // Prevent Hub from displaying when Google One Tap is requested
+        if (isOneTapRequestedAndNotDisplayedYet()) {
+            if (targetPage === HubPageSelector.SignIn) {
+                rememberedRequestSignIn = { displayHub(targetPage, jsFnOptions) }
+            }
+            return
+        }
+
         try {
             val activity = appHandleWrapper?.activity?.get() as FragmentActivity
 
