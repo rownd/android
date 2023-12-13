@@ -1,5 +1,13 @@
 
 
+## [2.6.3](https://github.com/rownd/android/compare/2.6.2...2.6.3) (2023-12-13)
+
+
+### Bug Fixes
+
+* enforce dark/light background from appConfig ([#43](https://github.com/rownd/android/issues/43)) ([62aedf7](https://github.com/rownd/android/commit/62aedf759b046ca419ed3d999a872bd4ae76d41b))
+* updated package-lock.json ([b64ea80](https://github.com/rownd/android/commit/b64ea8005271ddaa297355d80d91eef80b5ab930))
+
 ## [2.6.2](https://github.com/rownd/android/compare/2.6.1...2.6.2) (2023-09-22)
 
 
