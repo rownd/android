@@ -35,6 +35,7 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import io.rownd.android.Rownd
+import io.rownd.android.util.convertStringToColor
 import kotlinx.coroutines.launch
 
 
@@ -129,6 +130,8 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                 rememberLottieComposition(LottieCompositionSpec.RawRes(loadingAnimation)).value
         }
 
+        val primaryColor: Color = convertStringToColor(Rownd.store.currentState.appConfig.config.hub.customizations?.primaryColor ?: "#5b13df")
+
         Rownd.config.customizations.loadingAnimationJsonString?.let { loadingAnimationJsonString ->
             loadingLottieComposition =
                 rememberLottieComposition(
@@ -187,7 +190,8 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                                 )
                             } else {
                                 CircularProgressIndicator(
-                                    modifier = Modifier.align(Alignment.Center)
+                                    modifier = Modifier.align(Alignment.Center),
+                                    color = primaryColor
                                 )
                             }
                         }

@@ -53,6 +53,7 @@ import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
@@ -98,6 +99,8 @@ class RowndClient constructor(
     private var intentLaunchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private var intentSenderRequestLaunchers: MutableMap<String, ActivityResultLauncher<IntentSenderRequest>> = mutableMapOf()
     private var hasDisplayedOneTap = false
+    private var isDisplayingOneTap = false
+    private var rememberedRequestSignIn: (() -> Unit)? = null
     private var googleSignInIntent: RowndSignInIntent? = null
 
     init {
@@ -160,12 +163,14 @@ class RowndClient constructor(
         CoroutineScope(Dispatchers.IO).launch {
             store.stateAsStateFlow().collect {
                 if (
+                    !isDisplayingOneTap &&
                     !hasDisplayedOneTap &&
                     !it.auth.isLoading &&
                     !it.auth.isAuthenticated &&
                     it.appConfig.config.hub.auth.signInMethods.google.clientId != "" &&
                     it.appConfig.config.hub.auth.signInMethods.google.oneTap.mobileApp.autoPrompt
                 ) {
+                    isDisplayingOneTap = true
                     Handler(Looper.getMainLooper()).postDelayed({
                         showGoogleOneTap()
                     },
@@ -248,6 +253,36 @@ class RowndClient constructor(
         }
     }
 
+    private fun runRememberedRequestSignIn() {
+        rememberedRequestSignIn?.let {
+            it()
+            rememberedRequestSignIn = null
+        }
+    }
+
+    private fun isAppConfigLoadingWithCallback(callback: () -> (Unit)): Boolean {
+        val scope = CoroutineScope(Dispatchers.IO)
+        val isLoading = state.value.appConfig.isLoading
+        if (isLoading) {
+            scope.launch {
+                store.stateAsStateFlow().collect {
+                    // Callback when the appConfig has loaded
+                    if (!it.appConfig.isLoading) {
+                        callback()
+                        scope.cancel()
+                        return@collect
+                    }
+                }
+            }
+        }
+        return isLoading
+    }
+
+    private fun isOneTapRequestedAndNotDisplayedYet(): Boolean {
+        var google = state.value.appConfig.config.hub.auth.signInMethods.google
+        return google.enabled && google.oneTap.mobileApp.autoPrompt && google.oneTap.mobileApp.delay == 0 && !hasDisplayedOneTap
+    }
+
     fun requestSignIn(
         signInOptions: RowndSignInOptions
     ) {
@@ -266,6 +301,20 @@ class RowndClient constructor(
     }
 
     fun requestSignIn(with: RowndSignInHint, signInOptions: RowndSignInOptions) {
+        var isAppConfigLoading = isAppConfigLoadingWithCallback {
+            requestSignIn(with, signInOptions)
+        }
+
+        if (isAppConfigLoading) {
+            return
+        }
+
+        // Prevent Sign-in when Google One Tap is requested
+        if (isOneTapRequestedAndNotDisplayedYet()) {
+            rememberedRequestSignIn = { requestSignIn(with, signInOptions) }
+            return
+        }
+
         val signInOptions = determineSignInOptions(signInOptions)
         when (with) {
             RowndSignInHint.Google -> signInWithGoogle(intent = signInOptions.intent)
@@ -350,14 +399,6 @@ class RowndClient constructor(
 
     private fun signInWithGoogle(intent: RowndSignInIntent?) {
         // We can't attempt this unless the app config is loaded
-        if (state.value.appConfig.isLoading) {
-            CoroutineScope(Dispatchers.IO).launch {
-                stateRepo.appConfigRepo.loadAppConfigAsync(stateRepo).await()
-                signInWithGoogle(intent);
-                return@launch
-            }
-            return
-        }
 
         googleSignInIntent = intent
         val googleSignInMethodConfig =
@@ -405,6 +446,8 @@ class RowndClient constructor(
 
     private suspend fun handleGoogleOneTapCallback(result: ActivityResult) {
         val activity = appHandleWrapper?.activity?.get() ?: return
+        hasDisplayedOneTap = true
+        isDisplayingOneTap = false
 
         val credential: SignInCredential?
         try {
@@ -412,12 +455,14 @@ class RowndClient constructor(
             credential = oneTapClient.getSignInCredentialFromIntent(result.data)
             if (credential.googleIdToken == "") {
                 Log.e("Rownd.OneTap", "Google One Tap sign-in failed: missing idToken")
+                runRememberedRequestSignIn()
             } else {
                 credential.googleIdToken?.let { idToken -> authRepo.getAccessToken(idToken, intent = null, type = AuthRepo.AccessTokenType.google) }
+                rememberedRequestSignIn = null
             }
         } catch (e: ApiException) {
+            runRememberedRequestSignIn()
             if (e.statusCode == CommonStatusCodes.CANCELED) {
-                hasDisplayedOneTap = true
                 Log.d("Rownd.OneTap", "Google One Tap UI was closed by user")
             } else {
                 Log.e("Rownd.OneTap", "Couldn't get credential from result." + " (${e.localizedMessage})", e)
@@ -426,8 +471,23 @@ class RowndClient constructor(
     }
 
     private fun showGoogleOneTap() {
+        isDisplayingOneTap = true
         val googleSignInMethodConfig =
             state.value.appConfig.config.hub.auth.signInMethods.google
+
+        fun cancel() {
+            hasDisplayedOneTap = true
+            isDisplayingOneTap = false
+            runRememberedRequestSignIn()
+        }
+
+        // Don't show Google one tap when the hub is displayed
+        var composableBottomSheet = rowndContext.hubView?.get()
+        if (composableBottomSheet != null && composableBottomSheet.isVisible) {
+            cancel()
+            return
+        }
+
         if (!googleSignInMethodConfig.enabled) {
             throw RowndException("Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
         }
@@ -455,14 +515,15 @@ class RowndClient constructor(
                     intentSenderRequestLaunchers[activity.toString()]?.launch(
                         IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
                     )
-                    hasDisplayedOneTap = true
                 } catch (e: IntentSender.SendIntentException) {
                     Log.e("Rownd.OneTap", "Couldn't start One Tap UI: ${e.localizedMessage}", e)
+                    cancel()
                 }
             }
             .addOnFailureListener(activity) { e ->
                 // No Google Accounts found. Just continue presenting the signed-out UI.
                 Log.e("Rownd.OneTap", e.localizedMessage, e)
+                cancel()
             }
     }
 
@@ -493,6 +554,22 @@ class RowndClient constructor(
         targetPage: HubPageSelector,
         jsFnOptions: RowndSignInOptionsBase? = null
     ) {
+        var isAppConfigLoading = isAppConfigLoadingWithCallback {
+            displayHub(targetPage, jsFnOptions)
+        }
+
+        if (isAppConfigLoading) {
+            return
+        }
+
+        // Prevent Hub from displaying when Google One Tap is requested
+        if (isOneTapRequestedAndNotDisplayedYet()) {
+            if (targetPage === HubPageSelector.SignIn) {
+                rememberedRequestSignIn = { displayHub(targetPage, jsFnOptions) }
+            }
+            return
+        }
+
         try {
             val activity = appHandleWrapper?.activity?.get() as FragmentActivity
 
