@@ -397,7 +397,11 @@ class RowndClient constructor(
         }
     }
 
-    private fun signInWithGoogle(intent: RowndSignInIntent?) {
+    private fun signInWithGoogle(intent: RowndSignInIntent?,) {
+        signInWithGoogle(intent, hint = null)
+    }
+
+    internal fun signInWithGoogle(intent: RowndSignInIntent?, hint: String?) {
         // We can't attempt this unless the app config is loaded
 
         googleSignInIntent = intent
@@ -411,10 +415,15 @@ class RowndClient constructor(
             Log.e("Rownd","Cannot sign in with Google. Missing client configuration")
         }
 
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        val gsoBuilder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestIdToken(googleSignInMethodConfig.clientId)
-            .build()
+
+        if (hint != null) {
+            gsoBuilder.setAccountName(hint)
+        }
+
+        val gso = gsoBuilder.build()
 
         val activity = appHandleWrapper?.activity?.get() ?: return
 

@@ -304,10 +304,8 @@ class RowndJavascriptInterface(
                 }
 
                 MessageType.triggerSignInWithGoogle -> {
-                    Rownd.requestSignIn(
-                        with = RowndSignInHint.Google,
-                        RowndSignInOptions(intent = (interopMessage as TriggerSignInWithGoogleMessage).payload?.intent)
-                    )
+                    val signInWithGoogleMessage = (interopMessage as TriggerSignInWithGoogleMessage).payload
+                    Rownd.signInWithGoogle(intent = signInWithGoogleMessage?.intent, hint = signInWithGoogleMessage?.hint)
                     parentWebView.dismiss?.invoke()
                 }
 
