@@ -116,7 +116,11 @@ class StateRepo @Inject constructor() {
 
             // Refresh token if needed
             if (store.currentState.auth.isAuthenticated && !store.currentState.auth.isAccessTokenValid) {
-                authRepo.getAccessToken()
+                try {
+                    authRepo.getAccessToken()
+                } catch (err: Exception) {
+                    Log.d("Rownd.StateRepo", "Failed to fetch access token during startup", err)
+                }
             }
 
             // Fetch latest user data if we're authenticated
