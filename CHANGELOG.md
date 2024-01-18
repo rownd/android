@@ -1,5 +1,12 @@
 
 
+## [2.6.4](https://github.com/rownd/android/compare/2.6.3...2.6.4) (2024-01-18)
+
+
+### Bug Fixes
+
+* **boot:** refresh token request might throw ([345b87e](https://github.com/rownd/android/commit/345b87ec0969c1b1856a3efd9b5528a2e7ffdf7d))
+
 ## [2.6.3](https://github.com/rownd/android/compare/2.6.2...2.6.3) (2023-12-13)
 
 
