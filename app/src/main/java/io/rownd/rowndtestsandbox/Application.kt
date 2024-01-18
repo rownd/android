@@ -42,7 +42,7 @@ class RowndTestSandbox: Application() {
         Rownd.configure(this, "b60bc454-c45f-47a2-8f8a-12b2062f5a77")
         Log.d("App.onCreate", "Rownd initialized: ${Rownd.state.value.isInitialized}")
         Rownd.config.apiUrl = "https://api.us-east-2.dev.rownd.io"
-        Rownd.config.baseUrl = "https://hub.rownd.workers.dev"
+        Rownd.config.baseUrl = "https://hub.dev.rownd.io"
         Rownd.config.customizations = AppCustomizations(this)
 //        Rownd.config.customizations.sheetBackgroundColor = Color(0xff25265a)
 //        Rownd.config.appleIdCallbackUrl = "https://api.us-east-2.dev.rownd.io/hub/auth/apple/callback"
