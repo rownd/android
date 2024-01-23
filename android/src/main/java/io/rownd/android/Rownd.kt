@@ -397,7 +397,7 @@ class RowndClient constructor(
         }
     }
 
-    private fun signInWithGoogle(intent: RowndSignInIntent?,) {
+    private fun signInWithGoogle(intent: RowndSignInIntent?) {
         signInWithGoogle(intent, hint = null)
     }
 
