@@ -73,6 +73,7 @@ data class TriggerSignInWithGoogleMessage(
 data class TriggerSignInWithGooglePayload(
     @SerialName("intent")
     var intent: RowndSignInIntent? = null,
+    var hint: String? = null,
 )
 
 @Serializable
