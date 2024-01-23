@@ -1,5 +1,17 @@
 
 
+## [2.6.5](https://github.com/rownd/android/compare/2.6.4...2.6.5) (2024-01-23)
+
+
+### Bug Fixes
+
+* removed comma ([bcc0d8f](https://github.com/rownd/android/commit/bcc0d8f3d5f4edb802b4171fc63e3be27ca17af1))
+
+
+### Features
+
+* pass down google sign-in hint ([3416fb0](https://github.com/rownd/android/commit/3416fb014d0bdd75ee0bca07e731c082ffdcbf73))
+
 ## [2.6.4](https://github.com/rownd/android/compare/2.6.3...2.6.4) (2024-01-18)
 
 
