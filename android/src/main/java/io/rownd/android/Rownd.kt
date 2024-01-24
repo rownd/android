@@ -404,7 +404,9 @@ class RowndClient constructor(
     }
 
     internal fun getActiveGmailAccounts(): Array<Account> {
-        val accountManager = AccountManager.get(Rownd.appHandleWrapper?.activity?.get()?.applicationContext);
+        val applicationContext = appHandleWrapper?.activity?.get()?.applicationContext
+            ?: return emptyArray()
+        val accountManager = AccountManager.get(applicationContext);
         return accountManager.getAccountsByType("com.google")
     }
 
