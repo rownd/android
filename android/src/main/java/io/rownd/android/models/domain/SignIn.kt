@@ -1,7 +1,5 @@
 package io.rownd.android.models.domain
 
-import android.accounts.Account
-import android.accounts.AccountManager
 import io.rownd.android.Rownd
 import io.rownd.android.models.json
 import io.rownd.android.util.toBase64
@@ -22,9 +20,8 @@ data class SignInState @OptIn(ExperimentalSerializationApi::class) constructor(
 ) {
 
     internal fun toSignInInitHash(): String {
-        val accountManager = AccountManager.get(Rownd.appHandleWrapper?.activity?.get()?.applicationContext);
         var activeAccounts = mutableListOf<ActiveAccount>();
-        for (account in accountManager.getAccountsByType("com.google")) {
+        for (account in Rownd.getActiveGmailAccounts()) {
             activeAccounts.add(ActiveAccount(email = account.name))
         }
 
