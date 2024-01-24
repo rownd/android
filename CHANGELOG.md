@@ -1,5 +1,13 @@
 
 
+## [2.6.6](https://github.com/rownd/android/compare/2.6.5...2.6.6) (2024-01-24)
+
+
+### Bug Fixes
+
+* added a null check for Context ([aa79a1c](https://github.com/rownd/android/commit/aa79a1c2700c12f2a2a72cb06d04e814e8e90e21))
+* prevent google sign in hints that are not active gmail accounts ([7181bc6](https://github.com/rownd/android/commit/7181bc60bae93c7bd3738a91b74a143289df7e6c))
+
 ## [2.6.5](https://github.com/rownd/android/compare/2.6.4...2.6.5) (2024-01-23)
 
 
