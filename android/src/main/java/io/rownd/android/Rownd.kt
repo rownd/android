@@ -2,6 +2,8 @@
 
 package io.rownd.android
 
+import android.accounts.Account
+import android.accounts.AccountManager
 import android.app.Application
 import android.content.Intent
 import android.content.IntentSender
@@ -401,6 +403,11 @@ class RowndClient constructor(
         signInWithGoogle(intent, hint = null)
     }
 
+    internal fun getActiveGmailAccounts(): Array<Account> {
+        val accountManager = AccountManager.get(Rownd.appHandleWrapper?.activity?.get()?.applicationContext);
+        return accountManager.getAccountsByType("com.google")
+    }
+
     internal fun signInWithGoogle(intent: RowndSignInIntent?, hint: String?) {
         // We can't attempt this unless the app config is loaded
 
@@ -419,7 +426,11 @@ class RowndClient constructor(
             .requestEmail()
             .requestIdToken(googleSignInMethodConfig.clientId)
 
-        if (hint != null) {
+        val gmailAccountMatchesHint = getActiveGmailAccounts().any {
+            it.name == hint
+        }
+
+        if (hint != null && gmailAccountMatchesHint) {
             gsoBuilder.setAccountName(hint)
         }
 

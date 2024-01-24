@@ -4,7 +4,6 @@ import android.net.Uri
 import android.util.Base64
 import android.util.Log
 import io.rownd.android.models.domain.AuthState
-import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.repos.AuthRepo
 import io.rownd.android.models.repos.SignInRepo
 import io.rownd.android.models.repos.StateRepo
