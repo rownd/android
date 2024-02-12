@@ -34,6 +34,12 @@ enum class MessageType {
     CreatePasskey,
     @SerialName("trigger_sign_in_with_passkey")
     AuthenticateWithPasskey,
+    @SerialName("hub_loaded")
+    HubLoaded,
+    @SerialName("hub_resize")
+    HubResize,
+    @SerialName("can_touch_background_to_dismiss")
+    CanTouchBackgroundToDismiss,
     unknown
 }
 
@@ -97,6 +103,35 @@ data class SignInWithPasskeyMessage(
     override var type: MessageType = MessageType.AuthenticateWithPasskey
 ) : RowndHubInteropMessage()
 
+@Serializable
+data class HubLoaded(
+    override var type: MessageType = MessageType.HubLoaded
+) : RowndHubInteropMessage()
+
+@Serializable
+data class HubResizeMessage(
+    override var type: MessageType = MessageType.HubResize,
+    var payload: HubResizePayload
+) : RowndHubInteropMessage()
+
+@Serializable
+data class HubResizePayload(
+    @SerialName("height")
+    var height: String
+)
+
+@Serializable
+data class CanTouchBackgroundToDismissMessage(
+    override var type: MessageType = MessageType.CanTouchBackgroundToDismiss,
+    var payload: CanTouchBackgroundToDismissPayload
+) : RowndHubInteropMessage()
+
+@Serializable
+data class CanTouchBackgroundToDismissPayload(
+    @SerialName("enable")
+    var enable: String
+)
+
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
         return when (val messageType = element.jsonObject["type"]?.jsonPrimitive?.content) {
@@ -108,6 +143,9 @@ object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<Rownd
             "close_hub_view_controller" -> CloseHubViewMessage.serializer()
             "trigger_sign_up_with_passkey" -> SignUpWithPasskeyMessage.serializer()
             "trigger_sign_in_with_passkey" -> SignInWithPasskeyMessage.serializer()
+            "hub_loaded" -> HubLoaded.serializer()
+            "hub_resize" -> HubResizeMessage.serializer()
+            "can_touch_background_to_dismiss" -> CanTouchBackgroundToDismissMessage.serializer()
             else -> throw Error("Key '$messageType' did not match a known serializer.")
         }
     }

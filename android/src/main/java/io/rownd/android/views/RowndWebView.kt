@@ -341,6 +341,18 @@ class RowndJavascriptInterface(
                     parentWebView.rowndClient.requestSignIn(with = RowndSignInHint.Passkey)
                 }
 
+                MessageType.HubLoaded -> {
+                    Log.d("RowndHub", "Message 'hub_loaded' isn't supported yet")
+                }
+
+                MessageType.HubResize -> {
+                    Log.d("RowndHub", "Message 'hub_resize' isn't supported yet")
+                }
+
+                MessageType.CanTouchBackgroundToDismiss -> {
+                    Log.d("RowndHub", "Message 'can_touch_background_to_dismiss' isn't supported yet")
+                }
+
                 else -> {
                     Log.w("RowndHub", "An unknown message was received")
                 }

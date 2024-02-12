@@ -61,6 +61,7 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
 
     override fun onActivityResumed(activity: Activity) {
         this.activity = WeakReference(activity)
+        isAppInForeground = true
 
         // This is probably one of the better trigger points for listeners
         // unless there's a need for something earlier in the lifecycle
@@ -83,7 +84,9 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         }
     }
 
-    override fun onActivityPaused(activity: Activity) {}
+    override fun onActivityPaused(activity: Activity) {
+        isAppInForeground = false
+    }
     override fun onActivityStopped(activity: Activity) {}
     override fun onActivitySaveInstanceState(activity: Activity, bundle: Bundle) {}
     override fun onActivityDestroyed(activity: Activity) {
@@ -115,5 +118,9 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         } else if (immediate && activity != null) {
             callback.invoke(activity)
         }
+    }
+
+    companion object {
+        var isAppInForeground: Boolean = false
     }
 }
