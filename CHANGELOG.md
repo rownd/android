@@ -1,5 +1,12 @@
 
 
+## [2.6.7](https://github.com/rownd/android/compare/2.6.6...2.6.7) (2024-02-12)
+
+
+### Bug Fixes
+
+* **users:** prevent refreshing user record when in background ([#46](https://github.com/rownd/android/issues/46)) ([59c82a6](https://github.com/rownd/android/commit/59c82a6ae0d0245723c5c7d472edb5f6b9c2480a))
+
 ## [2.6.6](https://github.com/rownd/android/compare/2.6.5...2.6.6) (2024-01-24)
 
 
