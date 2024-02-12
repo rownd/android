@@ -13,6 +13,7 @@ import io.rownd.android.models.domain.AppConfigState
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.domain.User
+import io.rownd.android.util.AppLifecycleListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -123,8 +124,8 @@ class StateRepo @Inject constructor() {
                 }
             }
 
-            // Fetch latest user data if we're authenticated
-            if (store.currentState.auth.isAccessTokenValid) {
+            // Fetch latest user data if we're authenticated and app is in foreground
+            if (AppLifecycleListener.isAppInForeground && store.currentState.auth.isAccessTokenValid) {
                 userRepo.loadUserAsync().await()
             }
 
