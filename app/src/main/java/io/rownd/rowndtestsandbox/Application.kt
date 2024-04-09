@@ -41,7 +41,7 @@ class RowndTestSandbox: Application() {
         Rownd.configure(this, "key_a8ccn19a5i7j0loh0jy2eo4v")
         Log.d("App.onCreate", "Rownd initialized: ${Rownd.state.value.isInitialized}")
         Rownd.config.apiUrl = "https://api.us-east-2.dev.rownd.io"
-        Rownd.config.baseUrl = "https://diagram-cir-expressed-northwest.trycloudflare.com"
+        Rownd.config.baseUrl = "https://hub.dev.rownd.io"
         Rownd.config.customizations = AppCustomizations(this)
         Rownd.config.customizations.sheetBackgroundColor = Color(red = 50, green = 50, blue = 50)
         Rownd.config.appleIdCallbackUrl = "https://api.us-east-2.dev.rownd.io/hub/auth/apple/callback"

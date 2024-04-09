@@ -13,6 +13,7 @@ import io.rownd.android.models.domain.AppConfigState
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.domain.User
+import io.rownd.android.util.AppLifecycleListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -81,8 +82,9 @@ class StateRepo @Inject constructor() {
     @Inject
     lateinit var appConfigRepo: AppConfigRepo
 
-    // Manually inject this one
+    // Manually inject these
     lateinit var userRepo: UserRepo
+    lateinit var authRepo: AuthRepo
 
     private lateinit var dataStore: DataStore<GlobalState>
 
@@ -113,8 +115,17 @@ class StateRepo @Inject constructor() {
             // Fetch latest app config
             appConfigRepo.loadAppConfigAsync(this@StateRepo).await()
 
-            // Fetch latest user data if we're authenticated
-            if (store.currentState.auth.isAccessTokenValid) {
+            // Refresh token if needed
+            if (store.currentState.auth.isAuthenticated && !store.currentState.auth.isAccessTokenValid) {
+                try {
+                    authRepo.getAccessToken()
+                } catch (err: Exception) {
+                    Log.d("Rownd.StateRepo", "Failed to fetch access token during startup", err)
+                }
+            }
+
+            // Fetch latest user data if we're authenticated and app is in foreground
+            if (AppLifecycleListener.isAppInForeground && store.currentState.auth.isAccessTokenValid) {
                 userRepo.loadUserAsync().await()
             }
 

@@ -11,7 +11,7 @@ data class AppConfigState @OptIn(ExperimentalSerializationApi::class) constructo
     @Transient
     val isErrored: Boolean = false,
     @Transient
-    val isLoading: Boolean = false,
+    val isLoading: Boolean = true,
     val id: String = "",
     val icon: String = "",
     @SerialName("user_verification_fields")
@@ -92,6 +92,12 @@ data class HubAuthConfig @OptIn(ExperimentalSerializationApi::class) constructor
 @Serializable
 data class SignInMethods constructor(
     val google: GoogleSignInMethod = GoogleSignInMethod(),
+    val anonymous: AnonymousSignInMethod = AnonymousSignInMethod(),
+)
+
+@Serializable
+data class AnonymousSignInMethod constructor(
+    val enabled: Boolean = false,
 )
 
 @Serializable

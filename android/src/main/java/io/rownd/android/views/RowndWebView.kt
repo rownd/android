@@ -323,10 +323,8 @@ class RowndJavascriptInterface constructor(
                 }
 
                 MessageType.triggerSignInWithGoogle -> {
-                    Rownd.requestSignIn(
-                        with = RowndSignInHint.Google,
-                        RowndSignInOptions(intent = (interopMessage as TriggerSignInWithGoogleMessage).payload?.intent)
-                    )
+                    val signInWithGoogleMessage = (interopMessage as TriggerSignInWithGoogleMessage).payload
+                    Rownd.signInWithGoogle(intent = signInWithGoogleMessage?.intent, hint = signInWithGoogleMessage?.hint)
                     parentWebView.dismiss?.invoke()
                 }
 
@@ -372,6 +370,10 @@ class RowndJavascriptInterface constructor(
                 MessageType.CanTouchBackgroundToDismiss -> {
                     val enable = (interopMessage as CanTouchBackgroundToDismissMessage).payload.enable
                     setCanTouchBackground(enable != "false")
+                }
+
+                MessageType.HubResize -> {
+                    Log.d("RowndHub", "Message 'hub_resize' isn't supported yet")
                 }
 
                 else -> {

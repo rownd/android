@@ -1,6 +1,6 @@
 package io.rownd.android.models.domain
 
-// import io.rownd.android.RowndSignInMethods
+import io.rownd.android.Rownd
 import io.rownd.android.models.json
 import io.rownd.android.util.toBase64
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -20,15 +20,23 @@ data class SignInState @OptIn(ExperimentalSerializationApi::class) constructor(
 ) {
 
     internal fun toSignInInitHash(): String {
-        val rphInit = SignInInitObj(
-            lastSignIn,
-            lastSignInDate
-        )
+        var activeAccounts = mutableListOf<ActiveAccount>();
+        for (account in Rownd.getActiveGmailAccounts()) {
+            activeAccounts.add(ActiveAccount(email = account.name))
+        }
 
-        val encoded = json.encodeToString(SignInInitObj.serializer(), rphInit)
+        val rphInit = SignInInitHashObj(lastSignIn, lastSignInDate, android = SignInInitHashAndroidObj(activeAccounts))
+
+        val encoded = json.encodeToString(SignInInitHashObj.serializer(), rphInit)
         return encoded.toByteArray().toBase64()
     }
 }
+
+@Serializable
+data class ActiveAccount(
+    @SerialName("email")
+    val email: String
+)
 
 @Serializable
 data class SignInInitObj(
@@ -36,4 +44,20 @@ data class SignInInitObj(
     val lastSignIn: String?,
     @SerialName("last_sign_in_date")
     val lastSignInDate: String?,
+)
+
+@Serializable
+data class SignInInitHashObj(
+    @SerialName("last_sign_in")
+    val lastSignIn: String?,
+    @SerialName("last_sign_in_date")
+    val lastSignInDate: String?,
+    @SerialName("android")
+    val android: SignInInitHashAndroidObj,
+)
+
+@Serializable
+data class SignInInitHashAndroidObj(
+    @SerialName("active_accounts")
+    val activeAccounts: List<ActiveAccount>
 )

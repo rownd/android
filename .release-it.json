@@ -15,13 +15,13 @@
       "@release-it/bumper": {
         "in": "VERSION",
         "out": [
-            "android/build.gradle",
+            "android/versioning.gradle",
             "README.md",
             "VERSION"
         ]
       }
     },
     "hooks": {
-        "before:github:release": "./gradlew build && ./gradlew :android:publishReleasePublicationToSonatypeRepository"
+        "after:bump": "./gradlew build && ./gradlew :android:publishReleasePublicationToSonatypeRepository"
     }
   }

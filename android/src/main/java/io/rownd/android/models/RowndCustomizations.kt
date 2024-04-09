@@ -6,6 +6,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.rownd.android.Rownd
+import io.rownd.android.util.Constants
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
@@ -25,10 +26,13 @@ open class RowndCustomizations() {
     open val dynamicSheetBackgroundColor: Color
     get() {
         val uiMode = Rownd.appHandleWrapper?.app?.get()!!.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val darkMode = Rownd.stateRepo.state.value.appConfig.config.hub.customizations?.darkMode
         return when {
             sheetBackgroundColor != null -> sheetBackgroundColor!!
-            uiMode == Configuration.UI_MODE_NIGHT_YES -> Color(0xff1c1c1e)
-            else -> Color(0xffffffff)
+            darkMode == "disabled" -> Constants.BACKGROUND_LIGHT
+            darkMode == "enabled" -> Constants.BACKGROUND_DARK
+            uiMode == Configuration.UI_MODE_NIGHT_YES -> Constants.BACKGROUND_DARK
+            else -> Constants.BACKGROUND_LIGHT
         }
     }
 

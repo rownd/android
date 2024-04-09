@@ -14,6 +14,7 @@ import io.rownd.android.models.domain.CustomizationsConfig as DomainCustomizatio
 import io.rownd.android.models.domain.GoogleOneTap as DomainGoogleOneTap
 import io.rownd.android.models.domain.GoogleOneTapMobileApp as DomainGoogleOneTapMobileApp
 import io.rownd.android.models.domain.GoogleSignInMethod as DomainGoogleSignInMethod
+import io.rownd.android.models.domain.AnonymousSignInMethod as DomainAnonymousSignInMethod
 import io.rownd.android.models.domain.HubAuthConfig as DomainHubAuthConfig
 import io.rownd.android.models.domain.HubConfig as DomainHubConfig
 import io.rownd.android.models.domain.HubCustomStylesConfig as DomainHubCustomStylesConfig
@@ -165,11 +166,24 @@ data class HubAuthConfig(
 
 @Serializable
 data class SignInMethods(
-    var google: GoogleSignInMethod = GoogleSignInMethod()
+    var google: GoogleSignInMethod = GoogleSignInMethod(),
+    var anonymous: AnonymousSignInMethod = AnonymousSignInMethod()
 ) {
     fun asDomainModel(): DomainSignInMethods {
         return DomainSignInMethods(
-            google.asDomainModel()
+            google.asDomainModel(),
+            anonymous.asDomainModel()
+        )
+    }
+}
+
+@Serializable
+data class AnonymousSignInMethod(
+    val enabled: Boolean = false,
+) {
+    fun asDomainModel(): DomainAnonymousSignInMethod {
+        return DomainAnonymousSignInMethod(
+            enabled,
         )
     }
 }

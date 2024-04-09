@@ -18,6 +18,7 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.databinding.DataBindingUtil
 import io.rownd.android.Rownd
+import io.rownd.android.RowndConnectAuthenticatorHint
 import io.rownd.android.RowndSignInHint
 import io.rownd.android.RowndSignInOptions
 import io.rownd.android.util.Encryption
@@ -58,6 +59,8 @@ class MainActivity : AppCompatActivity() {
         binding.lifecycleOwner = this
 
         binding.rownd = Rownd
+
+        val parentActivity = this
 
         val composeView = findViewById<ComposeView>(R.id.compose_view)
         composeView.setContent {
@@ -165,6 +168,20 @@ class MainActivity : AppCompatActivity() {
                                         Text("Refresh token")
                                     }
                                 }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    Button(
+                                        modifier = Modifier.padding(horizontal = 5.dp),
+                                        onClick = {
+                                            Rownd.connectAuthenticator(RowndConnectAuthenticatorHint.Passkey)
+                                        }
+                                    ) {
+                                        Text("Register passkey")
+                                    }
+                                }
 //                }
                             }
                             Column(modifier = Modifier.fillMaxWidth()) {
@@ -178,12 +195,22 @@ class MainActivity : AppCompatActivity() {
                                         Text("Show One Tap")
                                     }
                                 }
+                                if (!state.value.auth.isAuthenticated && state.value.appConfig.config.hub.auth.signInMethods.anonymous.enabled) {
+                                    Button(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        onClick = {
+                                            Rownd.requestSignIn(RowndSignInHint.Guest)
+                                        }
+                                    ) {
+                                        Text("Sign in as a guest")
+                                    }
+                                }
                                 Button(
                                     modifier = Modifier.fillMaxWidth(),
                                     onClick = {
                                         if (state.value.auth.isAuthenticated) Rownd.signOut()
                                         else Rownd.requestSignIn(RowndSignInOptions(
-                                            postSignInRedirect = "rowndtestapp://test"
+//                                            postSignInRedirect = "rowndtestapp://test"
                                         ))
                                     }
                                 ) {

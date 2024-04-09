@@ -2,6 +2,8 @@
 
 package io.rownd.android
 
+import android.accounts.Account
+import android.accounts.AccountManager
 import android.app.Application
 import android.content.Context
 import android.content.Intent
@@ -42,9 +44,9 @@ import io.ktor.client.plugins.auth.providers.*
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
+import io.rownd.android.models.RowndConnectionAction
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
-import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.SignInLinkApi
 import io.rownd.android.models.repos.*
@@ -55,7 +57,9 @@ import io.rownd.android.views.RowndWebViewModel
 import io.rownd.android.views.key_transfer.KeyTransferBottomSheet
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.serialization.*
 import kotlinx.serialization.json.Json
@@ -71,6 +75,7 @@ interface RowndGraph {
     fun stateRepo(): StateRepo
     fun userRepo(): UserRepo
     fun authRepo(): AuthRepo
+    fun connectionAction(): RowndConnectionAction
     fun signInRepo(): SignInRepo
     fun signInLinkApi(): SignInLinkApi
     fun rowndContext(): RowndContext
@@ -94,11 +99,14 @@ class RowndClient constructor(
     var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
     var rowndContext = graph.rowndContext()
     var passkeyAuthenticator = graph.passkeyAuthenticator()
+    var connectionAction = graph.connectionAction()
 
     var state = stateRepo.state
     private var intentLaunchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private var intentSenderRequestLaunchers: MutableMap<String, ActivityResultLauncher<IntentSenderRequest>> = mutableMapOf()
     private var hasDisplayedOneTap = false
+    private var isDisplayingOneTap = false
+    private var rememberedRequestSignIn: (() -> Unit)? = null
     private var googleSignInIntent: RowndSignInIntent? = null
 
     init {
@@ -108,6 +116,7 @@ class RowndClient constructor(
         rowndContext.authRepo = authRepo
         rowndContext.store = stateRepo.getStore()
         stateRepo.userRepo = userRepo
+        stateRepo.authRepo = authRepo
     }
 
     private fun configure(appKey: String) {
@@ -160,12 +169,14 @@ class RowndClient constructor(
         CoroutineScope(Dispatchers.IO).launch {
             store.stateAsStateFlow().collect {
                 if (
+                    !isDisplayingOneTap &&
                     !hasDisplayedOneTap &&
                     !it.auth.isLoading &&
                     !it.auth.isAuthenticated &&
                     it.appConfig.config.hub.auth.signInMethods.google.clientId != "" &&
                     it.appConfig.config.hub.auth.signInMethods.google.oneTap.mobileApp.autoPrompt
                 ) {
+                    isDisplayingOneTap = true
                     Handler(Looper.getMainLooper()).postDelayed({
                         showGoogleOneTap()
                     },
@@ -248,6 +259,36 @@ class RowndClient constructor(
         }
     }
 
+    private fun runRememberedRequestSignIn() {
+        rememberedRequestSignIn?.let {
+            it()
+            rememberedRequestSignIn = null
+        }
+    }
+
+    private fun isAppConfigLoadingWithCallback(callback: () -> (Unit)): Boolean {
+        val scope = CoroutineScope(Dispatchers.IO)
+        val isLoading = state.value.appConfig.isLoading
+        if (isLoading) {
+            scope.launch {
+                store.stateAsStateFlow().collect {
+                    // Callback when the appConfig has loaded
+                    if (!it.appConfig.isLoading) {
+                        callback()
+                        scope.cancel()
+                        return@collect
+                    }
+                }
+            }
+        }
+        return isLoading
+    }
+
+    private fun isOneTapRequestedAndNotDisplayedYet(): Boolean {
+        var google = state.value.appConfig.config.hub.auth.signInMethods.google
+        return google.enabled && google.oneTap.mobileApp.autoPrompt && google.oneTap.mobileApp.delay == 0 && !hasDisplayedOneTap
+    }
+
     fun requestSignIn(
         signInOptions: RowndSignInOptions
     ) {
@@ -266,12 +307,32 @@ class RowndClient constructor(
     }
 
     fun requestSignIn(with: RowndSignInHint, signInOptions: RowndSignInOptions) {
+        var isAppConfigLoading = isAppConfigLoadingWithCallback {
+            requestSignIn(with, signInOptions)
+        }
+
+        if (isAppConfigLoading) {
+            return
+        }
+
+        // Prevent Sign-in when Google One Tap is requested
+        if (isOneTapRequestedAndNotDisplayedYet()) {
+            rememberedRequestSignIn = { requestSignIn(with, signInOptions) }
+            return
+        }
+
         val signInOptions = determineSignInOptions(signInOptions)
         when (with) {
             RowndSignInHint.Google -> signInWithGoogle(intent = signInOptions.intent)
             RowndSignInHint.OneTap -> showGoogleOneTap()
             RowndSignInHint.Passkey -> {
                 appHandleWrapper?.activity?.get()?.let { passkeyAuthenticator.authentication.authenticate(it) }
+            }
+            RowndSignInHint.Guest -> {
+                displayHub(
+                    HubPageSelector.SignIn,
+                    jsFnOptions = RowndSignInJsOptions(signInType = RowndSignInType.Anonymous)
+                )
             }
         }
     }
@@ -313,6 +374,12 @@ class RowndClient constructor(
         bottomSheet.show(activity.supportFragmentManager, KeyTransferBottomSheet.TAG)
     }
 
+    inner class Firebase {
+        fun getIdToken(): Deferred<String?> {
+            return connectionAction.getFirebaseIdToken()
+        }
+    }
+
     private fun determineSignInOptions(signInOptions: RowndSignInOptions) :RowndSignInOptions {
         if (signInOptions.intent == RowndSignInIntent.SignUp || signInOptions.intent == RowndSignInIntent.SignIn) {
             if (state.value.appConfig.config.hub.auth.useExplicitSignUpFlow != true) {
@@ -337,20 +404,43 @@ class RowndClient constructor(
     }
 
     private fun signInWithGoogle(intent: RowndSignInIntent?) {
+        signInWithGoogle(intent, hint = null)
+    }
+
+    internal fun getActiveGmailAccounts(): Array<Account> {
+        val applicationContext = appHandleWrapper?.activity?.get()?.applicationContext
+            ?: return emptyArray()
+        val accountManager = AccountManager.get(applicationContext);
+        return accountManager.getAccountsByType("com.google")
+    }
+
+    internal fun signInWithGoogle(intent: RowndSignInIntent?, hint: String?) {
+        // We can't attempt this unless the app config is loaded
+
         googleSignInIntent = intent
         val googleSignInMethodConfig =
             state.value.appConfig.config.hub.auth.signInMethods.google
+
         if (!googleSignInMethodConfig.enabled) {
-            throw RowndException("Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
+            Log.e("Rownd","Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
         }
         if (googleSignInMethodConfig.clientId == "") {
-            throw RowndException("Cannot sign in with Google. Missing client configuration")
+            Log.e("Rownd","Cannot sign in with Google. Missing client configuration")
         }
 
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+        val gsoBuilder = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
             .requestEmail()
             .requestIdToken(googleSignInMethodConfig.clientId)
-            .build()
+
+        val gmailAccountMatchesHint = getActiveGmailAccounts().any {
+            it.name == hint
+        }
+
+        if (hint != null && gmailAccountMatchesHint) {
+            gsoBuilder.setAccountName(hint)
+        }
+
+        val gso = gsoBuilder.build()
 
         val activity = appHandleWrapper?.activity?.get() ?: return
 
@@ -382,6 +472,8 @@ class RowndClient constructor(
 
     private suspend fun handleGoogleOneTapCallback(result: ActivityResult) {
         val activity = appHandleWrapper?.activity?.get() ?: return
+        hasDisplayedOneTap = true
+        isDisplayingOneTap = false
 
         val credential: SignInCredential?
         try {
@@ -389,12 +481,14 @@ class RowndClient constructor(
             credential = oneTapClient.getSignInCredentialFromIntent(result.data)
             if (credential.googleIdToken == "") {
                 Log.e("Rownd.OneTap", "Google One Tap sign-in failed: missing idToken")
+                runRememberedRequestSignIn()
             } else {
                 credential.googleIdToken?.let { idToken -> authRepo.getAccessToken(idToken, intent = null, type = AuthRepo.AccessTokenType.google) }
+                rememberedRequestSignIn = null
             }
         } catch (e: ApiException) {
+            runRememberedRequestSignIn()
             if (e.statusCode == CommonStatusCodes.CANCELED) {
-                hasDisplayedOneTap = true
                 Log.d("Rownd.OneTap", "Google One Tap UI was closed by user")
             } else {
                 Log.e("Rownd.OneTap", "Couldn't get credential from result." + " (${e.localizedMessage})", e)
@@ -403,8 +497,23 @@ class RowndClient constructor(
     }
 
     private fun showGoogleOneTap() {
+        isDisplayingOneTap = true
         val googleSignInMethodConfig =
             state.value.appConfig.config.hub.auth.signInMethods.google
+
+        fun cancel() {
+            hasDisplayedOneTap = true
+            isDisplayingOneTap = false
+            runRememberedRequestSignIn()
+        }
+
+        // Don't show Google one tap when the hub is displayed
+        var composableBottomSheet = rowndContext.hubView?.get()
+        if (composableBottomSheet != null && composableBottomSheet.isVisible) {
+            cancel()
+            return
+        }
+
         if (!googleSignInMethodConfig.enabled) {
             throw RowndException("Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
         }
@@ -432,14 +541,15 @@ class RowndClient constructor(
                     intentSenderRequestLaunchers[activity.toString()]?.launch(
                         IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
                     )
-                    hasDisplayedOneTap = true
                 } catch (e: IntentSender.SendIntentException) {
                     Log.e("Rownd.OneTap", "Couldn't start One Tap UI: ${e.localizedMessage}", e)
+                    cancel()
                 }
             }
             .addOnFailureListener(activity) { e ->
                 // No Google Accounts found. Just continue presenting the signed-out UI.
                 Log.e("Rownd.OneTap", e.localizedMessage, e)
+                cancel()
             }
     }
 
@@ -470,6 +580,22 @@ class RowndClient constructor(
         targetPage: HubPageSelector,
         jsFnOptions: RowndSignInOptionsBase? = null
     ) {
+        var isAppConfigLoading = isAppConfigLoadingWithCallback {
+            displayHub(targetPage, jsFnOptions)
+        }
+
+        if (isAppConfigLoading) {
+            return
+        }
+
+        // Prevent Hub from displaying when Google One Tap is requested
+        if (isOneTapRequestedAndNotDisplayedYet()) {
+            if (targetPage === HubPageSelector.SignIn) {
+                rememberedRequestSignIn = { displayHub(targetPage, jsFnOptions) }
+            }
+            return
+        }
+
         try {
             val activity = appHandleWrapper?.activity?.get() as FragmentActivity
 
@@ -546,6 +672,7 @@ enum class RowndSignInHint {
     Google,
     OneTap,
     Passkey,
+    Guest,
 }
 
 enum class RowndConnectAuthenticatorHint {
@@ -571,7 +698,9 @@ enum class RowndSignInUserType {
 @Serializable
 enum class RowndSignInType {
     @SerialName("passkey")
-    Passkey
+    Passkey,
+    @SerialName("anonymous")
+    Anonymous
 }
 
 @Serializable

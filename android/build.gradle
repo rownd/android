@@ -7,6 +7,8 @@ plugins {
     id 'maven-publish'
 }
 
+apply from: "${rootProject.projectDir}/android/versioning.gradle"
+
 android {
     namespace "io.rownd.android"
     compileSdk 33
@@ -15,7 +17,7 @@ android {
         minSdk 26
         targetSdk 33
 
-        versionName '2.5.0'
+        versionName project.package_version
 
         aarMetadata {
             minCompileSdk 26
@@ -55,30 +57,36 @@ android {
     testFixtures {
         enable = true
     }
+
+    publishing {
+        singleVariant('release') {}
+
+        singleVariant('debug') {}
+    }
 }
 
 dependencies {
-    def lifecycle_version = "2.5.1"
-    def nav_version = "2.5.3"
+    def lifecycle_version = "2.6.1"
+    def nav_version = "2.6.0"
     def dagger_version = "2.44.2"
     def coroutines_version = "1.3.9"
     def ktor_version = "2.1.3"
 
     implementation 'androidx.datastore:datastore-preferences:1.0.0'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.recyclerview:recyclerview:1.2.1'
+    implementation 'androidx.recyclerview:recyclerview:1.3.0'
 
-    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.2"
+    implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.3.3"
     implementation "org.jetbrains.kotlinx:kotlinx-collections-immutable:0.3.5"
     implementation "org.jetbrains.kotlin:kotlin-reflect:1.8.10"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
 
     implementation 'androidx.compose.material3:material3:1.2.0-alpha02'
 
-    implementation 'androidx.webkit:webkit:1.6.0'
-    implementation 'androidx.core:core-ktx:1.8.0'
-    implementation 'androidx.appcompat:appcompat:1.5.1'
-    implementation 'com.google.android.material:material:1.6.1'
+    implementation 'androidx.webkit:webkit:1.7.0'
+    implementation 'androidx.core:core-ktx:1.10.1'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.compose.material:material:1.4.3'
     implementation 'androidx.compose.ui:ui-viewbinding:1.4.3'
 
@@ -86,7 +94,7 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
     implementation "androidx.compose.foundation:foundation:1.4.3"
-    implementation "androidx.fragment:fragment-ktx:1.5.5"
+    implementation "androidx.fragment:fragment-ktx:1.6.0"
 
     implementation "androidx.navigation:navigation-fragment-ktx:$nav_version"
     implementation "androidx.navigation:navigation-ui-ktx:$nav_version"
@@ -97,10 +105,10 @@ dependencies {
     implementation 'com.airbnb.android:lottie-compose:5.2.0'
 
     // QR code scanning
-    implementation 'com.google.mlkit:barcode-scanning:17.0.2'
-    implementation "androidx.camera:camera-camera2:1.1.0"
-    implementation "androidx.camera:camera-lifecycle:1.1.0"
-    implementation "androidx.camera:camera-view:1.1.0"
+    implementation 'com.google.mlkit:barcode-scanning:17.1.0'
+    implementation "androidx.camera:camera-camera2:1.2.3"
+    implementation "androidx.camera:camera-lifecycle:1.2.3"
+    implementation "androidx.camera:camera-view:1.2.3"
 
     // Network requests
     implementation "io.ktor:ktor-client-core:$ktor_version"
@@ -125,11 +133,11 @@ dependencies {
     implementation "androidx.security:security-crypto:1.0.0"
 
     // Sign in with Google
-    implementation 'com.google.android.gms:play-services-auth:20.4.1'
+    implementation 'com.google.android.gms:play-services-auth:20.5.0'
 
     // Passkeys
-    implementation "androidx.credentials:credentials:1.0.0-alpha03"
-    implementation "androidx.credentials:credentials-play-services-auth:1.0.0-alpha03"
+    implementation "androidx.credentials:credentials:1.0.0-alpha09"
+    implementation "androidx.credentials:credentials-play-services-auth:1.0.0-alpha09"
 
     // Dependency injection via Dagger
     implementation "com.google.dagger:dagger:$dagger_version"
