@@ -1,7 +1,5 @@
 package io.rownd.android.util.bottom.sheet
 
-import androidx.compose.material3.*
-
 /*
  * Copyright 2022 The Android Open Source Project
  *
@@ -19,6 +17,7 @@ import androidx.compose.material3.*
  */
 // This is a mirror of androidx.compose.material.SwipeableV2.kt from M2.
 // DO NOT MODIFY DIRECTLY, make changes upstream and mirror them.
+import androidx.compose.material3.ExperimentalMaterial3Api
 
 import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.SpringSpec

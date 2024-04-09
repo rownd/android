@@ -1,7 +1,5 @@
 package io.rownd.android.views
 
-//import android.webkit.*
-//import android.webkit.WebView.setWebContentsDebuggingEnabled
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -16,11 +14,7 @@ import android.view.View
 import android.webkit.*
 import android.widget.ProgressBar
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.SheetValue
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.unit.dp
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.*
 import io.rownd.android.*
@@ -39,7 +33,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.properties.Delegates
 
 val json = Json { ignoreUnknownKeys = true }
 

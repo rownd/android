@@ -5,9 +5,13 @@ import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.*
+import androidx.activity.ComponentActivity
+import android.graphics.Rect
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -16,11 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.compose.LottieAnimation
@@ -30,13 +31,12 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import io.rownd.android.Rownd
 import kotlinx.coroutines.launch
 
-import androidx.compose.material3.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import io.rownd.android.util.convertStringToColor
 import io.rownd.android.util.bottom.sheet.*
 import io.rownd.android.util.bottom.sheet.SheetState
 import io.rownd.android.util.bottom.sheet.SheetValue
-
+import androidx.compose.ui.platform.LocalContext
 
 abstract class ComposableBottomSheetFragment : DialogFragment() {
     open val shouldDisplayLoader = false
@@ -129,10 +129,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
 
         val primaryColor: Color = convertStringToColor(Rownd.store.currentState.appConfig.config.hub.customizations?.primaryColor ?: "#5b13df")
 
-        val configuration = LocalConfiguration.current
-        val fullScreenHeight = configuration.screenHeightDp.dp
-
-
         // Creating a Bottom Sheet
         ModalBottomSheet(
             sheetState = bottomSheetState,
@@ -180,25 +176,30 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         )
 
 
-        val view = LocalView.current
-        DisposableEffect(view) {
-            val listener = ViewTreeObserver.OnGlobalLayoutListener {
-                val isKeyboardOpen = ViewCompat.getRootWindowInsets(view)
-                    ?.isVisible(WindowInsetsCompat.Type.ime()) ?: true
+        val context = LocalContext.current
+        DisposableEffect(context) {
+            val activity = context as? ComponentActivity ?: return@DisposableEffect onDispose { }
+            val rootView = activity.window.decorView.rootView
+            val globalLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+                val rect = Rect().apply { rootView.getWindowVisibleDisplayFrame(this) }
+                val screenHeight = rootView.height
+
+                // Calculate the difference between the screen height and the visible display frame height
+                val keypadHeight = screenHeight - rect.bottom
+                val isKeyboardOpen = keypadHeight > screenHeight * 0.15
+
+                // Arbitrary threshold indicating that the keypad is likely open
                 if (isKeyboardOpen) {
                     coroutineScope.launch {
                         bottomSheetState.animateTo(SheetValue.Expanded)
                     }
-                } else {
-                    coroutineScope.launch {
-                        bottomSheetState.animateTo(SheetValue.PartiallyExpanded)
-                    }
                 }
             }
 
-            view.viewTreeObserver.addOnGlobalLayoutListener(listener)
+            rootView.viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
+
             onDispose {
-                view.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+                rootView.viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutListener)
             }
         }
     }

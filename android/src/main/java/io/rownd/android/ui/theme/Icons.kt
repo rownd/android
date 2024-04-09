@@ -1,6 +1,6 @@
 package io.rownd.android.ui.theme
 
-import androidx.compose.material.Icon
+import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.painterResource
 import io.rownd.android.R
