@@ -48,6 +48,12 @@ dependencies {
     implementation project(':android')
 //    implementation 'io.rownd:android:1.2.0'
 
+    // Test out compose BOM
+//    implementation platform('androidx.compose:compose-bom:2024.03.00')
+//    implementation 'androidx.compose.material:material'
+//    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.compose.material:material:1.1.1'
+
     implementation 'androidx.core:core-ktx:1.8.0'
     implementation 'androidx.appcompat:appcompat:1.4.2'
     implementation 'com.google.android.material:material:1.6.1'

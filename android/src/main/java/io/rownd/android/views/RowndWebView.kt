@@ -1,7 +1,5 @@
 package io.rownd.android.views
 
-//import android.webkit.*
-//import android.webkit.WebView.setWebContentsDebuggingEnabled
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -16,7 +14,7 @@ import android.view.View
 import android.webkit.*
 import android.widget.ProgressBar
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.*
 import io.rownd.android.*
@@ -58,9 +56,8 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal var jsFunctionArgsAsJson: String = "{}"
     internal var progressBar: ProgressBar? = null
     internal var setIsLoading: ((isLoading: Boolean) -> Unit)? = null
-
-    @OptIn(ExperimentalMaterialApi::class)
-    internal var animateBottomSheet: ((to: ModalBottomSheetValue) -> Unit)? = null
+    internal var animateBottomSheet: ((to: Float) -> Unit)? = null
+    internal var setCanTouchBackgroundToDismiss: ((to: Boolean) -> Unit)? = null
 
     internal lateinit var rowndClient: RowndClient
 
@@ -73,7 +70,25 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         settings.domStorageEnabled = true
         settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
 
-        this.addJavascriptInterface(RowndJavascriptInterface(this, context), "rowndAndroidSDK")
+        fun dynamicBottomSheet(height: String) {
+            val deviceMetrics = Rownd.getDeviceSize(context)
+            val viewportPixelHeight = deviceMetrics.heightPixels / deviceMetrics.density
+            val deviceHeight = deviceMetrics.heightPixels
+            height.toIntOrNull()?.let { it
+                val ratio = it / viewportPixelHeight
+                val targetOffset = deviceHeight.toFloat() - deviceHeight.toFloat() * ratio - 100F
+                animateBottomSheet?.let { it(targetOffset) }
+            }
+
+        }
+
+        fun setCanTouchBackground(enable: Boolean) {
+            setCanTouchBackgroundToDismiss?.let { it(enable) }
+        }
+
+        val rowndJavascriptInterface = RowndJavascriptInterface(this, ::dynamicBottomSheet, ::setCanTouchBackground)
+
+        this.addJavascriptInterface(rowndJavascriptInterface, "rowndAndroidSDK")
         this.webViewClient = RowndWebViewClient(this, context)
 
         val appFlags = Rownd.appHandleWrapper?.app?.get()?.applicationInfo?.flags ?: 0
@@ -212,7 +227,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
     }
 
-    @OptIn(ExperimentalMaterialApi::class)
+    @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
     override fun onPageFinished(view: WebView, url: String) {
         super.onPageFinished(view, url)
         view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
@@ -228,7 +243,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
 
         if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
-            webView.animateBottomSheet?.invoke(ModalBottomSheetValue.Expanded)
+            webView.animateBottomSheet?.invoke(100F)
         }
     }
 
@@ -249,14 +264,18 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
     }
 }
 
-class RowndJavascriptInterface(
+class RowndJavascriptInterface constructor(
     private val parentWebView: RowndWebView,
-    context: Context) {
+    dynamicBottomSheet: (to: String) -> Unit,
+    setCanTouchBackground: (to: Boolean) -> Unit,
+    ) {
 
-    private val context: Context
+    private val dynamicBottomSheet: (to: String) -> Unit
+    private val setCanTouchBackground: (to: Boolean) -> Unit
 
     init {
-        this.context = context
+        this.dynamicBottomSheet = dynamicBottomSheet
+        this.setCanTouchBackground = setCanTouchBackground
     }
 
     @JavascriptInterface
@@ -341,16 +360,20 @@ class RowndJavascriptInterface(
                     parentWebView.rowndClient.requestSignIn(with = RowndSignInHint.Passkey)
                 }
 
-                MessageType.HubLoaded -> {
-                    Log.d("RowndHub", "Message 'hub_loaded' isn't supported yet")
+                MessageType.HubResize -> {
+                    val height = (interopMessage as HubResizeMessage).payload.height
+                    if (height != null) {
+                        dynamicBottomSheet(height)
+                    }
+                }
+
+                MessageType.CanTouchBackgroundToDismiss -> {
+                    val enable = (interopMessage as CanTouchBackgroundToDismissMessage).payload.enable
+                    setCanTouchBackground(enable != "false")
                 }
 
                 MessageType.HubResize -> {
                     Log.d("RowndHub", "Message 'hub_resize' isn't supported yet")
-                }
-
-                MessageType.CanTouchBackgroundToDismiss -> {
-                    Log.d("RowndHub", "Message 'can_touch_background_to_dismiss' isn't supported yet")
                 }
 
                 else -> {

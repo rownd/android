@@ -5,16 +5,13 @@ import android.content.Context
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.*
+import androidx.activity.ComponentActivity
+import android.graphics.Rect
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.ModalBottomSheetLayout
-import androidx.compose.material.ModalBottomSheetState
-import androidx.compose.material.ModalBottomSheetValue
-import androidx.compose.material.Text
-import androidx.compose.material.rememberModalBottomSheetState
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,11 +20,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.compose.LottieAnimation
@@ -38,12 +32,18 @@ import io.rownd.android.Rownd
 import io.rownd.android.util.convertStringToColor
 import kotlinx.coroutines.launch
 
+import androidx.compose.runtime.saveable.rememberSaveable
+import io.rownd.android.util.convertStringToColor
+import io.rownd.android.util.bottom.sheet.*
+import io.rownd.android.util.bottom.sheet.SheetState
+import io.rownd.android.util.bottom.sheet.SheetValue
+import androidx.compose.ui.platform.LocalContext
 
 abstract class ComposableBottomSheetFragment : DialogFragment() {
     open val shouldDisplayLoader = false
 
-    @OptIn(ExperimentalMaterialApi::class)
-    var sheetState: ModalBottomSheetState? = null
+    @OptIn(ExperimentalMaterial3Api::class)
+    var sheetState: SheetState? = null
 
     override fun onStart() {
         super.onStart()
@@ -56,19 +56,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
-    // Might be needed for better display over device "safe areas"
-//    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog? {
-//        val dialog: BottomSheetDialog = super.onCreateDialog(savedInstanceState)
-//        val window: Window? = dialog.window
-//        window.setFlags(
-//            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-//            WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL
-//        )
-//        window.clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
-//        return dialog
-//    }
-
-    @OptIn(ExperimentalMaterialApi::class)
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
@@ -100,15 +87,17 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
-    @ExperimentalMaterialApi
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun BottomSheet() {
         val coroutineScope = rememberCoroutineScope()
 
         // Declaring a Boolean value to
         // store bottom sheet collapsed state
-        val bottomSheetState = rememberModalBottomSheetState(
-            initialValue = ModalBottomSheetValue.HalfExpanded,
+        var openBottomSheet by rememberSaveable { mutableStateOf(false) }
+        var skipPartiallyExpanded by remember { mutableStateOf(false) }
+        val bottomSheetState = io.rownd.android.util.bottom.sheet.rememberModalBottomSheetState(
+            skipPartiallyExpanded = skipPartiallyExpanded,
 
             // TODO: Perhaps we should support blocking the bottom sheet from closing
             //  when certain operations are in progress.
@@ -124,13 +113,13 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         val (isLoading, setIsLoading) = remember { mutableStateOf(shouldDisplayLoader) }
         val contentAlpha: Float by animateFloatAsState(if (!isLoading) 1f else 0f)
         var loadingLottieComposition: LottieComposition? = null
+        val (dynamicOffset, setDynamicOffset) = remember { mutableStateOf<Float?>(null) }
+        val (canTouchBackgroundToDismiss, setCanTouchBackgroundToDismiss) = remember { mutableStateOf<Boolean>(true) }
 
         Rownd.config.customizations.loadingAnimation?.let { loadingAnimation ->
             loadingLottieComposition =
                 rememberLottieComposition(LottieCompositionSpec.RawRes(loadingAnimation)).value
         }
-
-        val primaryColor: Color = convertStringToColor(Rownd.store.currentState.appConfig.config.hub.customizations?.primaryColor ?: "#5b13df")
 
         Rownd.config.customizations.loadingAnimationJsonString?.let { loadingAnimationJsonString ->
             loadingLottieComposition =
@@ -141,30 +130,18 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                 ).value
         }
 
-
-        val configuration = LocalConfiguration.current
-        val fullScreenHeight = configuration.screenHeightDp.dp
-
-        // State change callback
-        LaunchedEffect(bottomSheetState) {
-            snapshotFlow { bottomSheetState.isVisible }.collect { isVisible ->
-                if (isVisible) {
-                    // Sheet is visible
-                } else {
-                    dismiss()
-                }
-            }
-        }
+        val primaryColor: Color = convertStringToColor(Rownd.store.currentState.appConfig.config.hub.customizations?.primaryColor ?: "#5b13df")
 
         // Creating a Bottom Sheet
-        ModalBottomSheetLayout(
+        ModalBottomSheet(
             sheetState = bottomSheetState,
-            sheetBackgroundColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
-            sheetShape = RoundedCornerShape(
-                topStart = Rownd.config.customizations.sheetCornerBorderRadius,
-                topEnd = Rownd.config.customizations.sheetCornerBorderRadius
-            ),
-            sheetContent = {
+            dynamicOffset = dynamicOffset,
+            canTouchBackgroundToDismiss = canTouchBackgroundToDismiss,
+            contentColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
+            containerColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
+            shape = RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius),
+            onDismissRequest = { dismiss() },
+            content = {
                 BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxSize(),
@@ -173,8 +150,9 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                     Column(
                         modifier = Modifier
                             .alpha(contentAlpha)
+                            .offset(y = (-24).dp)
                     ) {
-                        Content(bottomSheetState, setIsLoading)
+                        Content(bottomSheetState, setIsLoading, setDynamicOffset, setCanTouchBackgroundToDismiss)
                     }
 
                     if (isLoading) {
@@ -197,35 +175,44 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                         }
                     }
                 }
-            })
-        {
-            Text("")
-        }
+            }
+        )
 
 
-        val view = LocalView.current
-        DisposableEffect(view) {
-            val listener = ViewTreeObserver.OnGlobalLayoutListener {
-                val isKeyboardOpen = ViewCompat.getRootWindowInsets(view)
-                    ?.isVisible(WindowInsetsCompat.Type.ime()) ?: true
+        val context = LocalContext.current
+        DisposableEffect(context) {
+            val activity = context as? ComponentActivity ?: return@DisposableEffect onDispose { }
+            val rootView = activity.window.decorView.rootView
+            val globalLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
+                val rect = Rect().apply { rootView.getWindowVisibleDisplayFrame(this) }
+                val screenHeight = rootView.height
+
+                // Calculate the difference between the screen height and the visible display frame height
+                val keypadHeight = screenHeight - rect.bottom
+                val isKeyboardOpen = keypadHeight > screenHeight * 0.15
+
+                // Arbitrary threshold indicating that the keypad is likely open
                 if (isKeyboardOpen) {
                     coroutineScope.launch {
-                        bottomSheetState.animateTo(ModalBottomSheetValue.Expanded)
+                        bottomSheetState.animateTo(SheetValue.Expanded)
                     }
                 }
             }
 
-            view.viewTreeObserver.addOnGlobalLayoutListener(listener)
+            rootView.viewTreeObserver.addOnGlobalLayoutListener(globalLayoutListener)
+
             onDispose {
-                view.viewTreeObserver.removeOnGlobalLayoutListener(listener)
+                rootView.viewTreeObserver.removeOnGlobalLayoutListener(globalLayoutListener)
             }
         }
     }
 
-    @OptIn(ExperimentalMaterialApi::class)
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     abstract fun Content(
-        bottomSheetState: ModalBottomSheetState,
-        setIsLoading: (isLoading: Boolean) -> Unit
+        bottomSheetState: SheetState,
+        setIsLoading: (isLoading: Boolean) -> Unit,
+        setDynamicOffset: (dynamicOffset: Float) -> Unit,
+        setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit
     )
 }

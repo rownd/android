@@ -104,6 +104,11 @@ data class SignInWithPasskeyMessage(
 ) : RowndHubInteropMessage()
 
 @Serializable
+data class HubResizePayload(
+    @SerialName("height")
+    var height: String? = null,
+)
+@Serializable
 data class HubLoaded(
     override var type: MessageType = MessageType.HubLoaded
 ) : RowndHubInteropMessage()
@@ -113,12 +118,6 @@ data class HubResizeMessage(
     override var type: MessageType = MessageType.HubResize,
     var payload: HubResizePayload
 ) : RowndHubInteropMessage()
-
-@Serializable
-data class HubResizePayload(
-    @SerialName("height")
-    var height: String
-)
 
 @Serializable
 data class CanTouchBackgroundToDismissMessage(
