@@ -410,34 +410,35 @@ internal fun ModalBottomSheetPopup(
     val id = rememberSaveable { UUID.randomUUID() }
     val parentComposition = rememberCompositionContext()
     val currentContent by rememberUpdatedState(content)
-    @Suppress("RememberReturnType")
     val modalBottomSheetWindow = remember {
-        ModalBottomSheetWindow(
-            onDismissRequest = onDismissRequest,
-            composeView = view,
-            saveId = id
-        ).apply {
-            setCustomContent(
-                parent = parentComposition,
-                content = {
-                    Box(
-                        Modifier
-                            .semantics { this.popup() }
-                            .windowInsetsPadding(windowInsets)
-                            .imePadding()
-                    ) {
-                        currentContent()
+        mutableStateOf(
+            ModalBottomSheetWindow(
+                onDismissRequest = onDismissRequest,
+                composeView = view,
+                saveId = id
+            ).apply {
+                setCustomContent(
+                    parent = parentComposition,
+                    content = {
+                        Box(
+                            Modifier
+                                .semantics { this.popup() }
+                                .windowInsetsPadding(windowInsets)
+                                .imePadding()
+                        ) {
+                            currentContent()
+                        }
                     }
-                }
-            )
-        }
+                )
+            }
+        )
     }
 
     DisposableEffect(modalBottomSheetWindow) {
-        modalBottomSheetWindow.show()
+        modalBottomSheetWindow.value.show()
         onDispose {
-            modalBottomSheetWindow.disposeComposition()
-            modalBottomSheetWindow.dismiss()
+            modalBottomSheetWindow.value.disposeComposition()
+            modalBottomSheetWindow.value.dismiss()
         }
     }
 }
