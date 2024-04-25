@@ -113,7 +113,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         val (isLoading, setIsLoading) = remember { mutableStateOf(shouldDisplayLoader) }
         val contentAlpha: Float by animateFloatAsState(if (!isLoading) 1f else 0f)
         var loadingLottieComposition: LottieComposition? = null
-        val (dynamicOffset, setDynamicOffset) = remember { mutableStateOf<Float?>(null) }
         val (canTouchBackgroundToDismiss, setCanTouchBackgroundToDismiss) = remember { mutableStateOf<Boolean>(true) }
 
         Rownd.config.customizations.loadingAnimation?.let { loadingAnimation ->
@@ -135,7 +134,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         // Creating a Bottom Sheet
         ModalBottomSheet(
             sheetState = bottomSheetState,
-            dynamicOffset = dynamicOffset,
             canTouchBackgroundToDismiss = canTouchBackgroundToDismiss,
             contentColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
             containerColor = Rownd.config.customizations.dynamicSheetBackgroundColor,
@@ -152,7 +150,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                             .alpha(contentAlpha)
                             .offset(y = (-24).dp)
                     ) {
-                        Content(bottomSheetState, setIsLoading, setDynamicOffset, setCanTouchBackgroundToDismiss)
+                        Content(bottomSheetState, setIsLoading, setCanTouchBackgroundToDismiss)
                     }
 
                     if (isLoading) {
@@ -212,7 +210,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
     abstract fun Content(
         bottomSheetState: SheetState,
         setIsLoading: (isLoading: Boolean) -> Unit,
-        setDynamicOffset: (dynamicOffset: Float) -> Unit,
         setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit
     )
 }

@@ -41,7 +41,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
-    override fun Content(bottomSheetState: SheetState, setIsLoading: (isLoading: Boolean) -> Unit, setDynamicHeight: (dynamicHeight: Float) -> Unit, setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit) {
+    override fun Content(bottomSheetState: SheetState, setIsLoading: (isLoading: Boolean) -> Unit, setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit) {
         val bundle = this.arguments
         val targetPage: HubPageSelector =
             (bundle?.getSerializable(HubBottomSheetBundleKeys.TargetPage.key)
@@ -78,7 +78,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                 this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: "{}"
                 this.hubWebview.animateBottomSheet = {
                     coroutineScope.launch {
-                        setDynamicHeight(it)
+                        sheetState?.animateToExact(it)
                     }
                 }
                 this.hubWebview.setCanTouchBackgroundToDismiss = {

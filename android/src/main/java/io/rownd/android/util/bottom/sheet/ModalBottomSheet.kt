@@ -24,7 +24,6 @@ import android.graphics.PixelFormat
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.View
-import android.view.ViewGroup
 import android.view.ViewTreeObserver
 import android.view.WindowManager
 import androidx.compose.animation.core.TweenSpec
@@ -128,7 +127,6 @@ fun ModalBottomSheet(
     onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
     canTouchBackgroundToDismiss: Boolean,
-    dynamicOffset: Float?,
     sheetState: SheetState = rememberModalBottomSheetState(),
     shape: Shape = BottomSheetDefaults.ExpandedShape,
     containerColor: Color = BottomSheetDefaults.ContainerColor,
@@ -140,8 +138,15 @@ fun ModalBottomSheet(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val scope = rememberCoroutineScope()
-    val animateToDismiss: () -> Unit = {
-        if (sheetState.swipeableState.confirmValueChange(SheetValue.Hidden) && canTouchBackgroundToDismiss) {
+    val animateToDismiss: () -> Unit = fun() {
+        if (sheetState.swipeableState.confirmValueChange(SheetValue.Hidden)) {
+            if (!canTouchBackgroundToDismiss) {
+                scope.launch {
+                    val offset = sheetState.offset ?: return@launch
+                    sheetState.animateToExact(offset, 4000f)
+                }
+                return
+            }
             scope.launch { sheetState.hide() }.invokeOnCompletion {
                 if (!sheetState.isVisible) {
                     onDismissRequest()
@@ -216,7 +221,7 @@ fun ModalBottomSheet(
                         sheetState = sheetState,
                         anchorChangeHandler = anchorChangeHandler,
                         screenHeight = fullHeight.toFloat(),
-                        dynamicOffset = dynamicOffset,
+                        dynamicOffset = null,
                         onDragStopped = {
                             settleToDismiss(it)
                         },
