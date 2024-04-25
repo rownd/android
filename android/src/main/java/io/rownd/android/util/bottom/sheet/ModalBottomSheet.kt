@@ -140,7 +140,7 @@ fun ModalBottomSheet(
     val scope = rememberCoroutineScope()
     val animateToDismiss: () -> Unit = fun() {
         if (sheetState.swipeableState.confirmValueChange(SheetValue.Hidden)) {
-            if (canTouchBackgroundToDismiss) {
+            if (!canTouchBackgroundToDismiss) {
                 scope.launch {
                     val offset = sheetState.offset ?: return@launch
                     sheetState.animateToExact(offset, 4000f)
