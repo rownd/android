@@ -410,6 +410,7 @@ internal fun ModalBottomSheetPopup(
     val id = rememberSaveable { UUID.randomUUID() }
     val parentComposition = rememberCompositionContext()
     val currentContent by rememberUpdatedState(content)
+    @Suppress("RememberReturnType")
     val modalBottomSheetWindow = remember {
         ModalBottomSheetWindow(
             onDismissRequest = onDismissRequest,
