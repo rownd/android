@@ -23,7 +23,7 @@ class KeyTransferBottomSheet : ComposableBottomSheetFragment() {
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     @ExperimentalGetImage
-    override fun Content(bottomSheetState: SheetState, setIsLoading: (isLoading: Boolean) -> Unit, setDynamicHeight: (dynamicHeight: Float) -> Unit, setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit) {
+    override fun Content(bottomSheetState: SheetState, setIsLoading: (isLoading: Boolean) -> Unit, setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit) {
         KeyTransferNavHost(hostController = this)
     }
 
