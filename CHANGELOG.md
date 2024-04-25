@@ -1,5 +1,18 @@
 
 
+# [2.8.0](https://github.com/rownd/android/compare/2.7.0...2.8.0) (2024-04-25)
+
+
+### Bug Fixes
+
+* add mutablestateof to remember { class } ([bff0b27](https://github.com/rownd/android/commit/bff0b27415042236f9df4567e4d2244969e1f6a9))
+
+
+### Features
+
+* add shimmy to bottom sheet ([#48](https://github.com/rownd/android/issues/48)) ([d28e89c](https://github.com/rownd/android/commit/d28e89c7c7910b0ce83e0280d648ae97d546d434))
+* suppress RememberReturnType lint rule ([fef54ea](https://github.com/rownd/android/commit/fef54ea71197125a86096cf30504cd0276ee7c84))
+
 # [2.7.0](https://github.com/rownd/android/compare/2.6.7...2.7.0) (2024-04-11)
 
 ## [2.6.7](https://github.com/rownd/android/compare/2.6.6...2.6.7) (2024-02-12)
