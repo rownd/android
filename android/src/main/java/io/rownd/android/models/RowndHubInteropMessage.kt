@@ -62,6 +62,9 @@ enum class MessageType {
     @SerialName("auth_challenge_cleared")
     AuthChallengeCleared,
 
+    @SerialName("open_email_app")
+    OpenEmailApp,
+
     Unknown
 }
 
@@ -161,6 +164,12 @@ data class EventMessage(
     var payload: RowndEvent
 ) : RowndHubInteropMessage()
 
+@Serializable
+data class OpenEmailAppMessage(
+    override var type: MessageType = MessageType.OpenEmailApp
+) : RowndHubInteropMessage()
+
+
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
         return when (val messageType = element.jsonObject["type"]?.jsonPrimitive?.content) {
@@ -176,6 +185,7 @@ object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<Rownd
             "hub_resize" -> HubResizeMessage.serializer()
             "can_touch_background_to_dismiss" -> CanTouchBackgroundToDismissMessage.serializer()
             "event" -> EventMessage.serializer()
+            "open_email_app" -> OpenEmailAppMessage.serializer()
             else -> throw Error("Key '$messageType' did not match a known serializer.")
         }
     }

@@ -17,6 +17,7 @@ internal object Constants {
     fun getSupportedFeatures(): String {
         val json = Json { encodeDefaults = true }
         val supportedFeatures = listOf(
+            SupportedFeature(name = "openEmailInbox", enabled = "true"),
             SupportedFeature(name = "can_receive_event_messages", enabled = "true")
         )
 

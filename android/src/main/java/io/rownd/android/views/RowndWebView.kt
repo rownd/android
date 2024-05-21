@@ -16,6 +16,7 @@ import android.webkit.URLUtil
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.widget.ProgressBar
+import android.widget.Toast
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.fragment.app.DialogFragment
@@ -49,6 +50,7 @@ import kotlinx.serialization.json.Json
 import org.json.JSONObject
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+
 
 val json = Json { ignoreUnknownKeys = true }
 
@@ -196,9 +198,32 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val url = request.url
+        val urlStr = request.url.toString()
+
+        if (urlStr.startsWith("tel:")) {
+            val telIntent = Intent(Intent.ACTION_DIAL, url).apply {
+                setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            view.context.startActivity(telIntent)
+            return true
+        }
+
+        // Handle special case where we're just opening the default email app (triggered by app message)
+        if (urlStr == "mailto:") {
+            return true
+        }
+
+        // If it's mailto:foo@bar.com (or similar) then start composing
+        if (urlStr.startsWith("mailto:")) {
+            val emailIntent = Intent(Intent.ACTION_VIEW, url).apply {
+                setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            view.context.startActivity(emailIntent)
+        }
+
         return if (shouldOpenInSeparateActivity(url)) {
             view.context?.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse(url.toString()))
+                Intent(Intent.ACTION_VIEW, Uri.parse(urlStr))
             )
             true
         } else {
@@ -398,6 +423,19 @@ class RowndJavascriptInterface constructor(
                 MessageType.Event -> {
                     val event = (interopMessage as EventMessage).payload
                     parentWebView.rowndClient.eventEmitter.emit(event)
+                }
+
+                MessageType.OpenEmailApp -> {
+                    val emailIntent = Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_APP_EMAIL)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    try {
+                        parentWebView.rowndClient.appHandleWrapper?.activity?.get()?.startActivity(emailIntent)
+                    } catch (ex: android.content.ActivityNotFoundException) {
+                        Toast.makeText(parentWebView.rowndClient.appHandleWrapper?.activity?.get(), "No email clients installed.", Toast.LENGTH_SHORT).show()
+                    }
                 }
 
                 else -> {
