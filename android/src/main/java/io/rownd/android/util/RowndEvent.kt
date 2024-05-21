@@ -32,7 +32,10 @@ enum class RowndEventType {
     VerificationStarted,
 
     @SerialName("verification_completed")
-    VerificationCompleted
+    VerificationCompleted,
+
+    @SerialName("auth")
+    Auth
 }
 
 @Serializable

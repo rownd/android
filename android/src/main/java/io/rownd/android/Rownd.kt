@@ -8,7 +8,6 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.DisplayMetrics
@@ -628,7 +627,7 @@ class RowndClient constructor(
         targetPage: HubPageSelector,
         jsFnOptions: RowndSignInOptionsBase? = null
     ) {
-        var isAppConfigLoading = isAppConfigLoadingWithCallback {
+        val isAppConfigLoading = isAppConfigLoadingWithCallback {
             displayHub(targetPage, jsFnOptions)
         }
 
@@ -645,7 +644,14 @@ class RowndClient constructor(
         }
 
         try {
-            val activity = appHandleWrapper?.activity?.get() as FragmentActivity
+            val activity = appHandleWrapper?.activity?.get() as? FragmentActivity
+
+            if (activity == null) {
+                appHandleWrapper?.registerActivityListener(persistentListOf(Lifecycle.State.CREATED), immediate = true, once = true) {
+                    displayHub(targetPage, jsFnOptions)
+                }
+                return
+            }
 
             if (activity.isFinishing) {
                 return
@@ -659,21 +665,21 @@ class RowndClient constructor(
             val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
             bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
             rowndContext.hubView = WeakReference(bottomSheet)
-        } catch (exception: Exception) {
-            Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage")
+        } catch (ex: Exception) {
+            Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage", ex)
         }
     }
 
     internal fun getDeviceSize(context: Context): DisplayMetrics {
         val metrics = DisplayMetrics()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val display = context.display
-            display?.getMetrics(metrics)
-        } else {
-            @Suppress("DEPRECATION")
-            val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            wm.defaultDisplay.getMetrics(metrics)
-        }
+        val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val windowBounds = wm.currentWindowMetrics.bounds
+        metrics.widthPixels = windowBounds.width()
+        metrics.heightPixels = windowBounds.height()
+        metrics.densityDpi = context.resources.configuration.densityDpi
+        metrics.density = metrics.densityDpi / 160f
+        metrics.scaledDensity = context.resources.configuration.fontScale * metrics.density
+
         return metrics
     }
 }
@@ -708,6 +714,10 @@ internal data class RowndSignInJsOptions (
     var userType: RowndSignInUserType? = null,
     @SerialName("sign_in_type")
     var signInType: RowndSignInType? = null,
+    @SerialName("request_id")
+    var challengeId: String? = null,
+    @SerialName("identifier")
+    var userIdentifier: String? = null,
     @SerialName("error_message")
     var errorMessage: String? = null
 ): RowndSignInOptionsBase() {
@@ -771,6 +781,8 @@ enum class RowndSignInType {
 enum class RowndSignInLoginStep {
     @SerialName("init")
     Init,
+    @SerialName("completing")
+    Completing,
     @SerialName("success")
     Success,
     @SerialName("no_account")

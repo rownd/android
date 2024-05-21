@@ -17,8 +17,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.widget.ProgressBar
 import android.widget.Toast
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewCompat
@@ -27,6 +25,7 @@ import io.rownd.android.Rownd
 import io.rownd.android.RowndClient
 import io.rownd.android.RowndSignInHint
 import io.rownd.android.RowndSignInOptionsBase
+import io.rownd.android.models.AuthChallengeInitiatedMessage
 import io.rownd.android.models.AuthenticationMessage
 import io.rownd.android.models.CanTouchBackgroundToDismissMessage
 import io.rownd.android.models.EventMessage
@@ -264,9 +263,13 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
         }
     }
 
-    @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
     override fun onPageFinished(view: WebView, url: String) {
         super.onPageFinished(view, url)
+
+        if (view.progress < 100) {
+            return
+        }
+
         view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.VISUAL_STATE_CALLBACK)) {
@@ -435,6 +438,31 @@ class RowndJavascriptInterface constructor(
                         parentWebView.rowndClient.appHandleWrapper?.activity?.get()?.startActivity(emailIntent)
                     } catch (ex: android.content.ActivityNotFoundException) {
                         Toast.makeText(parentWebView.rowndClient.appHandleWrapper?.activity?.get(), "No email clients installed.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                MessageType.AuthChallengeInitiated -> {
+                    val authChallengeMessage = (interopMessage as AuthChallengeInitiatedMessage)
+                    Rownd.store.dispatch(
+                        StateAction.SetAuth(
+                            AuthState(
+                                challengeId = authChallengeMessage.payload.challengeId,
+                                userIdentifier = authChallengeMessage.payload.userIdentifier
+                            )
+                        )
+                    )
+                }
+
+                MessageType.AuthChallengeCleared -> {
+                    parentWebView.rowndClient.store.currentState.auth.let {
+                        Rownd.store.dispatch(
+                            StateAction.SetAuth(
+                                AuthState(
+                                    accessToken = it.accessToken,
+                                    refreshToken = it.refreshToken,
+                                )
+                            )
+                        )
                     }
                 }
 

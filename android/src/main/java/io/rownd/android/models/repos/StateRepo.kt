@@ -6,6 +6,9 @@ import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
 import androidx.datastore.core.Serializer
 import androidx.datastore.dataStore
+import io.rownd.android.Rownd
+import io.rownd.android.RowndSignInJsOptions
+import io.rownd.android.RowndSignInLoginStep
 import io.rownd.android.models.Action
 import io.rownd.android.models.State
 import io.rownd.android.models.Store
@@ -115,6 +118,20 @@ class StateRepo @Inject constructor() {
             // Fetch latest app config
             appConfigRepo.loadAppConfigAsync(this@StateRepo).await()
 
+            // Check to see if we were handling an existing auth challenge
+            // (maybe the app crashed or got OOM killed)
+            store.currentState.auth.let {
+                if (it.challengeId != null && it.userIdentifier != null) {
+                    Rownd.requestSignIn(
+                        RowndSignInJsOptions (
+                            loginStep = RowndSignInLoginStep.Completing,
+                            challengeId = it.challengeId,
+                            userIdentifier = it.userIdentifier
+                        )
+                    );
+                }
+            }
+
             // Refresh token if needed
             if (store.currentState.auth.isAuthenticated && !store.currentState.auth.isAccessTokenValid) {
                 try {
@@ -129,7 +146,7 @@ class StateRepo @Inject constructor() {
                 userRepo.loadUserAsync().await()
             }
 
-            // Persist all state updates to cache
+            // Persist all state updates to cache when changes occur
             store.stateAsStateFlow().collect {
                 val updatedState = it
                 dataStore.updateData {

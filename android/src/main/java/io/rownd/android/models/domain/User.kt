@@ -5,18 +5,24 @@ import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AnyValueSerializer
 import io.rownd.android.util.Encryption
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import io.rownd.android.models.network.User as NetworkUser
 
 @Serializable
 data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?> = HashMap(),
-    val redacted: MutableList<String> = mutableListOf()
+    val redacted: MutableList<String> = mutableListOf(),
+    val state: String? = "enabled",
+    @SerialName("auth_level")
+    val authLevel: String? = "unverified"
 ) {
     fun asNetworkModel(stateRepo: StateRepo, userRepo: UserRepo): NetworkUser {
         return NetworkUser(
             data = dataAsEncrypted(stateRepo, userRepo),
-            redacted = redacted
+            redacted = redacted,
+            state = state,
+            authLevel = authLevel,
         )
     }
 

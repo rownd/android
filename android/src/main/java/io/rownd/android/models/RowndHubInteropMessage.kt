@@ -169,6 +169,27 @@ data class OpenEmailAppMessage(
     override var type: MessageType = MessageType.OpenEmailApp
 ) : RowndHubInteropMessage()
 
+@Serializable
+data class AuthChallengeInitiatedMessage(
+    override var type: MessageType = MessageType.AuthChallengeInitiated,
+
+    @SerialName("payload")
+    var payload: AuthChallengeInitiatedPayload
+) : RowndHubInteropMessage()
+
+@Serializable
+data class AuthChallengeInitiatedPayload(
+    @SerialName("challenge_id")
+    var challengeId: String,
+
+    @SerialName("user_identifier")
+    var userIdentifier: String
+)
+
+@Serializable
+data class AuthChallengeClearedMessage(
+    override var type: MessageType = MessageType.AuthChallengeCleared
+) : RowndHubInteropMessage()
 
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
@@ -186,6 +207,8 @@ object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<Rownd
             "can_touch_background_to_dismiss" -> CanTouchBackgroundToDismissMessage.serializer()
             "event" -> EventMessage.serializer()
             "open_email_app" -> OpenEmailAppMessage.serializer()
+            "auth_challenge_initiated" -> AuthChallengeInitiatedMessage.serializer()
+            "auth_challenge_cleared" -> AuthChallengeClearedMessage.serializer()
             else -> throw Error("Key '$messageType' did not match a known serializer.")
         }
     }
