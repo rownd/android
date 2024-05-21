@@ -11,14 +11,29 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
-import android.webkit.*
+import android.webkit.JavascriptInterface
+import android.webkit.URLUtil
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
 import android.widget.ProgressBar
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.fragment.app.DialogFragment
-import androidx.webkit.*
-import io.rownd.android.*
-import io.rownd.android.models.*
+import androidx.webkit.WebViewClientCompat
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
+import io.rownd.android.Rownd
+import io.rownd.android.RowndClient
+import io.rownd.android.RowndSignInHint
+import io.rownd.android.RowndSignInOptionsBase
+import io.rownd.android.models.AuthenticationMessage
+import io.rownd.android.models.CanTouchBackgroundToDismissMessage
+import io.rownd.android.models.EventMessage
+import io.rownd.android.models.HubResizeMessage
+import io.rownd.android.models.MessageType
+import io.rownd.android.models.RowndHubInteropMessage
+import io.rownd.android.models.TriggerSignInWithGoogleMessage
+import io.rownd.android.models.UserDataUpdateMessage
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
@@ -31,6 +46,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.json.JSONObject
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -124,14 +140,10 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     }
 }
 
-class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClientCompat() {
-    private val webView: RowndWebView
-    private val context: Context
+class RowndWebViewClient(private val webView: RowndWebView, private val context: Context) : WebViewClientCompat() {
     private var timeout: Boolean = true
 
     init {
-        this.webView = webView
-        this.context = context
 
         CoroutineScope(Dispatchers.IO).launch {
             delay(20000)
@@ -248,6 +260,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
     }
 
     private fun displayTargetPage(view: WebView) {
+        setFeatureFlagJs()
         when ((view as RowndWebView).targetPage) {
             HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
             HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
@@ -257,6 +270,16 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
 
         setIsLoading(false)
+    }
+
+    private fun setFeatureFlagJs() {
+        val supportedFeatureStr = Constants.getSupportedFeatures()
+        val code = """
+            if (rownd?.setSessionStorage) {
+                rownd.setSessionStorage("rph_feature_flags",${JSONObject.quote(supportedFeatureStr)})
+            }
+        """
+        evaluateJavascript(code)
     }
 
     private fun handleScriptReturn(value: String) {
@@ -372,8 +395,9 @@ class RowndJavascriptInterface constructor(
                     setCanTouchBackground(enable != "false")
                 }
 
-                MessageType.HubResize -> {
-                    Log.d("RowndHub", "Message 'hub_resize' isn't supported yet")
+                MessageType.Event -> {
+                    val event = (interopMessage as EventMessage).payload
+                    parentWebView.rowndClient.eventEmitter.emit(event)
                 }
 
                 else -> {

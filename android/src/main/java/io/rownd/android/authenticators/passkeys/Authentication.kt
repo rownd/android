@@ -2,18 +2,33 @@ package io.rownd.android.authenticators.passkeys
 
 import android.app.Activity
 import android.util.Log
-import androidx.credentials.*
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.GetCredentialResponse
+import androidx.credentials.GetPublicKeyCredentialOption
+import androidx.credentials.PublicKeyCredential
 import androidx.credentials.exceptions.GetCredentialException
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.rownd.android.*
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.rownd.android.RowndSignInIntent
+import io.rownd.android.RowndSignInJsOptions
+import io.rownd.android.RowndSignInLoginStep
+import io.rownd.android.RowndSignInType
+import io.rownd.android.RowndSignInUserType
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.network.TokenResponse
 import io.rownd.android.models.repos.StateAction
+import io.rownd.android.util.RowndEvent
+import io.rownd.android.util.RowndEventType
 import io.rownd.android.views.HubPageSelector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import javax.inject.Inject
 
 class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCommon) {
@@ -66,6 +81,16 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                 )
 
                 hubWebView.loadNewPage(targetPage = HubPageSelector.SignIn, jsFnOptions = jsFnOptions)
+
+                passkeys.rowndContext.eventEmitter?.emit(
+                    RowndEvent(
+                        event = RowndEventType.SignInCompleted,
+                        data = buildJsonObject {
+                            put("method", RowndSignInType.Passkey.toString())
+                            put("user_type", RowndSignInUserType.ExistingUser.toString())
+                        }
+                    )
+                )
             } catch (e : Exception) {
                 handleFailure(e)
             }
@@ -115,6 +140,7 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
             else -> {
                 // Catch any unrecognized credential type here.
                 Log.e(TAG, "Unexpected type of credential")
+                handleFailure(Exception("Unexpected type of credential: ${credential.type}"))
             }
         }
     }
@@ -132,5 +158,15 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
         )
 
         hubWebView.loadNewPage(targetPage = HubPageSelector.SignIn, jsFnOptions = jsFnOptions)
+
+        passkeys.rowndContext.eventEmitter?.emit(
+            RowndEvent(
+                event = RowndEventType.SignInFailed,
+                data = buildJsonObject {
+                    put("method", RowndSignInType.Passkey.toString())
+                    put("user_type", reason?.message)
+                }
+            )
+        )
     }
 }

@@ -2,6 +2,7 @@ package io.rownd.android.models
 
 import io.rownd.android.RowndSignInIntent
 import io.rownd.android.models.network.User
+import io.rownd.android.util.RowndEvent
 import kotlinx.serialization.DeserializationStrategy
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -19,28 +20,49 @@ sealed class RowndHubInteropMessage {
 
 @Serializable
 enum class MessageType {
+    @SerialName("authentication")
     authentication,
+
     @SerialName("sign_out")
     signOut,
+
     @SerialName("try_again")
     tryAgain,
+
     @SerialName("trigger_sign_in_with_google")
     triggerSignInWithGoogle,
+
     @SerialName("user_data_update")
     UserDataUpdate,
+
     @SerialName("close_hub_view_controller")
     CloseHubView,
+
     @SerialName("trigger_sign_up_with_passkey")
     CreatePasskey,
+
     @SerialName("trigger_sign_in_with_passkey")
     AuthenticateWithPasskey,
+
     @SerialName("hub_loaded")
     HubLoaded,
+
     @SerialName("hub_resize")
     HubResize,
+
     @SerialName("can_touch_background_to_dismiss")
     CanTouchBackgroundToDismiss,
-    unknown
+
+    @SerialName("event")
+    Event,
+
+    @SerialName("auth_challenge_initiated")
+    AuthChallengeInitiated,
+
+    @SerialName("auth_challenge_cleared")
+    AuthChallengeCleared,
+
+    Unknown
 }
 
 @Serializable
@@ -131,6 +153,14 @@ data class CanTouchBackgroundToDismissPayload(
     var enable: String
 )
 
+@Serializable
+data class EventMessage(
+    override var type: MessageType = MessageType.Event,
+
+    @SerialName("payload")
+    var payload: RowndEvent
+) : RowndHubInteropMessage()
+
 object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<RowndHubInteropMessage>(RowndHubInteropMessage::class) {
     override fun selectDeserializer(element: JsonElement): DeserializationStrategy<out RowndHubInteropMessage> {
         return when (val messageType = element.jsonObject["type"]?.jsonPrimitive?.content) {
@@ -145,6 +175,7 @@ object RowndHubInteropMessageSerializer : JsonContentPolymorphicSerializer<Rownd
             "hub_loaded" -> HubLoaded.serializer()
             "hub_resize" -> HubResizeMessage.serializer()
             "can_touch_background_to_dismiss" -> CanTouchBackgroundToDismissMessage.serializer()
+            "event" -> EventMessage.serializer()
             else -> throw Error("Key '$messageType' did not match a known serializer.")
         }
     }

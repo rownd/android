@@ -23,4 +23,5 @@ class RowndContext @Inject constructor() {
     var authRepo: AuthRepo? = null
     var hubView: WeakReference<ComposableBottomSheetFragment>? = null
     var hubViewModel: RowndWebViewModel? = null
+    var eventEmitter: RowndEventEmitter<RowndEvent>? = null
 }

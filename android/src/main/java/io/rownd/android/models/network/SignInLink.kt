@@ -11,17 +11,24 @@ import android.util.Log
 import android.view.View
 import androidx.core.view.doOnLayout
 import io.rownd.android.Rownd
+import io.rownd.android.RowndSignInType
+import io.rownd.android.RowndSignInUserType
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.ApiClient
 import io.rownd.android.util.Encryption
 import io.rownd.android.util.RequireAccessToken
+import io.rownd.android.util.RowndContext
+import io.rownd.android.util.RowndEvent
+import io.rownd.android.util.RowndEventType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.POST
@@ -56,17 +63,12 @@ interface SignInLinkService {
     suspend fun authenticateWithSignInLink(@Url url: String) : Response<SignInAuthenticationResponse>
 }
 
-class SignInLinkApi @Inject constructor(apiClient: ApiClient) {
+class SignInLinkApi @Inject constructor(var apiClient: ApiClient) {
     @Inject lateinit var userRepo: UserRepo
-
-    var apiClient: ApiClient
+    @Inject lateinit var rowndContext: RowndContext
 
     internal val client: SignInLinkService by lazy {
         apiClient.client.get().create(SignInLinkService::class.java)
-    }
-
-    init {
-        this.apiClient = apiClient
     }
 
     internal suspend fun signInWithLink(url: String) {
@@ -106,6 +108,17 @@ class SignInLinkApi @Inject constructor(apiClient: ApiClient) {
                     )
                 )
             )
+
+            rowndContext.eventEmitter?.emit(
+                RowndEvent(
+                    event = RowndEventType.SignInCompleted,
+                    data = buildJsonObject {
+                        put("method", RowndSignInType.SignInLink.toString())
+                        put("user_type", RowndSignInUserType.ExistingUser.toString())
+                    }
+                )
+            )
+
             userRepo.loadUserAsync().await()
         } catch (err: Exception) {
             Log.e("Rownd.SignInLink", "Exception thrown during auto sign-in attempt:", err)

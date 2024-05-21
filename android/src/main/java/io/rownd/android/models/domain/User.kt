@@ -10,7 +10,7 @@ import io.rownd.android.models.network.User as NetworkUser
 
 @Serializable
 data class User(
-    val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?> = HashMap<String, Any?>(),
+    val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?> = HashMap(),
     val redacted: MutableList<String> = mutableListOf()
 ) {
     fun asNetworkModel(stateRepo: StateRepo, userRepo: UserRepo): NetworkUser {
