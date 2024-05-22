@@ -3,14 +3,25 @@ package io.rownd.rowndtestsandbox
 import android.os.Bundle
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import androidx.compose.foundation.layout.*
-import androidx.compose.material.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Button
+import androidx.compose.material.ExperimentalMaterialApi
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.ModalBottomSheetLayout
+import androidx.compose.material.ModalBottomSheetValue
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import androidx.compose.material.TextField
+import androidx.compose.material.primarySurface
+import androidx.compose.material.rememberModalBottomSheetState
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -21,7 +32,6 @@ import io.rownd.android.Rownd
 import io.rownd.android.RowndConnectAuthenticatorHint
 import io.rownd.android.RowndSignInHint
 import io.rownd.android.RowndSignInOptions
-import io.rownd.android.util.Encryption
 import io.rownd.rowndtestsandbox.databinding.ActivityMainBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -92,9 +102,9 @@ class MainActivity : AppCompatActivity() {
                             modifier = Modifier.fillMaxWidth()
                                 .padding(vertical = Dp(5F)),
                             onClick = {
-                                val keyId = Rownd.userRepo.getKeyId(state.value.user)
-                                Encryption.deleteKey(keyId)
-                                Encryption.storeKey(encKeyState.value, keyId)
+//                                val keyId = Rownd.userRepo.getKeyId(state.value.user)
+//                                Encryption.deleteKey(keyId)
+//                                Encryption.storeKey(encKeyState.value, keyId)
                             }
                         ) {
                             Text("Save key")

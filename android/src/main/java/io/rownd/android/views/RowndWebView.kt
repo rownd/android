@@ -11,14 +11,29 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.KeyEvent
 import android.view.View
-import android.webkit.*
+import android.webkit.JavascriptInterface
+import android.webkit.URLUtil
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
 import android.widget.ProgressBar
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.ExperimentalMaterial3Api
+import android.widget.Toast
 import androidx.fragment.app.DialogFragment
-import androidx.webkit.*
-import io.rownd.android.*
-import io.rownd.android.models.*
+import androidx.webkit.WebViewClientCompat
+import androidx.webkit.WebViewCompat
+import androidx.webkit.WebViewFeature
+import io.rownd.android.Rownd
+import io.rownd.android.RowndClient
+import io.rownd.android.RowndSignInHint
+import io.rownd.android.RowndSignInOptionsBase
+import io.rownd.android.models.AuthChallengeInitiatedMessage
+import io.rownd.android.models.AuthenticationMessage
+import io.rownd.android.models.CanTouchBackgroundToDismissMessage
+import io.rownd.android.models.EventMessage
+import io.rownd.android.models.HubResizeMessage
+import io.rownd.android.models.MessageType
+import io.rownd.android.models.RowndHubInteropMessage
+import io.rownd.android.models.TriggerSignInWithGoogleMessage
+import io.rownd.android.models.UserDataUpdateMessage
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
@@ -31,8 +46,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.json.JSONObject
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+
 
 val json = Json { ignoreUnknownKeys = true }
 
@@ -124,14 +141,10 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     }
 }
 
-class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClientCompat() {
-    private val webView: RowndWebView
-    private val context: Context
+class RowndWebViewClient(private val webView: RowndWebView, private val context: Context) : WebViewClientCompat() {
     private var timeout: Boolean = true
 
     init {
-        this.webView = webView
-        this.context = context
 
         CoroutineScope(Dispatchers.IO).launch {
             delay(20000)
@@ -184,9 +197,32 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
 
     override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
         val url = request.url
+        val urlStr = request.url.toString()
+
+        if (urlStr.startsWith("tel:")) {
+            val telIntent = Intent(Intent.ACTION_DIAL, url).apply {
+                setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            view.context.startActivity(telIntent)
+            return true
+        }
+
+        // Handle special case where we're just opening the default email app (triggered by app message)
+        if (urlStr == "mailto:") {
+            return true
+        }
+
+        // If it's mailto:foo@bar.com (or similar) then start composing
+        if (urlStr.startsWith("mailto:")) {
+            val emailIntent = Intent(Intent.ACTION_VIEW, url).apply {
+                setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            view.context.startActivity(emailIntent)
+        }
+
         return if (shouldOpenInSeparateActivity(url)) {
             view.context?.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse(url.toString()))
+                Intent(Intent.ACTION_VIEW, Uri.parse(urlStr))
             )
             true
         } else {
@@ -227,9 +263,13 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
     }
 
-    @OptIn(ExperimentalMaterialApi::class, ExperimentalMaterial3Api::class)
     override fun onPageFinished(view: WebView, url: String) {
         super.onPageFinished(view, url)
+
+        if (view.progress < 100) {
+            return
+        }
+
         view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.VISUAL_STATE_CALLBACK)) {
@@ -248,6 +288,7 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
     }
 
     private fun displayTargetPage(view: WebView) {
+        setFeatureFlagJs()
         when ((view as RowndWebView).targetPage) {
             HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
             HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
@@ -257,6 +298,16 @@ class RowndWebViewClient(webView: RowndWebView, context: Context) : WebViewClien
         }
 
         setIsLoading(false)
+    }
+
+    private fun setFeatureFlagJs() {
+        val supportedFeatureStr = Constants.getSupportedFeatures()
+        val code = """
+            if (rownd?.setSessionStorage) {
+                rownd.setSessionStorage("rph_feature_flags",${JSONObject.quote(supportedFeatureStr)})
+            }
+        """
+        evaluateJavascript(code)
     }
 
     private fun handleScriptReturn(value: String) {
@@ -372,8 +423,47 @@ class RowndJavascriptInterface constructor(
                     setCanTouchBackground(enable != "false")
                 }
 
-                MessageType.HubResize -> {
-                    Log.d("RowndHub", "Message 'hub_resize' isn't supported yet")
+                MessageType.Event -> {
+                    val event = (interopMessage as EventMessage).payload
+                    parentWebView.rowndClient.eventEmitter.emit(event)
+                }
+
+                MessageType.OpenEmailApp -> {
+                    val emailIntent = Intent(Intent.ACTION_MAIN).apply {
+                        addCategory(Intent.CATEGORY_APP_EMAIL)
+                        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    }
+
+                    try {
+                        parentWebView.rowndClient.appHandleWrapper?.activity?.get()?.startActivity(emailIntent)
+                    } catch (ex: android.content.ActivityNotFoundException) {
+                        Toast.makeText(parentWebView.rowndClient.appHandleWrapper?.activity?.get(), "No email clients installed.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                MessageType.AuthChallengeInitiated -> {
+                    val authChallengeMessage = (interopMessage as AuthChallengeInitiatedMessage)
+                    Rownd.store.dispatch(
+                        StateAction.SetAuth(
+                            AuthState(
+                                challengeId = authChallengeMessage.payload.challengeId,
+                                userIdentifier = authChallengeMessage.payload.userIdentifier
+                            )
+                        )
+                    )
+                }
+
+                MessageType.AuthChallengeCleared -> {
+                    parentWebView.rowndClient.store.currentState.auth.let {
+                        Rownd.store.dispatch(
+                            StateAction.SetAuth(
+                                AuthState(
+                                    accessToken = it.accessToken,
+                                    refreshToken = it.refreshToken,
+                                )
+                            )
+                        )
+                    }
                 }
 
                 else -> {

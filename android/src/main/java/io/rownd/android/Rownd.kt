@@ -8,7 +8,6 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.DisplayMetrics
@@ -37,10 +36,9 @@ import com.google.android.gms.common.api.CommonStatusCodes
 import com.google.android.gms.tasks.Task
 import com.lyft.kronos.AndroidClockFactory
 import dagger.Component
-import io.ktor.client.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.auth.*
-import io.ktor.client.plugins.auth.providers.*
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerAuthProvider
+import io.ktor.client.plugins.plugin
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
@@ -49,8 +47,20 @@ import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.SignInLinkApi
-import io.rownd.android.models.repos.*
-import io.rownd.android.util.*
+import io.rownd.android.models.repos.AuthRepo
+import io.rownd.android.models.repos.GlobalState
+import io.rownd.android.models.repos.SignInRepo
+import io.rownd.android.models.repos.StateAction
+import io.rownd.android.models.repos.StateRepo
+import io.rownd.android.models.repos.UserRepo
+import io.rownd.android.models.repos.dataStore
+import io.rownd.android.util.ApiClientModule
+import io.rownd.android.util.AppLifecycleListener
+import io.rownd.android.util.RowndContext
+import io.rownd.android.util.RowndEvent
+import io.rownd.android.util.RowndEventEmitter
+import io.rownd.android.util.RowndEventType
+import io.rownd.android.util.RowndException
 import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndWebViewModel
@@ -61,8 +71,12 @@ import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
-import kotlinx.serialization.*
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
 import java.lang.ref.WeakReference
 import javax.inject.Singleton
 
@@ -80,6 +94,7 @@ interface RowndGraph {
     fun signInLinkApi(): SignInLinkApi
     fun rowndContext(): RowndContext
     fun passkeyAuthenticator(): PasskeysCommon
+    fun rowndEventEmitter(): RowndEventEmitter<RowndEvent>
     fun inject(rowndConfig: RowndConfig)
 }
 
@@ -92,14 +107,15 @@ class RowndClient constructor(
 
     internal lateinit var store: Store<GlobalState, StateAction>
 
-    var stateRepo: StateRepo = graph.stateRepo()
-    var userRepo: UserRepo = graph.userRepo()
-    var authRepo: AuthRepo = graph.authRepo()
-    var signInRepo: SignInRepo = graph.signInRepo()
-    var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
-    var rowndContext = graph.rowndContext()
-    var passkeyAuthenticator = graph.passkeyAuthenticator()
-    var connectionAction = graph.connectionAction()
+    internal var stateRepo: StateRepo = graph.stateRepo()
+    internal var userRepo: UserRepo = graph.userRepo()
+    internal var authRepo: AuthRepo = graph.authRepo()
+    internal var signInRepo: SignInRepo = graph.signInRepo()
+    internal var signInLinkApi: SignInLinkApi = graph.signInLinkApi()
+    internal var rowndContext = graph.rowndContext()
+    internal var passkeyAuthenticator = graph.passkeyAuthenticator()
+    internal var connectionAction = graph.connectionAction()
+    internal var eventEmitter = graph.rowndEventEmitter()
 
     var state = stateRepo.state
     private var intentLaunchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
@@ -115,6 +131,7 @@ class RowndClient constructor(
         rowndContext.client = this
         rowndContext.authRepo = authRepo
         rowndContext.store = stateRepo.getStore()
+        rowndContext.eventEmitter = eventEmitter
         stateRepo.userRepo = userRepo
         stateRepo.authRepo = authRepo
     }
@@ -285,7 +302,7 @@ class RowndClient constructor(
     }
 
     private fun isOneTapRequestedAndNotDisplayedYet(): Boolean {
-        var google = state.value.appConfig.config.hub.auth.signInMethods.google
+        val google = state.value.appConfig.config.hub.auth.signInMethods.google
         return google.enabled && google.oneTap.mobileApp.autoPrompt && google.oneTap.mobileApp.delay == 0 && !hasDisplayedOneTap
     }
 
@@ -307,7 +324,7 @@ class RowndClient constructor(
     }
 
     fun requestSignIn(with: RowndSignInHint, signInOptions: RowndSignInOptions) {
-        var isAppConfigLoading = isAppConfigLoadingWithCallback {
+        val isAppConfigLoading = isAppConfigLoadingWithCallback {
             requestSignIn(with, signInOptions)
         }
 
@@ -337,6 +354,7 @@ class RowndClient constructor(
         }
     }
 
+    @Suppress("unused")
     fun requestSignIn() {
         displayHub(HubPageSelector.SignIn)
     }
@@ -378,6 +396,16 @@ class RowndClient constructor(
         fun getIdToken(): Deferred<String?> {
             return connectionAction.getFirebaseIdToken()
         }
+    }
+
+    @Suppress("unused")
+    fun addEventListener(observer: (RowndEvent) -> Unit) {
+        eventEmitter.addListener(observer)
+    }
+
+    @Suppress("unused")
+    fun removeEventListener(observer: (RowndEvent) -> Unit) {
+        eventEmitter.removeListener(observer)
     }
 
     private fun determineSignInOptions(signInOptions: RowndSignInOptions) :RowndSignInOptions {
@@ -461,12 +489,31 @@ class RowndClient constructor(
             if (account.idToken == "") {
                 Log.w("Rownd", "Google sign-in failed: missing idToken")
             } else {
-                account.idToken?.let { idToken -> authRepo.getAccessToken(idToken, intent = googleSignInIntent, type = AuthRepo.AccessTokenType.google ) }
+                account.idToken?.let { idToken ->
+                    val tokenResp = authRepo.getAccessToken(idToken, intent = googleSignInIntent, type = AuthRepo.AccessTokenType.google)
+
+                    tokenResp?.let {
+                        eventEmitter.emit(RowndEvent(
+                            event = RowndEventType.SignInCompleted,
+                            data = buildJsonObject {
+                                put("method", RowndSignInType.Google.toString())
+                                put("user_type", it.userType.toString())
+                            }
+                        ))
+                    }
+                }
             }
         } catch (e: ApiException) {
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
             Log.w("Rownd", "Google sign-in failed: code=" + e.statusCode)
+            eventEmitter.emit(RowndEvent(
+                event = RowndEventType.SignInFailed,
+                data = buildJsonObject {
+                    put("method", RowndSignInType.Google.toString())
+                    put("error", e.message)
+                }
+            ))
         }
     }
 
@@ -558,7 +605,7 @@ class RowndClient constructor(
     }
 
     suspend fun getAccessToken(idToken: String): String? {
-        return authRepo.getAccessToken(idToken)
+        return authRepo.getAccessToken(idToken)?.accessToken
     }
 
     suspend fun _refreshToken(): String? {
@@ -580,7 +627,7 @@ class RowndClient constructor(
         targetPage: HubPageSelector,
         jsFnOptions: RowndSignInOptionsBase? = null
     ) {
-        var isAppConfigLoading = isAppConfigLoadingWithCallback {
+        val isAppConfigLoading = isAppConfigLoadingWithCallback {
             displayHub(targetPage, jsFnOptions)
         }
 
@@ -597,7 +644,14 @@ class RowndClient constructor(
         }
 
         try {
-            val activity = appHandleWrapper?.activity?.get() as FragmentActivity
+            val activity = appHandleWrapper?.activity?.get() as? FragmentActivity
+
+            if (activity == null) {
+                appHandleWrapper?.registerActivityListener(persistentListOf(Lifecycle.State.CREATED), immediate = true, once = true) {
+                    displayHub(targetPage, jsFnOptions)
+                }
+                return
+            }
 
             if (activity.isFinishing) {
                 return
@@ -611,21 +665,21 @@ class RowndClient constructor(
             val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
             bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
             rowndContext.hubView = WeakReference(bottomSheet)
-        } catch (exception: Exception) {
-            Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage")
+        } catch (ex: Exception) {
+            Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage", ex)
         }
     }
 
     internal fun getDeviceSize(context: Context): DisplayMetrics {
         val metrics = DisplayMetrics()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            val display = context.display
-            display?.getMetrics(metrics)
-        } else {
-            @Suppress("DEPRECATION")
-            val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            wm.defaultDisplay.getMetrics(metrics)
-        }
+        val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        val windowBounds = wm.currentWindowMetrics.bounds
+        metrics.widthPixels = windowBounds.width()
+        metrics.heightPixels = windowBounds.height()
+        metrics.densityDpi = context.resources.configuration.densityDpi
+        metrics.density = metrics.densityDpi / 160f
+        metrics.scaledDensity = context.resources.configuration.fontScale * metrics.density
+
         return metrics
     }
 }
@@ -660,6 +714,10 @@ internal data class RowndSignInJsOptions (
     var userType: RowndSignInUserType? = null,
     @SerialName("sign_in_type")
     var signInType: RowndSignInType? = null,
+    @SerialName("request_id")
+    var challengeId: String? = null,
+    @SerialName("identifier")
+    var userIdentifier: String? = null,
     @SerialName("error_message")
     var errorMessage: String? = null
 ): RowndSignInOptionsBase() {
@@ -699,14 +757,32 @@ enum class RowndSignInUserType {
 enum class RowndSignInType {
     @SerialName("passkey")
     Passkey,
+
     @SerialName("anonymous")
-    Anonymous
+    Anonymous,
+
+    @SerialName("google")
+    Google,
+
+    @SerialName("apple")
+    Apple,
+
+    @SerialName("sign_in_link")
+    SignInLink,
+
+    @SerialName("email")
+    Email,
+
+    @SerialName("phone")
+    Phone,
 }
 
 @Serializable
 enum class RowndSignInLoginStep {
     @SerialName("init")
     Init,
+    @SerialName("completing")
+    Completing,
     @SerialName("success")
     Success,
     @SerialName("no_account")

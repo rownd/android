@@ -8,6 +8,7 @@ import io.rownd.android.util.AnyValueSerializer
 import io.rownd.android.util.ApiClient
 import io.rownd.android.util.Encryption
 import io.rownd.android.util.RequireAccessToken
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -19,7 +20,10 @@ import io.rownd.android.models.domain.User as DomainUser
 @Serializable
 data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?>,
-    val redacted: List<String> = listOf()
+    val redacted: List<String> = listOf(),
+    val state: String?,
+    @SerialName("auth_level")
+    val authLevel: String?
 ) {
     fun asDomainModel(stateRepo: StateRepo, userRepo: UserRepo): DomainUser {
         return DomainUser(

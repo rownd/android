@@ -21,6 +21,8 @@ data class AuthState @OptIn(ExperimentalSerializationApi::class) constructor(
     @JsonNames("refreshToken")
     val refreshToken: String? = null,
     val isVerifiedUser: Boolean = false,
+    val challengeId: String? = null,
+    val userIdentifier: String? = null,
 
     @Transient
     val isAuthenticated: Boolean = accessToken != null

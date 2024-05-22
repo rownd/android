@@ -45,6 +45,10 @@ class RowndTestSandbox: Application() {
         Rownd.config.customizations = AppCustomizations(this)
         Rownd.config.customizations.sheetBackgroundColor = Color(red = 50, green = 50, blue = 50)
         Rownd.config.appleIdCallbackUrl = "https://api.us-east-2.dev.rownd.io/hub/auth/apple/callback"
+
+        Rownd.addEventListener {
+            Log.d("App", it.toString())
+        }
     }
 
     companion object {

@@ -15,6 +15,7 @@ enum class ContextType {
 
 data class Listener(
     val states: PersistentList<State>,
+    val once: Boolean? = false,
     val callback: (activity: Activity) -> Unit
 )
 
@@ -43,9 +44,7 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
             it.states.contains(State.CREATED)
         }
 
-        for (listener in listeners) {
-            listener.callback.invoke(activity)
-        }
+        callListeners(listeners, activity)
     }
 
     override fun onActivityStarted(activity: Activity) {
@@ -54,9 +53,8 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         val listeners = activityListeners.filter() {
             it.states.contains(State.STARTED)
         }
-        for (listener in listeners) {
-            listener.callback.invoke(activity)
-        }
+
+        callListeners(listeners, activity)
     }
 
     override fun onActivityResumed(activity: Activity) {
@@ -68,9 +66,8 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         val listeners = activityListeners.filter() {
             it.states.contains(State.RESUMED)
         }
-        for (listener in listeners) {
-            listener.callback.invoke(activity)
-        }
+
+        callListeners(listeners, activity)
     }
 
     override fun onActivityPreCreated(activity: Activity, savedInstanceState: Bundle?) {
@@ -79,9 +76,8 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         val listeners = activityListeners.filter() {
             it.states.contains(State.INITIALIZED)
         }
-        for (listener in listeners) {
-            listener.callback.invoke(activity)
-        }
+
+        callListeners(listeners, activity)
     }
 
     override fun onActivityPaused(activity: Activity) {
@@ -93,20 +89,21 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         val listeners = activityListeners.filter() {
             it.states.contains(State.DESTROYED)
         }
-        for (listener in listeners) {
-            listener.callback.invoke(activity)
-        }
+
+        callListeners(listeners, activity)
     }
 
     internal fun registerActivityListener(
         states: PersistentList<State>,
         immediate: Boolean = false,
         immediateIfBefore: State? = null,
+        once: Boolean? = false,
         callback: (activity: Activity) -> Unit
     ) {
         val activity = this.activity?.get() as FragmentActivity?
         activityListeners.add(Listener(
             states,
+            once,
             callback
         ))
 
@@ -117,6 +114,15 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
             callback.invoke(activity)
         } else if (immediate && activity != null) {
             callback.invoke(activity)
+        }
+    }
+
+    private fun callListeners(listeners: List<Listener>, activity: Activity) {
+        for (listener in listeners) {
+            listener.callback.invoke(activity)
+            if (listener.once == true) {
+                activityListeners.remove(listener)
+            }
         }
     }
 

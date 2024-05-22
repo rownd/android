@@ -5,14 +5,17 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.lifecycle.ViewModelProvider
 import io.rownd.android.databinding.HubViewLayoutBinding
+import io.rownd.android.util.bottom.sheet.SheetState
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
-
-import io.rownd.android.util.bottom.sheet.*
 
 enum class HubBottomSheetBundleKeys(val key: String) {
     TargetPage("target_page")
@@ -49,7 +52,9 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
         val jsFnArgsAsJson = bundle?.getString(JS_FN_OPTIONS)
         val coroutineScope = rememberCoroutineScope()
 
-        Log.d("HubComposableBottomSheet", "jsFnArgsAsJson: $jsFnArgsAsJson")
+        LaunchedEffect(jsFnArgsAsJson) {
+            Log.d("HubComposableBottomSheet", "jsFnArgsAsJson: $jsFnArgsAsJson")
+        }
 
         val (hasLoadedUrl, setHasLoadedUrl) = remember { mutableStateOf(false) }
 

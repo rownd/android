@@ -10,7 +10,7 @@ val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 internal data class APIError(
-    var error: String,
+    var error: String?,
     var message: String,
     var messages: List<String>? = null
 )
