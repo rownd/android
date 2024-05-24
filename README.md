@@ -145,7 +145,7 @@ class MyActivity : AppCompatActivity() {
 
 ```
 
-### Using state in a Composable
+### Using state in a Jetpack Composable
 
 ```kotlin
 // some_activity_or_component.kt
@@ -258,6 +258,93 @@ class MyApplication: Application() {
     }
 }
 ```
+
+### Events
+The Rownd SDK emits lifecycle events that you can listen to within your app. These events are primarily useful for detecting more granular aspects of a user's session (e.g., starting to sign in, completing sign-in, updated profile, etc.).
+
+To listen to events, pass a function or closure that accepts a `RowndEvent` object to `Rownd.addEventListener()`. It might look something like this:
+```kotlin
+class MyApp: Application() {
+
+    override fun onCreate() {
+        super.onCreate()
+
+        Rownd.addEventListener {
+            when (it.event) {
+                RowndEventType.SignInStarted -> {
+                    // Do stuff
+                }
+                RowndEventType.SignInCompleted -> {
+                    it.data?.get("user_type")?.let { it1 -> Log.d("App", it1.toString()) }
+                }
+
+                else -> {
+                    // no-op
+                }
+            }
+        }
+    }
+}
+```
+
+This registers the event listener with the Rownd SDK. You can also unregister the listener by calling `Rownd.removeEventListener()` with the same function or closure if you assign it to a variable.
+
+Once the event handler is registered, it will receive events as they occur. The `RowndEvent` object contains the event type and any associated data. The event types are defined in the `RowndEventType` enum.
+
+> NOTE: You'll need `implementation "org.jetbrains.kotlinx:kotlinx-serialization-json"` listed as a dependency in your `build.gradle` file in order to access the `data` `JsonObject` in the `RowndEvent` object.
+
+#### List of events
+Here's a list of events that the Rownd SDK emits and the corresponding data that should be present in the event data dictionary. Remember to write your code defensively, as the data dictionary may be missing keys in some cases.
+
+<table>
+<tr>
+<th>Event</th>
+<th>Type</th>
+<th>Payload</th>
+</tr>
+<tr>
+<td>User started signing in</td>
+<td>RowndEventType.SignInStarted</td>
+<td>
+
+```javascript
+{
+	method: "google" | "apple" | "phone" | "email" | "passkey" | etc
+}
+```
+
+</td>
+</tr>
+
+<tr>
+<td>User signed in successfully</td>
+<td>RowndEventType.SignInCompleted</td>
+<td>
+
+```javascript
+{
+	method: "google" | "apple" | "phone" | "email" | "passkey" | etc,
+	user_type: "new_user" | "existing_user"
+}
+```
+
+</td>
+</tr>
+
+<tr>
+<td>User sign in failed</td>
+<td>RowndEventType.SignInFailed</td>
+<td>
+
+```javascript
+{
+	reason: string
+}
+```
+
+</td>
+</tr>
+</table>
 
 ## API reference
 

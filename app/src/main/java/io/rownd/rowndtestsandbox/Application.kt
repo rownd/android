@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import io.rownd.android.Rownd
 import io.rownd.android.models.RowndCustomizations
+import io.rownd.android.util.RowndEventType
 
 
 class AppCustomizations(app: Application) : RowndCustomizations() {
@@ -47,7 +48,18 @@ class RowndTestSandbox: Application() {
         Rownd.config.appleIdCallbackUrl = "https://api.us-east-2.dev.rownd.io/hub/auth/apple/callback"
 
         Rownd.addEventListener {
-            Log.d("App", it.toString())
+            when (it.event) {
+                RowndEventType.SignInStarted -> {
+                    // Do stuff
+                }
+                RowndEventType.SignInCompleted -> {
+                    it.data?.get("user_type")?.let { it1 -> Log.d("App", it1.toString()) }
+                }
+
+                else -> {
+                    // no-op
+                }
+            }
         }
     }
 
