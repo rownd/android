@@ -1,5 +1,17 @@
 
 
+# [2.9.0](https://github.com/rownd/android/compare/2.8.0...2.9.0) (2024-05-25)
+
+
+### Bug Fixes
+
+* **build:** support for android api 26+ ([87d8e6c](https://github.com/rownd/android/commit/87d8e6c176528cca2ff6b519050b7abcd7cc85e0))
+
+
+### Features
+
+* **events:** emit events that occur during the auth lifecycle ([#50](https://github.com/rownd/android/issues/50)) ([4fa8b89](https://github.com/rownd/android/commit/4fa8b89ebfb8347a75345c41d8d61863f12ce209))
+
 # [2.8.0](https://github.com/rownd/android/compare/2.7.0...2.8.0) (2024-04-25)
 
 
