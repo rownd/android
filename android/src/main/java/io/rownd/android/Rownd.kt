@@ -8,6 +8,7 @@ import android.app.Application
 import android.content.Context
 import android.content.Intent
 import android.content.IntentSender
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.DisplayMetrics
@@ -673,12 +674,16 @@ class RowndClient constructor(
     internal fun getDeviceSize(context: Context): DisplayMetrics {
         val metrics = DisplayMetrics()
         val wm = context.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        val windowBounds = wm.currentWindowMetrics.bounds
-        metrics.widthPixels = windowBounds.width()
-        metrics.heightPixels = windowBounds.height()
-        metrics.densityDpi = context.resources.configuration.densityDpi
-        metrics.density = metrics.densityDpi / 160f
-        metrics.scaledDensity = context.resources.configuration.fontScale * metrics.density
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val windowBounds = wm.currentWindowMetrics.bounds
+            metrics.widthPixels = windowBounds.width()
+            metrics.heightPixels = windowBounds.height()
+            metrics.densityDpi = context.resources.configuration.densityDpi
+            metrics.density = metrics.densityDpi / 160f
+            metrics.scaledDensity = context.resources.configuration.fontScale * metrics.density
+        } else {
+            wm.defaultDisplay.getMetrics(metrics)
+        }
 
         return metrics
     }
