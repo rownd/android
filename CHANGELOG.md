@@ -1,5 +1,12 @@
 
 
+## [2.9.1](https://github.com/rownd/android/compare/2.9.0...2.9.1) (2024-05-30)
+
+
+### Bug Fixes
+
+* **events:** bad event names and user types in serialization ([8e5a090](https://github.com/rownd/android/commit/8e5a090c1a9634cd8ee4c04960f1dc413b7b071b))
+
 # [2.9.0](https://github.com/rownd/android/compare/2.8.0...2.9.0) (2024-05-25)
 
 
