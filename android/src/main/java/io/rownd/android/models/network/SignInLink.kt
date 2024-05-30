@@ -113,8 +113,8 @@ class SignInLinkApi @Inject constructor(var apiClient: ApiClient) {
                 RowndEvent(
                     event = RowndEventType.SignInCompleted,
                     data = buildJsonObject {
-                        put("method", RowndSignInType.SignInLink.toString())
-                        put("user_type", RowndSignInUserType.ExistingUser.toString())
+                        put("method", RowndSignInType.SignInLink.value)
+                        put("user_type", RowndSignInUserType.ExistingUser.value)
                     }
                 )
             )

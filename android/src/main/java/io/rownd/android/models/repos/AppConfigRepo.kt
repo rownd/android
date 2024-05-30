@@ -22,7 +22,7 @@ class AppConfigRepo @Inject constructor() {
                     stateRepo.getStore().dispatch(StateAction.SetAppConfig(it.app.asDomainModel()))
                 }
                 .onFailure {
-                    Log.e("Rownd", "Oh no! Request failed! ${it.message}")
+                    Log.e("Rownd", "Failed to load Rownd app config. This probably means you specified an invalid app key. ${it.message}", it)
                 }
 
             return@async result.getOrNull()?.app?.asDomainModel()

@@ -86,8 +86,8 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                     RowndEvent(
                         event = RowndEventType.SignInCompleted,
                         data = buildJsonObject {
-                            put("method", RowndSignInType.Passkey.toString())
-                            put("user_type", RowndSignInUserType.ExistingUser.toString())
+                            put("method", RowndSignInType.Passkey.value)
+                            put("user_type", RowndSignInUserType.ExistingUser.value)
                         }
                     )
                 )

@@ -497,8 +497,8 @@ class RowndClient constructor(
                         eventEmitter.emit(RowndEvent(
                             event = RowndEventType.SignInCompleted,
                             data = buildJsonObject {
-                                put("method", RowndSignInType.Google.toString())
-                                put("user_type", it.userType.toString())
+                                put("method", RowndSignInType.Google.value)
+                                put("user_type", it.userType?.value)
                             }
                         ))
                     }
@@ -511,7 +511,7 @@ class RowndClient constructor(
             eventEmitter.emit(RowndEvent(
                 event = RowndEventType.SignInFailed,
                 data = buildJsonObject {
-                    put("method", RowndSignInType.Google.toString())
+                    put("method", RowndSignInType.Google.value)
                     put("error", e.message)
                 }
             ))
@@ -751,35 +751,35 @@ enum class RowndSignInIntent {
 }
 
 @Serializable
-enum class RowndSignInUserType {
+enum class RowndSignInUserType(var value: String) {
     @SerialName("new_user")
-    NewUser,
+    NewUser("new_user"),
     @SerialName("existing_user")
-    ExistingUser,
+    ExistingUser("existing_user"),
 }
 
 @Serializable
-enum class RowndSignInType {
+enum class RowndSignInType(var value: String) {
     @SerialName("passkey")
-    Passkey,
+    Passkey("passkey"),
 
     @SerialName("anonymous")
-    Anonymous,
+    Anonymous("anonymous"),
 
     @SerialName("google")
-    Google,
+    Google("google"),
 
     @SerialName("apple")
-    Apple,
+    Apple("apple"),
 
     @SerialName("sign_in_link")
-    SignInLink,
+    SignInLink("sign_in_link"),
 
     @SerialName("email")
-    Email,
+    Email("email"),
 
     @SerialName("phone")
-    Phone,
+    Phone("phone"),
 }
 
 @Serializable

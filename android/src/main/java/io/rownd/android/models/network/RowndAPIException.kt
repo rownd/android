@@ -10,7 +10,7 @@ val json = Json { ignoreUnknownKeys = true }
 
 @Serializable
 internal data class APIError(
-    var error: String?,
+    var error: String? = null,
     var message: String,
     var messages: List<String>? = null
 )
@@ -28,7 +28,7 @@ class RowndAPIException(response: Response<*>) : HttpException(response) {
             message = message()
         } catch(e: Exception) {
             message = response.message()
-            Log.w("RowndApi", "Failed to decode error: ${e.message}")
+            Log.w("RowndApi", "Failed to decode error: ${e.message}", e)
         }
     }
 
