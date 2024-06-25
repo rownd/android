@@ -1,5 +1,12 @@
 
 
+# [2.10.0](https://github.com/rownd/android/compare/2.9.1...2.10.0) (2024-06-25)
+
+
+### Features
+
+* add is loading param for user domain state ([#51](https://github.com/rownd/android/issues/51)) ([9356b7b](https://github.com/rownd/android/commit/9356b7b64c6d462ec96f7f72bd75018edbfb2d15))
+
 ## [2.9.1](https://github.com/rownd/android/compare/2.9.0...2.9.1) (2024-05-30)
 
 
