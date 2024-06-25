@@ -77,6 +77,7 @@ sealed class StateAction : Action {
     data class SetSignIn(val value: SignInState): StateAction()
     data class SetAppConfig(val value: AppConfigState) : StateAction()
     data class SetUser(val value: User) : StateAction()
+    data class SetUserIsLoading(val value: Boolean) : StateAction()
 }
 
 @Singleton
@@ -97,6 +98,7 @@ class StateRepo @Inject constructor() {
             is StateAction.SetSignIn -> state.copy(signIn = action.value)
             is StateAction.SetAppConfig -> state.copy(appConfig = action.value)
             is StateAction.SetUser -> state.copy(user = action.value)
+            is StateAction.SetUserIsLoading -> state.copy(user = state.user.copy(isLoading = action.value))
             is StateAction.SetGlobalState -> action.value
         }
     }

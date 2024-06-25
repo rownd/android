@@ -20,7 +20,7 @@ data class SignInState @OptIn(ExperimentalSerializationApi::class) constructor(
 ) {
 
     internal fun toSignInInitHash(): String {
-        var activeAccounts = mutableListOf<ActiveAccount>();
+        val activeAccounts = mutableListOf<ActiveAccount>();
         for (account in Rownd.getActiveGmailAccounts()) {
             activeAccounts.add(ActiveAccount(email = account.name))
         }
