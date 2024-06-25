@@ -15,7 +15,8 @@ data class User(
     val redacted: MutableList<String> = mutableListOf(),
     val state: String? = "enabled",
     @SerialName("auth_level")
-    val authLevel: String? = "unverified"
+    val authLevel: String? = "unverified",
+    var isLoading: Boolean = false
 ) {
     fun asNetworkModel(stateRepo: StateRepo, userRepo: UserRepo): NetworkUser {
         return NetworkUser(

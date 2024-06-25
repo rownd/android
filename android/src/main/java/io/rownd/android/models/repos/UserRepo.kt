@@ -29,15 +29,21 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
 //    lateinit var userApi: UserApi
 
     internal val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
+    internal fun setIsLoading(value: Boolean) {
+        stateRepo.getStore().dispatch(StateAction.SetUserIsLoading(value))
+    }
 
     internal fun loadUserAsync(): Deferred<User?> {
         return CoroutineScope(Dispatchers.IO).async {
             try {
+                setIsLoading(value = true)
                 val user: NetworkUser = userApi.client.get("me/applications/${stateRepo.state.value.appConfig.id}/data").body()
                 Log.i("RowndUsersApi", "Successfully loaded user data: $user")
                 stateRepo.getStore().dispatch(StateAction.SetUser(user.asDomainModel(stateRepo, this@UserRepo)))
+                setIsLoading(value = false)
                 return@async user.asDomainModel(stateRepo, this@UserRepo)
             } catch (ex: ClientRequestException) {
+                setIsLoading(value = false)
                 Log.e("RowndUsersApi", "Failed to fetch the user: ${ex.message}")
 
                 if (ex.response.status == HttpStatusCode.NotFound) {
@@ -47,6 +53,7 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
 
                 return@async null
             } catch (ex: Exception) {
+                setIsLoading(value = false)
                 Log.e("RowndUsersApi", "Failed to fetch the user: ${ex.message}")
                 return@async null
             }
@@ -58,6 +65,7 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
         val networkUser = user.asNetworkModel(stateRepo, this)
         return CoroutineScope(Dispatchers.IO).async {
             try {
+                setIsLoading(value = true)
                 val savedUser: NetworkUser =
                     userApi.client.put("me/applications/${stateRepo.state.value.appConfig.id}/data") {
                         setBody(
@@ -66,8 +74,10 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
                     }.body()
                 Log.i("RowndUsersApi", "Successfully saved user data: $user")
                 stateRepo.getStore().dispatch(StateAction.SetUser(savedUser.asDomainModel(stateRepo, this@UserRepo)))
+                setIsLoading(value = false)
                 return@async savedUser.asDomainModel(stateRepo, this@UserRepo)
             } catch (ex: Exception) {
+                setIsLoading(value = false)
                 Log.e("RowndUsersApi", "Failed to save the user: ${ex.message}")
                 throw RowndException("Failed to save the user: ${ex.message}")
             }
