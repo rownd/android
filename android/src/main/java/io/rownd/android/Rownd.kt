@@ -119,6 +119,7 @@ class RowndClient constructor(
     internal var eventEmitter = graph.rowndEventEmitter()
 
     var state = stateRepo.state
+    var user = userRepo
     private var intentLaunchers: MutableMap<String, ActivityResultLauncher<Intent>> = mutableMapOf()
     private var intentSenderRequestLaunchers: MutableMap<String, ActivityResultLauncher<IntentSenderRequest>> = mutableMapOf()
     private var hasDisplayedOneTap = false
