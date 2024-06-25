@@ -1,5 +1,12 @@
 
 
+## [2.10.1](https://github.com/rownd/android/compare/2.10.0...2.10.1) (2024-06-25)
+
+
+### Bug Fixes
+
+* add user api for get and set ([33c5ee7](https://github.com/rownd/android/commit/33c5ee751071a5040573dc60c518be7dbb40ac55))
+
 # [2.10.0](https://github.com/rownd/android/compare/2.9.1...2.10.0) (2024-06-25)
 
 
