@@ -363,8 +363,8 @@ class RowndClient constructor(
         displayHub(HubPageSelector.SignIn)
     }
 
-    inner class Auth {
-        inner class Passkeys {
+    inner class auth {
+        inner class passkeys {
             fun register() {
                 displayHub(
                     targetPage = HubPageSelector.ConnectAuthenticator,
