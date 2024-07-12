@@ -52,6 +52,11 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
             status = PasskeyStatus.Loading
         )
 
+        if (rowndContext.store?.currentState?.auth?.isAuthenticated != true) {
+            Log.e(TAG, "Need to be authenticated to register a passkey")
+            return
+        }
+
         displayRegistrationStatus(jsFnOptions)
 
         val credentialManager = CredentialManager.create(activity)
