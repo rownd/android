@@ -40,7 +40,9 @@ import dagger.Component
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.plugin
+import io.rownd.android.authenticators.passkeys.PasskeyAuthentication
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
+import io.rownd.android.models.AuthenticatorType
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.RowndConnectionAction
@@ -359,6 +361,21 @@ class RowndClient constructor(
     @Suppress("unused")
     fun requestSignIn() {
         displayHub(HubPageSelector.SignIn)
+    }
+
+    inner class auth {
+        inner class passkeys {
+            fun register() {
+                displayHub(
+                    targetPage = HubPageSelector.ConnectAuthenticator,
+                    jsFnOptions = RowndAuthenticatorRegistrationOptions(type = AuthenticatorType.Passkey)
+                )
+            }
+
+            fun authenticate() {
+                appHandleWrapper?.activity?.get()?.let { passkeyAuthenticator.authentication.authenticate(it) }
+            }
+        }
     }
 
     fun signOut() {
