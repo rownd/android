@@ -1,5 +1,18 @@
 
 
+# [2.11.0](https://github.com/rownd/android/compare/2.10.1...2.11.0) (2024-07-12)
+
+
+### Bug Fixes
+
+* lowercase passkey api classes ([c3b57ca](https://github.com/rownd/android/commit/c3b57cab5febac59475c08565e886255786afd1a))
+
+
+### Features
+
+* add authenticated check for passkey registration ([c821632](https://github.com/rownd/android/commit/c821632d0ca8aa3ec880c1ac08b1957f73dd4a0d))
+* improve passkey sdk apis ([4637567](https://github.com/rownd/android/commit/463756750bb5909cce2091b6fdfba697888be4ea))
+
 ## [2.10.1](https://github.com/rownd/android/compare/2.10.0...2.10.1) (2024-06-25)
 
 
