@@ -7,8 +7,11 @@ import androidx.credentials.CreatePublicKeyCredentialRequest
 import androidx.credentials.CreatePublicKeyCredentialResponse
 import androidx.credentials.CredentialManager
 import androidx.credentials.exceptions.CreateCredentialException
-import io.ktor.client.call.*
-import io.ktor.client.request.*
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.rownd.android.models.PasskeyStatus
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.views.HubPageSelector
@@ -48,7 +51,7 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
                     try {
                         val result = credentialManager.createCredential(
                             request = createPublicKeyCredentialRequest,
-                            activity = activity,
+                            context = activity,
                         )
 
                         Log.d("Rownd.passkeys", result.type)

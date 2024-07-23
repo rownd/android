@@ -104,7 +104,6 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
             try {
                 val getPublicKeyCredentialOption = GetPublicKeyCredentialOption(
                     requestJson = fetchAuthenticatorOptions(passkeys.computeRpId()),
-                    preferImmediatelyAvailableCredentials = true
                 )
 
                 val getCredRequest = GetCredentialRequest(
@@ -115,7 +114,7 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                     try {
                         val result = credentialManager.getCredential(
                             request = getCredRequest,
-                            activity = activity,
+                            context = activity,
                         )
                         handleSignIn(result)
                     } catch (e : Exception) {

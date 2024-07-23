@@ -21,9 +21,9 @@ import io.rownd.android.models.domain.User as DomainUser
 data class User(
     val data: Map<String, @Serializable(with = AnyValueSerializer::class) Any?>,
     val redacted: List<String> = listOf(),
-    val state: String?,
+    val state: String? = "enabled",
     @SerialName("auth_level")
-    val authLevel: String?
+    val authLevel: String? = null
 ) {
     fun asDomainModel(stateRepo: StateRepo, userRepo: UserRepo): DomainUser {
         return DomainUser(
