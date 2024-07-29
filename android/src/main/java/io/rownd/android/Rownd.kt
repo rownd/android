@@ -13,6 +13,7 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.WindowManager
 import android.webkit.WebView
+import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
@@ -33,7 +34,9 @@ import dagger.Component
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.plugin
+import io.rownd.android.authenticators.passkeys.PasskeyAuthentication
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
+import io.rownd.android.models.AuthenticatorType
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.RowndConfig
 import io.rownd.android.models.RowndConnectionAction
@@ -111,6 +114,7 @@ class RowndClient constructor(
     internal var eventEmitter = graph.rowndEventEmitter()
 
     var state = stateRepo.state
+    var user = userRepo
     private var hasDisplayedOneTap = false
     private var isDisplayingOneTap = false
     private var rememberedRequestSignIn: (() -> Unit)? = null
@@ -305,6 +309,21 @@ class RowndClient constructor(
     @Suppress("unused")
     fun requestSignIn() {
         displayHub(HubPageSelector.SignIn)
+    }
+
+    inner class auth {
+        inner class passkeys {
+            fun register() {
+                displayHub(
+                    targetPage = HubPageSelector.ConnectAuthenticator,
+                    jsFnOptions = RowndAuthenticatorRegistrationOptions(type = AuthenticatorType.Passkey)
+                )
+            }
+
+            fun authenticate() {
+                appHandleWrapper?.activity?.get()?.let { passkeyAuthenticator.authentication.authenticate(it) }
+            }
+        }
     }
 
     fun signOut() {
