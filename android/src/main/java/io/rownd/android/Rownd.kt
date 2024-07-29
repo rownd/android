@@ -14,6 +14,7 @@ import android.util.Log
 import android.view.WindowManager
 import android.webkit.WebView
 import androidx.compose.material.ExperimentalMaterialApi
+import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
@@ -23,8 +24,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.android.gms.common.api.ApiException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -72,6 +71,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import java.lang.ref.WeakReference
+import java.util.UUID
 import javax.inject.Singleton
 
 // The default Rownd instance
@@ -365,14 +365,12 @@ class RowndClient constructor(
     }
 
     private fun signOutOfGoogle() {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN).build()
         val activity = appHandleWrapper?.activity?.get() ?: return
-        val googleSignInClient = GoogleSignIn.getClient(activity, gso)
 
-        googleSignInClient.signOut().addOnCompleteListener(activity) {
-            if (!it.isSuccessful) {
-                Log.w("Rownd", "Failed to sign out of Google")
-            }
+        CoroutineScope(Dispatchers.Main).launch {
+            val credentialManager = CredentialManager.create(activity)
+            val request = ClearCredentialStateRequest()
+            credentialManager.clearCredentialState(request)
         }
     }
 
@@ -404,14 +402,16 @@ class RowndClient constructor(
             Log.e("Rownd", "Cannot sign in with Google. Missing client configuration")
         }
 
-        val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
+        var nonce = UUID.randomUUID().toString()
+
+        var googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(true)
             .setServerClientId(googleSignInMethodConfig.clientId)
             .setAutoSelectEnabled(true)
-            .setNonce("nonce")
+            .setNonce(nonce)
             .build()
 
-        val request: GetCredentialRequest = GetCredentialRequest.Builder()
+        var request: GetCredentialRequest = GetCredentialRequest.Builder()
             .addCredentialOption(googleIdOption)
             .build()
 
@@ -427,16 +427,22 @@ class RowndClient constructor(
                 )
                 handleSignInWithGoogle(result)
             } catch (e: GetCredentialException) {
+                // Bail out if the user canceled the request
+                if (e.type == android.credentials.GetCredentialException.TYPE_USER_CANCELED) {
+                    return@launch
+                }
+
                 // Retry with any Google account
                 try {
-                    val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
+                    nonce = UUID.randomUUID().toString()
+                    googleIdOption = GetGoogleIdOption.Builder()
                         .setFilterByAuthorizedAccounts(false)
                         .setServerClientId(googleSignInMethodConfig.clientId)
                         .setAutoSelectEnabled(false)
-                        .setNonce("nonce1")
+                        .setNonce(nonce)
                         .build()
 
-                    val request: GetCredentialRequest = GetCredentialRequest.Builder()
+                    request = GetCredentialRequest.Builder()
                         .addCredentialOption(googleIdOption)
                         .build()
 
