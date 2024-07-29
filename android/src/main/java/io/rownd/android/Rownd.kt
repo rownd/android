@@ -432,7 +432,7 @@ class RowndClient constructor(
                     val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
                         .setFilterByAuthorizedAccounts(false)
                         .setServerClientId(googleSignInMethodConfig.clientId)
-                        .setAutoSelectEnabled(true)
+                        .setAutoSelectEnabled(false)
                         .setNonce("nonce1")
                         .build()
 
