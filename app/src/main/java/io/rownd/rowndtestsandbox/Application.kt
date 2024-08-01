@@ -39,9 +39,9 @@ class RowndTestSandbox: Application() {
         super.onCreate()
         instance = this
 
-        Rownd.configure(this, "key_a8ccn19a5i7j0loh0jy2eo4v")
+        Rownd.configure(this, "key_pko8eul59xz33hr21jgxvx6s")
         Log.d("App.onCreate", "Rownd initialized: ${Rownd.state.value.isInitialized}")
-        Rownd.config.apiUrl = "https://api.us-east-2.dev.rownd.io"
+        Rownd.config.apiUrl = "https://api.dev.rownd.io"
         Rownd.config.baseUrl = "https://hub.dev.rownd.io"
         Rownd.config.customizations = AppCustomizations(this)
         Rownd.config.customizations.sheetBackgroundColor = Color(red = 50, green = 50, blue = 50)

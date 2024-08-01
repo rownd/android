@@ -31,7 +31,9 @@ data class RowndAuthenticatorRegistrationOptions(
     var status: PasskeyStatus? = null,
     @SerialName("biometric_type")
     var biometricType: BiometricType = BiometricType.Touch,
-    var type: AuthenticatorType = AuthenticatorType.Passkey
+    var type: AuthenticatorType = AuthenticatorType.Passkey,
+    @SerialName("error")
+    var error: String? = null
 ): RowndSignInOptionsBase() {
     override fun toJsonString(): String {
         return json.encodeToString(serializer(), this)

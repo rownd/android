@@ -1,18 +1,23 @@
 package io.rownd.android.authenticators.passkeys
 
 import android.app.Activity
+import android.os.Build
 import android.util.Log
 import androidx.credentials.CreateCredentialResponse
 import androidx.credentials.CreatePublicKeyCredentialRequest
 import androidx.credentials.CreatePublicKeyCredentialResponse
 import androidx.credentials.CredentialManager
 import androidx.credentials.exceptions.CreateCredentialException
-import io.ktor.client.call.*
-import io.ktor.client.request.*
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.headers
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.utils.io.core.toByteArray
 import io.rownd.android.models.PasskeyStatus
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
 import io.rownd.android.models.json
+import io.rownd.android.util.RowndException
 import io.rownd.android.util.toBase64
 import io.rownd.android.views.HubPageSelector
 import kotlinx.coroutines.CoroutineScope
@@ -61,8 +66,12 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
 
         val credentialManager = CredentialManager.create(activity)
 
-        CoroutineScope(Dispatchers.IO).launch {
+        CoroutineScope(Dispatchers.IO).launch IO@ {
             try {
+                if (Build.VERSION.SDK_INT < 29) {
+                    throw RowndException("This device is incompatible with passkeys")
+                }
+
                 val requestJson: String = modifyRequestJson(fetchRegistrationOptions(passkeys.computeRpId()))
                 val createPublicKeyCredentialRequest = CreatePublicKeyCredentialRequest(
                     // Contains the request in JSON format. Uses the standard WebAuthn
@@ -74,11 +83,11 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
                     preferImmediatelyAvailableCredentials = true,
                 )
 
-                CoroutineScope(Dispatchers.Main).launch {
+                CoroutineScope(Dispatchers.Main).launch Main@ {
                     try {
                         val result = credentialManager.createCredential(
                             request = createPublicKeyCredentialRequest,
-                            activity = activity,
+                            context = activity,
                         )
 
                         Log.d("Rownd.passkeys", result.type)
@@ -89,7 +98,7 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
                         // Handle cancellation from user
                         if (errorMessage?.contains("Unable to get sync account") == true) {
                             handleCancellation(e)
-                            return@launch
+                            return@Main
                         }
                         handleFailure(e)
                     }
@@ -167,8 +176,15 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
 
     private fun handleFailure(e: Exception) {
         Log.e(TAG, "Something went wrong during passkey registration", e)
+
+        var errMessage = e.localizedMessage
+        when(e) {
+            is androidx.credentials.exceptions.CreateCredentialProviderConfigurationException -> errMessage = "Google Play Services is missing or out of date."
+        }
+
         val jsFnOptions = RowndAuthenticatorRegistrationOptions(
             status = PasskeyStatus.Failed,
+            error = errMessage
         )
 
         displayRegistrationStatus(jsFnOptions)

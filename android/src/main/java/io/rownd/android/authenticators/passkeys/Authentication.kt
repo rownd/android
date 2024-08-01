@@ -13,6 +13,7 @@ import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
+import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInIntent
 import io.rownd.android.RowndSignInJsOptions
 import io.rownd.android.RowndSignInLoginStep
@@ -71,6 +72,16 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                     )
                 )
 
+                passkeys.rowndContext.eventEmitter?.emit(
+                    RowndEvent(
+                        event = RowndEventType.SignInCompleted,
+                        data = buildJsonObject {
+                            put("method", RowndSignInType.Passkey.value)
+                            put("user_type", RowndSignInUserType.ExistingUser.value)
+                        }
+                    )
+                )
+
                 val hubWebView = rowndContext.hubViewModel?.webView()?.value ?: return@launch
 
                 val jsFnOptions = RowndSignInJsOptions(
@@ -81,16 +92,6 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                 )
 
                 hubWebView.loadNewPage(targetPage = HubPageSelector.SignIn, jsFnOptions = jsFnOptions)
-
-                passkeys.rowndContext.eventEmitter?.emit(
-                    RowndEvent(
-                        event = RowndEventType.SignInCompleted,
-                        data = buildJsonObject {
-                            put("method", RowndSignInType.Passkey.value)
-                            put("user_type", RowndSignInUserType.ExistingUser.value)
-                        }
-                    )
-                )
             } catch (e : Exception) {
                 handleFailure(e)
             }
@@ -104,7 +105,6 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
             try {
                 val getPublicKeyCredentialOption = GetPublicKeyCredentialOption(
                     requestJson = fetchAuthenticatorOptions(passkeys.computeRpId()),
-                    preferImmediatelyAvailableCredentials = true
                 )
 
                 val getCredRequest = GetCredentialRequest(
@@ -115,7 +115,7 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                     try {
                         val result = credentialManager.getCredential(
                             request = getCredRequest,
-                            activity = activity,
+                            context = activity,
                         )
                         handleSignIn(result)
                     } catch (e : Exception) {
@@ -147,17 +147,19 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
 
     private fun handleFailure(reason: Exception?) {
         Log.d(TAG, "Passkey authentication failure", reason)
-        val hubWebView = rowndContext.hubViewModel?.webView()?.value ?: return
+
+        var errMessage = reason?.message
+        when(reason) {
+            is androidx.credentials.exceptions.GetCredentialProviderConfigurationException -> errMessage = "Google Play Services is missing or out of date."
+        }
 
         val jsFnOptions = RowndSignInJsOptions(
             loginStep = RowndSignInLoginStep.Error,
-            signInType = RowndSignInType.Passkey,
-            intent = RowndSignInIntent.SignIn,
             userType = RowndSignInUserType.ExistingUser,
-            errorMessage = reason?.message
+            errorMessage = errMessage
         )
 
-        hubWebView.loadNewPage(targetPage = HubPageSelector.SignIn, jsFnOptions = jsFnOptions)
+        Rownd.requestSignIn(jsFnOptions)
 
         passkeys.rowndContext.eventEmitter?.emit(
             RowndEvent(
