@@ -304,7 +304,8 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
         error: WebResourceErrorCompat
     ) {
         super.onReceivedError(view, request, error)
-        if (error.description == "net::ERR_ADDRESS_UNREACHABLE") {
+
+        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION) && error.description == "net::ERR_ADDRESS_UNREACHABLE") {
             loadNoInternetHTML()
         }
     }
