@@ -24,6 +24,7 @@ import androidx.webkit.WebViewFeature
 import io.rownd.android.Rownd
 import io.rownd.android.RowndClient
 import io.rownd.android.RowndSignInHint
+import io.rownd.android.RowndSignInOptions
 import io.rownd.android.RowndSignInOptionsBase
 import io.rownd.android.models.AuthChallengeInitiatedMessage
 import io.rownd.android.models.AuthenticationMessage
@@ -32,6 +33,7 @@ import io.rownd.android.models.EventMessage
 import io.rownd.android.models.HubResizeMessage
 import io.rownd.android.models.MessageType
 import io.rownd.android.models.RowndHubInteropMessage
+import io.rownd.android.models.SignInWithPasskeyMessage
 import io.rownd.android.models.TriggerSignInWithGoogleMessage
 import io.rownd.android.models.UserDataUpdateMessage
 import io.rownd.android.models.domain.AuthState
@@ -70,7 +72,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     override var dialog: DialogFragment? = null
     internal var dismiss: (() -> Unit)? = null
     internal var targetPage: HubPageSelector = HubPageSelector.Unknown
-    internal var jsFunctionArgsAsJson: String = "{}"
+    internal var jsFunctionArgsAsJson: String = DEFAULT_JS_FN_ARGS
     internal var progressBar: ProgressBar? = null
     internal var setIsLoading: ((isLoading: Boolean) -> Unit)? = null
     internal var animateBottomSheet: ((to: Float) -> Unit)? = null
@@ -130,14 +132,22 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         return super.onKeyDown(keyCode, event)
     }
 
-    internal fun loadNewPage(targetPage: HubPageSelector = HubPageSelector.SignIn, jsFnOptions: RowndSignInOptionsBase) {
-        jsFunctionArgsAsJson = jsFnOptions.toJsonString()
+    internal fun loadNewPage(targetPage: HubPageSelector = HubPageSelector.SignIn, jsFnOptionsAsJson: String?) {
+        this.jsFunctionArgsAsJson = jsFnOptionsAsJson ?: "{}"
         this.targetPage = targetPage
 
         val parentScope = this
         CoroutineScope(Dispatchers.Main).launch {
             parentScope.loadUrl(Rownd.config.hubLoaderUrl())
         }
+    }
+
+    internal fun loadNewPage(targetPage: HubPageSelector = HubPageSelector.SignIn, jsFnOptions: RowndSignInOptionsBase) {
+        loadNewPage(targetPage, jsFnOptions.toJsonString())
+    }
+
+    companion object {
+        val DEFAULT_JS_FN_ARGS = "{}"
     }
 }
 
@@ -317,17 +327,9 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
 
 class RowndJavascriptInterface constructor(
     private val parentWebView: RowndWebView,
-    dynamicBottomSheet: (to: String) -> Unit,
-    setCanTouchBackground: (to: Boolean) -> Unit,
+    private val dynamicBottomSheet: (to: String) -> Unit,
+    private val setCanTouchBackground: (to: Boolean) -> Unit,
     ) {
-
-    private val dynamicBottomSheet: (to: String) -> Unit
-    private val setCanTouchBackground: (to: Boolean) -> Unit
-
-    init {
-        this.dynamicBottomSheet = dynamicBottomSheet
-        this.setCanTouchBackground = setCanTouchBackground
-    }
 
     @JavascriptInterface
     fun postMessage(message: String) {
@@ -375,7 +377,7 @@ class RowndJavascriptInterface constructor(
 
                 MessageType.triggerSignInWithGoogle -> {
                     val signInWithGoogleMessage = (interopMessage as TriggerSignInWithGoogleMessage).payload
-                    Rownd.signInWithGoogle(intent = signInWithGoogleMessage?.intent, hint = signInWithGoogleMessage?.hint)
+                    Rownd.signInWithGoogle(intent = signInWithGoogleMessage?.intent, hint = signInWithGoogleMessage?.hint, wasUserInitiated = true)
                     parentWebView.dismiss?.invoke()
                 }
 
@@ -408,7 +410,13 @@ class RowndJavascriptInterface constructor(
                 }
 
                 MessageType.AuthenticateWithPasskey -> {
-                    parentWebView.rowndClient.requestSignIn(with = RowndSignInHint.Passkey)
+                    val signInWithPasskeyMessage = (interopMessage as SignInWithPasskeyMessage).payload
+                    parentWebView.rowndClient.requestSignIn(
+                        with = RowndSignInHint.Passkey,
+                        signInOptions = RowndSignInOptions(
+                            intent = signInWithPasskeyMessage?.intent
+                        )
+                    )
                 }
 
                 MessageType.HubResize -> {

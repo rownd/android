@@ -24,7 +24,8 @@ enum class HubBottomSheetBundleKeys(val key: String) {
 class HubComposableBottomSheet : ComposableBottomSheetFragment() {
     override val shouldDisplayLoader = true
 
-    private var existingWebView: RowndWebView? = null
+    internal var existingWebView: RowndWebView? = null
+    internal var isDismissing: Boolean = false
     private var viewModel: RowndWebViewModel? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +39,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
 
     // Internal dismiss function to recycle web view
     private fun _dismiss() {
+        isDismissing = true
         viewModel?.webView()?.postValue(null)
         dismissAllowingStateLoss()
     }
@@ -80,7 +82,9 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                 this.hubWebview.progressBar = this.hubProgressBar
                 this.hubWebview.setIsLoading = setIsLoading
                 this.hubWebview.targetPage = targetPage
-                this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: "{}"
+                if (this.hubWebview.jsFunctionArgsAsJson == RowndWebView.DEFAULT_JS_FN_ARGS) {
+                    this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: RowndWebView.DEFAULT_JS_FN_ARGS
+                }
                 this.hubWebview.animateBottomSheet = {
                     coroutineScope.launch {
                         sheetState?.animateToExact(it)

@@ -108,6 +108,12 @@ data class TriggerSignInWithGooglePayload(
 )
 
 @Serializable
+data class TriggerSignInWithPasskeyPayload(
+    @SerialName("intent")
+    var intent: RowndSignInIntent? = null
+)
+
+@Serializable
 data class UserDataUpdateMessage(
     override var type: MessageType = MessageType.UserDataUpdate,
     var payload: User
@@ -125,7 +131,8 @@ data class SignUpWithPasskeyMessage(
 
 @Serializable
 data class SignInWithPasskeyMessage(
-    override var type: MessageType = MessageType.AuthenticateWithPasskey
+    override var type: MessageType = MessageType.AuthenticateWithPasskey,
+    var payload: TriggerSignInWithPasskeyPayload?
 ) : RowndHubInteropMessage()
 
 @Serializable

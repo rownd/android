@@ -13,7 +13,6 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.WindowManager
 import android.webkit.WebView
-import androidx.activity.result.ActivityResultLauncher
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
@@ -21,6 +20,7 @@ import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
 import androidx.credentials.exceptions.GetCredentialException
+import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -34,7 +34,6 @@ import dagger.Component
 import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
 import io.ktor.client.plugins.plugin
-import io.rownd.android.authenticators.passkeys.PasskeyAuthentication
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
 import io.rownd.android.models.AuthenticatorType
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
@@ -117,6 +116,7 @@ class RowndClient constructor(
     var user = userRepo
     private var hasDisplayedOneTap = false
     private var isDisplayingOneTap = false
+    private var userRequestedGoogleSignIn = false
     private var rememberedRequestSignIn: (() -> Unit)? = null
     private var googleSignInIntent: RowndSignInIntent? = null
 
@@ -394,7 +394,11 @@ class RowndClient constructor(
     }
 
     private fun signInWithGoogle(intent: RowndSignInIntent?) {
-        signInWithGoogle(intent, hint = null)
+        signInWithGoogle(intent, true)
+    }
+
+    private fun signInWithGoogle(intent: RowndSignInIntent?, wasUserInitiated: Boolean?) {
+        signInWithGoogle(intent, hint = null, wasUserInitiated)
     }
 
     internal fun getActiveGmailAccounts(): Array<Account> {
@@ -404,7 +408,7 @@ class RowndClient constructor(
         return accountManager.getAccountsByType("com.google")
     }
 
-    internal fun signInWithGoogle(intent: RowndSignInIntent?, hint: String?) {
+    internal fun signInWithGoogle(intent: RowndSignInIntent?, hint: String?, wasUserInitiated: Boolean? = true) {
         // We can't attempt this unless the app config is loaded
 
         googleSignInIntent = intent
@@ -471,7 +475,9 @@ class RowndClient constructor(
                     )
                     handleSignInWithGoogle(result)
                 } catch (e: GetCredentialException) {
-                    handleSignInWithGoogleFailure(e)
+                    handleSignInWithGoogleFailure(e, wasUserInitiated)
+                } catch (e: GetCredentialProviderConfigurationException) {
+                    handleSignInWithGoogleFailure(e, wasUserInitiated)
                 }
             }
         }
@@ -527,7 +533,7 @@ class RowndClient constructor(
         }
     }
 
-    private fun handleSignInWithGoogleFailure(e: GetCredentialException) {
+    private fun handleSignInWithGoogleFailure(e: Exception, wasUserInitiated: Boolean? = true) {
         Log.w("Rownd", "Google sign-in failed", e)
         eventEmitter.emit(RowndEvent(
             event = RowndEventType.SignInFailed,
@@ -536,6 +542,16 @@ class RowndClient constructor(
                 put("error", e.message)
             }
         ))
+
+        if (rowndContext.isDisplayingHub() || wasUserInitiated == true) {
+            Rownd.requestSignIn(
+                RowndSignInJsOptions(
+                    intent = googleSignInIntent,
+                    loginStep = RowndSignInLoginStep.Error,
+                    errorMessage = e.localizedMessage ?: "Unable to complete Google sign-in"
+                )
+            )
+        }
     }
 
     private fun showGoogleOneTap() {
@@ -546,6 +562,7 @@ class RowndClient constructor(
         fun cancel() {
             hasDisplayedOneTap = true
             isDisplayingOneTap = false
+            userRequestedGoogleSignIn = false
             runRememberedRequestSignIn()
         }
 
@@ -563,7 +580,7 @@ class RowndClient constructor(
             throw RowndException("Cannot sign in with Google. Missing client configuration")
         }
 
-        signInWithGoogle(RowndSignInIntent.SignIn)
+        signInWithGoogle(RowndSignInIntent.SignIn, wasUserInitiated = false)
     }
 
     suspend fun getAccessToken(): String? {
@@ -632,9 +649,20 @@ class RowndClient constructor(
                 jsFnOptionsStr = jsFnOptions.toJsonString()
             }
 
-            val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
-            bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
-            rowndContext.hubView = WeakReference(bottomSheet)
+            if (rowndContext.hubView?.get() != null && (rowndContext.hubView?.get() as? HubComposableBottomSheet)?.isDismissing == false) {
+                rowndContext.hubView?.get()?.let { it ->
+                    val hubSheet = it as? HubComposableBottomSheet
+                    hubSheet?.existingWebView?.loadNewPage(targetPage, jsFnOptionsStr)
+
+                    if (hubSheet?.isVisible != true) {
+                        hubSheet?.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
+                    }
+                }
+            } else {
+                val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
+                bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
+                rowndContext.hubView = WeakReference(bottomSheet)
+            }
         } catch (ex: Exception) {
             Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage", ex)
         }
