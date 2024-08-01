@@ -18,6 +18,7 @@ import android.webkit.WebView
 import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
+import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -294,6 +295,17 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
 
         if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
             webView.animateBottomSheet?.invoke(100F)
+        }
+    }
+
+    override fun onReceivedError(
+        view: WebView,
+        request: WebResourceRequest,
+        error: WebResourceErrorCompat
+    ) {
+        super.onReceivedError(view, request, error)
+        if (error.description == "net::ERR_ADDRESS_UNREACHABLE") {
+            loadNoInternetHTML()
         }
     }
 

@@ -387,9 +387,13 @@ class RowndClient constructor(
         val activity = appHandleWrapper?.activity?.get() ?: return
 
         CoroutineScope(Dispatchers.Main).launch {
-            val credentialManager = CredentialManager.create(activity)
-            val request = ClearCredentialStateRequest()
-            credentialManager.clearCredentialState(request)
+            try {
+                val credentialManager = CredentialManager.create(activity)
+                val request = ClearCredentialStateRequest()
+                credentialManager.clearCredentialState(request)
+            } catch (e: Exception) {
+                Log.v("Rownd", "Google sign-out failed", e)
+            }
         }
     }
 
@@ -543,12 +547,17 @@ class RowndClient constructor(
             }
         ))
 
+        var errMessage = e.localizedMessage
+        when (e) {
+            is androidx.credentials.exceptions.GetCredentialProviderConfigurationException -> errMessage = "Google Play Services is missing or out of date."
+        }
+
         if (rowndContext.isDisplayingHub() || wasUserInitiated == true) {
             Rownd.requestSignIn(
                 RowndSignInJsOptions(
                     intent = googleSignInIntent,
                     loginStep = RowndSignInLoginStep.Error,
-                    errorMessage = e.localizedMessage ?: "Unable to complete Google sign-in"
+                    errorMessage = errMessage
                 )
             )
         }

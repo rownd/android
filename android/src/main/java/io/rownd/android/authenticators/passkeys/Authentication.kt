@@ -148,15 +148,15 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
     private fun handleFailure(reason: Exception?) {
         Log.d(TAG, "Passkey authentication failure", reason)
 
-        var errorMessage = reason?.message
+        var errMessage = reason?.message
         when(reason) {
-            is androidx.credentials.exceptions.GetCredentialProviderConfigurationException -> errorMessage = "Please update Google Play Services"
+            is androidx.credentials.exceptions.GetCredentialProviderConfigurationException -> errMessage = "Google Play Services is missing or out of date."
         }
 
         val jsFnOptions = RowndSignInJsOptions(
             loginStep = RowndSignInLoginStep.Error,
             userType = RowndSignInUserType.ExistingUser,
-            errorMessage = errorMessage
+            errorMessage = errMessage
         )
 
         Rownd.requestSignIn(jsFnOptions)

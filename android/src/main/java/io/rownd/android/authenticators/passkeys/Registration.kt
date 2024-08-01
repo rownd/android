@@ -13,8 +13,6 @@ import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
-import io.ktor.client.call.*
-import io.ktor.client.request.*
 import io.ktor.utils.io.core.toByteArray
 import io.rownd.android.models.PasskeyStatus
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
@@ -178,8 +176,15 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
 
     private fun handleFailure(e: Exception) {
         Log.e(TAG, "Something went wrong during passkey registration", e)
+
+        var errMessage = e.localizedMessage
+        when(e) {
+            is androidx.credentials.exceptions.CreateCredentialProviderConfigurationException -> errMessage = "Google Play Services is missing or out of date."
+        }
+
         val jsFnOptions = RowndAuthenticatorRegistrationOptions(
             status = PasskeyStatus.Failed,
+            error = errMessage
         )
 
         displayRegistrationStatus(jsFnOptions)
