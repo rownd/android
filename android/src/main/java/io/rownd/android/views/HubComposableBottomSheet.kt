@@ -27,7 +27,6 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
     internal var existingWebView: RowndWebView? = null
     internal var isDismissing: Boolean = false
     private var viewModel: RowndWebViewModel? = null
-    private var hasFinishedInitialRender = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,12 +82,8 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                 this.hubWebview.progressBar = this.hubProgressBar
                 this.hubWebview.setIsLoading = setIsLoading
 
-                if (!hasFinishedInitialRender) {
-                    this.hubWebview.targetPage = targetPage
-                    this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: RowndWebView.DEFAULT_JS_FN_ARGS
-
-                    hasFinishedInitialRender = true
-                }
+                this.hubWebview.targetPage = targetPage
+                this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: RowndWebView.DEFAULT_JS_FN_ARGS
 
                 this.hubWebview.animateBottomSheet = {
                     coroutineScope.launch {

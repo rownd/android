@@ -659,19 +659,13 @@ class RowndClient constructor(
             }
 
             if (rowndContext.hubView?.get() != null && (rowndContext.hubView?.get() as? HubComposableBottomSheet)?.isDismissing == false) {
-                rowndContext.hubView?.get()?.let { it ->
-                    val hubSheet = it as? HubComposableBottomSheet
-                    hubSheet?.existingWebView?.loadNewPage(targetPage, jsFnOptionsStr)
-
-                    if (hubSheet?.isVisible != true) {
-                        hubSheet?.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
-                    }
-                }
-            } else {
-                val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
-                bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
-                rowndContext.hubView = WeakReference(bottomSheet)
+                rowndContext.hubView?.get()?.dismissNow()
             }
+
+            val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
+            bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
+            rowndContext.hubView = WeakReference(bottomSheet)
+
         } catch (ex: Exception) {
             Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage", ex)
         }
