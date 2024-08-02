@@ -1,5 +1,22 @@
 
 
+# [2.12.0](https://github.com/rownd/android/compare/2.10.1...2.12.0) (2024-08-02)
+
+
+### Bug Fixes
+
+* bump version number ([87f3ff9](https://github.com/rownd/android/commit/87f3ff92a83426a9ab04280ee1c5016d18a0ac84))
+* **hub:** show correct page after multiple loads ([2632c19](https://github.com/rownd/android/commit/2632c1902eb56238c3263a7c238595ac2eb34d11))
+* **hub:** stale sheet load ([ea8ae2c](https://github.com/rownd/android/commit/ea8ae2c645bd8bc4ed80df8769f7c09b29939746))
+* lowercase passkey api classes ([c3b57ca](https://github.com/rownd/android/commit/c3b57cab5febac59475c08565e886255786afd1a))
+
+
+### Features
+
+* add authenticated check for passkey registration ([c821632](https://github.com/rownd/android/commit/c821632d0ca8aa3ec880c1ac08b1957f73dd4a0d))
+* **auth:** update deps to use androidx.credentialmanager ([#55](https://github.com/rownd/android/issues/55)) ([ba39172](https://github.com/rownd/android/commit/ba39172b1803d3730858e5c2877b1620b3cd9efd))
+* improve passkey sdk apis ([4637567](https://github.com/rownd/android/commit/463756750bb5909cce2091b6fdfba697888be4ea))
+
 ## [2.10.1](https://github.com/rownd/android/compare/2.10.0...2.10.1) (2024-06-25)
 
 
