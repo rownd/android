@@ -2,24 +2,41 @@ package io.rownd.android.views
 
 import android.app.Dialog
 import android.content.Context
+import android.graphics.Rect
 import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
-import android.view.*
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.view.ViewTreeObserver
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
-import android.graphics.Rect
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.DialogFragment
@@ -29,16 +46,13 @@ import com.airbnb.lottie.compose.LottieCompositionSpec
 import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.rememberLottieComposition
 import io.rownd.android.Rownd
+import io.rownd.android.util.bottom.sheet.ModalBottomSheet
+import io.rownd.android.util.bottom.sheet.SheetState
+import io.rownd.android.util.bottom.sheet.SheetValue
 import io.rownd.android.util.convertStringToColor
 import kotlinx.coroutines.launch
 
-import androidx.compose.runtime.saveable.rememberSaveable
-import io.rownd.android.util.convertStringToColor
-import io.rownd.android.util.bottom.sheet.*
-import io.rownd.android.util.bottom.sheet.SheetState
-import io.rownd.android.util.bottom.sheet.SheetValue
-import androidx.compose.ui.platform.LocalContext
-
+@OptIn(ExperimentalMaterial3Api::class)
 abstract class ComposableBottomSheetFragment : DialogFragment() {
     open val shouldDisplayLoader = false
 
@@ -88,6 +102,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
+    @Suppress("UnusedBoxWithConstraintsScope")
     @Composable
     private fun BottomSheet() {
         val coroutineScope = rememberCoroutineScope()
