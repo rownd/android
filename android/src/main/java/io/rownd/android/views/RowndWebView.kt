@@ -38,7 +38,6 @@ import io.rownd.android.models.SignInWithPasskeyMessage
 import io.rownd.android.models.TriggerSignInWithGoogleMessage
 import io.rownd.android.models.UserDataUpdateMessage
 import io.rownd.android.models.domain.AuthState
-import io.rownd.android.models.domain.User
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.util.Constants
 import io.rownd.android.views.html.noInternetHTML
@@ -139,7 +138,8 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
 
         val parentScope = this
         CoroutineScope(Dispatchers.Main).launch {
-            parentScope.loadUrl(Rownd.config.hubLoaderUrl())
+            val targetUrl = Rownd.config.hubLoaderUrl()
+            parentScope.loadUrl(targetUrl)
         }
     }
 
@@ -148,7 +148,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     }
 
     companion object {
-        val DEFAULT_JS_FN_ARGS = "{}"
+        const val DEFAULT_JS_FN_ARGS = "{}"
     }
 }
 
@@ -376,16 +376,11 @@ class RowndJavascriptInterface constructor(
                 }
 
                 MessageType.signOut -> {
-                    if (parentWebView.targetPage != HubPageSelector.SignOut) {
-                        return
-                    }
-
                     Executors.newSingleThreadScheduledExecutor().schedule({
                         parentWebView.dismiss?.invoke()
                     }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
 
-                    Rownd.store.dispatch(StateAction.SetAuth(AuthState()))
-                    Rownd.store.dispatch(StateAction.SetUser(User()))
+                    Rownd.signOut()
                 }
 
                 MessageType.triggerSignInWithGoogle -> {
@@ -488,7 +483,7 @@ class RowndJavascriptInterface constructor(
                 }
 
                 else -> {
-                    Log.w("RowndHub", "An unknown message was received")
+                    Log.w("RowndHub", "An unhandled message '${interopMessage.type}' was received")
                 }
             }
         } catch (e : Exception) {

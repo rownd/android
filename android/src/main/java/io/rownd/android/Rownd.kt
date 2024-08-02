@@ -723,7 +723,7 @@ internal data class RowndSignInJsOptions(
     var intent: RowndSignInIntent? = null,
     @SerialName("user_type")
     var userType: RowndSignInUserType? = null,
-    @SerialName("sign_in_type")
+    @SerialName("method")
     var signInType: RowndSignInType? = null,
     @SerialName("request_id")
     var challengeId: String? = null,
