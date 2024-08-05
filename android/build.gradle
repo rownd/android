@@ -17,6 +17,7 @@ android {
         minSdk 26
         targetSdk 34
 
+        versionName project.package_version
 
         aarMetadata {
             minCompileSdk 26
