@@ -16,9 +16,11 @@ import android.webkit.WebView
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
+import androidx.credentials.CredentialOption
 import androidx.credentials.CustomCredential
 import androidx.credentials.GetCredentialRequest
 import androidx.credentials.GetCredentialResponse
+import androidx.credentials.exceptions.GetCredentialCancellationException
 import androidx.credentials.exceptions.GetCredentialException
 import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
 import androidx.fragment.app.FragmentActivity
@@ -27,6 +29,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.google.android.gms.common.api.ApiException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.lyft.kronos.AndroidClockFactory
@@ -431,7 +434,7 @@ class RowndClient constructor(
 
         var nonce = UUID.randomUUID().toString()
 
-        var googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
+        val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
             .setFilterByAuthorizedAccounts(true)
             .setServerClientId(googleSignInMethodConfig.clientId)
             .setAutoSelectEnabled(true)
@@ -462,15 +465,23 @@ class RowndClient constructor(
                 // Retry with any Google account
                 try {
                     nonce = UUID.randomUUID().toString()
-                    googleIdOption = GetGoogleIdOption.Builder()
+                    var credentialOption: CredentialOption = GetGoogleIdOption.Builder()
                         .setFilterByAuthorizedAccounts(false)
                         .setServerClientId(googleSignInMethodConfig.clientId)
                         .setAutoSelectEnabled(false)
                         .setNonce(nonce)
                         .build()
 
+                    // This indicates that the user has disabled Google auto sign-in prompts,
+                    // so we need to fall back to an explicit chooser dialog
+                    if (e.type == android.credentials.GetCredentialException.TYPE_NO_CREDENTIAL) {
+                        credentialOption = GetSignInWithGoogleOption.Builder(googleSignInMethodConfig.clientId)
+                            .setNonce(nonce)
+                            .build()
+                    }
+
                     request = GetCredentialRequest.Builder()
-                        .addCredentialOption(googleIdOption)
+                        .addCredentialOption(credentialOption)
                         .build()
 
                     val result = credentialManager.getCredential(
@@ -547,9 +558,14 @@ class RowndClient constructor(
             }
         ))
 
+        // If the user explicitly cancels, don't show any errors
+        if (e is GetCredentialCancellationException && e.type == android.credentials.GetCredentialException.TYPE_USER_CANCELED) {
+            return
+        }
+
         var errMessage = e.localizedMessage
         when (e) {
-            is androidx.credentials.exceptions.GetCredentialProviderConfigurationException -> errMessage = "Google Play Services is missing or out of date."
+            is GetCredentialProviderConfigurationException -> errMessage = "Google Play Services is missing or out of date."
         }
 
         if (rowndContext.isDisplayingHub() || wasUserInitiated == true) {
