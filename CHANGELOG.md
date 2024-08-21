@@ -1,5 +1,12 @@
 
 
+## [2.12.1](https://github.com/rownd/android/compare/2.12.0...2.12.1) (2024-08-21)
+
+
+### Bug Fixes
+
+* **google:** handle case where user has disabled google sign-in prompts ([b46c687](https://github.com/rownd/android/commit/b46c687da4a2e3f9bd41a6cb36b275d27ce34bef))
+
 # [2.12.0](https://github.com/rownd/android/compare/2.10.1...2.12.0) (2024-08-02)
 
 
