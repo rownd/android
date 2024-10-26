@@ -26,6 +26,8 @@ class RowndContext @Inject constructor() {
     var eventEmitter: RowndEventEmitter<RowndEvent>? = null
 
     fun isDisplayingHub(): Boolean {
-        return hubView != null && hubView?.get() != null
+        hubView?.get().let {
+            return it?.isVisible == true
+        }
     }
 }

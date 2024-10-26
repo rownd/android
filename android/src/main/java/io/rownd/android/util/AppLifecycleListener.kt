@@ -37,8 +37,11 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
     }
 
     override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
-        this.activity = WeakReference(activity)
+        if (activity !is FragmentActivity) {
+            return
+        }
 
+        this.activity = WeakReference(activity)
 
         val listeners = activityListeners.filter() {
             it.states.contains(State.CREATED)
@@ -48,6 +51,10 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
     }
 
     override fun onActivityStarted(activity: Activity) {
+        if (activity !is FragmentActivity) {
+            return
+        }
+
         this.activity = WeakReference(activity)
 
         val listeners = activityListeners.filter() {
@@ -58,6 +65,10 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
     }
 
     override fun onActivityResumed(activity: Activity) {
+        if (activity !is FragmentActivity) {
+            return
+        }
+
         this.activity = WeakReference(activity)
         isAppInForeground = true
 

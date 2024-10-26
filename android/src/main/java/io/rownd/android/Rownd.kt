@@ -2,8 +2,6 @@
 
 package io.rownd.android
 
-import android.accounts.Account
-import android.accounts.AccountManager
 import android.app.Application
 import android.content.Context
 import android.os.Build
@@ -13,25 +11,12 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.WindowManager
 import android.webkit.WebView
+import androidx.activity.result.ActivityResultCaller
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.credentials.ClearCredentialStateRequest
-import androidx.credentials.CredentialManager
-import androidx.credentials.CredentialOption
-import androidx.credentials.CustomCredential
-import androidx.credentials.GetCredentialRequest
-import androidx.credentials.GetCredentialResponse
-import androidx.credentials.exceptions.GetCredentialCancellationException
-import androidx.credentials.exceptions.GetCredentialException
-import androidx.credentials.exceptions.GetCredentialProviderConfigurationException
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
-import com.google.android.gms.common.api.ApiException
-import com.google.android.libraries.identity.googleid.GetGoogleIdOption
-import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
-import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
-import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import com.lyft.kronos.AndroidClockFactory
 import dagger.Component
 import io.ktor.client.plugins.auth.Auth
@@ -58,8 +43,8 @@ import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventEmitter
-import io.rownd.android.util.RowndEventType
 import io.rownd.android.util.RowndException
+import io.rownd.android.util.SignInWithGoogle
 import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndWebViewModel
@@ -73,10 +58,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.lang.ref.WeakReference
-import java.util.UUID
 import javax.inject.Singleton
 
 // The default Rownd instance
@@ -94,6 +76,7 @@ interface RowndGraph {
     fun rowndContext(): RowndContext
     fun passkeyAuthenticator(): PasskeysCommon
     fun rowndEventEmitter(): RowndEventEmitter<RowndEvent>
+    fun signInWithGoogle(): SignInWithGoogle
     fun inject(rowndConfig: RowndConfig)
 }
 
@@ -114,14 +97,10 @@ class RowndClient constructor(
     internal var passkeyAuthenticator = graph.passkeyAuthenticator()
     internal var connectionAction = graph.connectionAction()
     internal var eventEmitter = graph.rowndEventEmitter()
+    internal var signInWithGoogle = graph.signInWithGoogle()
 
     var state = stateRepo.state
     var user = userRepo
-    private var hasDisplayedOneTap = false
-    private var isDisplayingOneTap = false
-    private var userRequestedGoogleSignIn = false
-    private var rememberedRequestSignIn: (() -> Unit)? = null
-    private var googleSignInIntent: RowndSignInIntent? = null
 
     init {
         graph.inject(config)
@@ -181,26 +160,7 @@ class RowndClient constructor(
         }
 
         // Show the Google One Tap UI if applicable
-        CoroutineScope(Dispatchers.IO).launch {
-            store.stateAsStateFlow().collect {
-                if (
-                    !isDisplayingOneTap &&
-                    !hasDisplayedOneTap &&
-                    !it.auth.isLoading &&
-                    !it.auth.isAuthenticated &&
-                    it.appConfig.config.hub.auth.signInMethods.google.clientId != "" &&
-                    it.appConfig.config.hub.auth.signInMethods.google.oneTap.mobileApp.autoPrompt
-                ) {
-                    isDisplayingOneTap = true
-                    Handler(Looper.getMainLooper()).postDelayed(
-                        {
-                            showGoogleOneTap()
-                        },
-                        it.appConfig.config.hub.auth.signInMethods.google.oneTap.mobileApp.delay.toLong()
-                    )
-                }
-            }
-        }
+        signInWithGoogle.showOneTapIfApplicable()
     }
 
     fun configure(app: Application, appKey: String) {
@@ -226,12 +186,25 @@ class RowndClient constructor(
         if (activity != null && appHandleWrapper == null) {
             appHandleWrapper = AppLifecycleListener(activity)
         }
-    }
 
-    private fun runRememberedRequestSignIn() {
-        rememberedRequestSignIn?.let {
-            it()
-            rememberedRequestSignIn = null
+        // Add an activity result callback for Google sign in
+        // TODO: This can be removed once androix.crendential_manager supports all flows
+        appHandleWrapper?.registerActivityListener(
+            persistentListOf(Lifecycle.State.CREATED),
+            immediate = false,
+            immediateIfBefore = Lifecycle.State.STARTED
+        ) {
+            if (it is ActivityResultCaller) {
+                signInWithGoogle.registerIntentLauncher(it)
+            }
+        }
+
+        // Remove Google sign-in callbacks if activity is destroyed
+        appHandleWrapper?.registerActivityListener(
+            persistentListOf(Lifecycle.State.DESTROYED),
+            false
+        ) {
+            signInWithGoogle.deRegisterIntentLauncher(it.localClassName)
         }
     }
 
@@ -251,11 +224,6 @@ class RowndClient constructor(
             }
         }
         return isLoading
-    }
-
-    private fun isOneTapRequestedAndNotDisplayedYet(): Boolean {
-        val google = state.value.appConfig.config.hub.auth.signInMethods.google
-        return google.enabled && google.oneTap.mobileApp.autoPrompt && google.oneTap.mobileApp.delay == 0 && !hasDisplayedOneTap
     }
 
     fun requestSignIn(
@@ -286,15 +254,15 @@ class RowndClient constructor(
         }
 
         // Prevent Sign-in when Google One Tap is requested
-        if (isOneTapRequestedAndNotDisplayedYet()) {
-            rememberedRequestSignIn = { requestSignIn(with, signInOptions) }
+        if (signInWithGoogle.isOneTapRequestedAndNotDisplayedYet()) {
+            signInWithGoogle.rememberedRequestSignIn = { requestSignIn(with, signInOptions) }
             return
         }
 
         val signInOptions = determineSignInOptions(signInOptions)
         when (with) {
-            RowndSignInHint.Google -> signInWithGoogle(intent = signInOptions.intent)
-            RowndSignInHint.OneTap -> showGoogleOneTap()
+            RowndSignInHint.Google -> signInWithGoogle.signIn(intent = signInOptions.intent)
+            RowndSignInHint.OneTap -> signInWithGoogle.showGoogleOneTap()
             RowndSignInHint.Passkey -> {
                 appHandleWrapper?.activity?.get()
                     ?.let { passkeyAuthenticator.authentication.authenticate(it) }
@@ -341,7 +309,7 @@ class RowndClient constructor(
         val googleSignInMethodConfig =
             state.value.appConfig.config.hub.auth.signInMethods.google
         if (googleSignInMethodConfig.enabled) {
-            signOutOfGoogle()
+            signInWithGoogle.signOut()
         }
     }
 
@@ -386,228 +354,6 @@ class RowndClient constructor(
         return signInOptions
     }
 
-    private fun signOutOfGoogle() {
-        val activity = appHandleWrapper?.activity?.get() ?: return
-
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                val credentialManager = CredentialManager.create(activity)
-                val request = ClearCredentialStateRequest()
-                credentialManager.clearCredentialState(request)
-            } catch (e: Exception) {
-                Log.v("Rownd", "Google sign-out failed", e)
-            }
-        }
-    }
-
-    private fun signInWithGoogle(intent: RowndSignInIntent?) {
-        signInWithGoogle(intent, true)
-    }
-
-    private fun signInWithGoogle(intent: RowndSignInIntent?, wasUserInitiated: Boolean?) {
-        signInWithGoogle(intent, hint = null, wasUserInitiated)
-    }
-
-    internal fun getActiveGmailAccounts(): Array<Account> {
-        val applicationContext = appHandleWrapper?.activity?.get()?.applicationContext
-            ?: return emptyArray()
-        val accountManager = AccountManager.get(applicationContext);
-        return accountManager.getAccountsByType("com.google")
-    }
-
-    internal fun signInWithGoogle(intent: RowndSignInIntent?, hint: String?, wasUserInitiated: Boolean? = true) {
-        // We can't attempt this unless the app config is loaded
-
-        googleSignInIntent = intent
-        val googleSignInMethodConfig =
-            state.value.appConfig.config.hub.auth.signInMethods.google
-
-        if (!googleSignInMethodConfig.enabled) {
-            Log.e(
-                "Rownd",
-                "Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id
-            )
-        }
-        if (googleSignInMethodConfig.clientId == "") {
-            Log.e("Rownd", "Cannot sign in with Google. Missing client configuration")
-        }
-
-        var nonce = UUID.randomUUID().toString()
-
-        val googleIdOption: GetGoogleIdOption = GetGoogleIdOption.Builder()
-            .setFilterByAuthorizedAccounts(true)
-            .setServerClientId(googleSignInMethodConfig.clientId)
-            .setAutoSelectEnabled(true)
-            .setNonce(nonce)
-            .build()
-
-        var request: GetCredentialRequest = GetCredentialRequest.Builder()
-            .addCredentialOption(googleIdOption)
-            .build()
-
-        val activity = appHandleWrapper?.activity?.get() ?: return
-
-        val credentialManager = CredentialManager.create(activity)
-
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                val result = credentialManager.getCredential(
-                    request = request,
-                    context = activity,
-                )
-                handleSignInWithGoogle(result)
-            } catch (e: GetCredentialException) {
-                // Bail out if the user canceled the request
-                if (e.type == android.credentials.GetCredentialException.TYPE_USER_CANCELED) {
-                    return@launch
-                }
-
-                // Retry with any Google account
-                try {
-                    nonce = UUID.randomUUID().toString()
-                    var credentialOption: CredentialOption = GetGoogleIdOption.Builder()
-                        .setFilterByAuthorizedAccounts(false)
-                        .setServerClientId(googleSignInMethodConfig.clientId)
-                        .setAutoSelectEnabled(false)
-                        .setNonce(nonce)
-                        .build()
-
-                    // This indicates that the user has disabled Google auto sign-in prompts,
-                    // so we need to fall back to an explicit chooser dialog
-                    if (e.type == android.credentials.GetCredentialException.TYPE_NO_CREDENTIAL) {
-                        credentialOption = GetSignInWithGoogleOption.Builder(googleSignInMethodConfig.clientId)
-                            .setNonce(nonce)
-                            .build()
-                    }
-
-                    request = GetCredentialRequest.Builder()
-                        .addCredentialOption(credentialOption)
-                        .build()
-
-                    val result = credentialManager.getCredential(
-                        request = request,
-                        context = activity,
-                    )
-                    handleSignInWithGoogle(result)
-                } catch (e: GetCredentialException) {
-                    handleSignInWithGoogleFailure(e, wasUserInitiated)
-                } catch (e: GetCredentialProviderConfigurationException) {
-                    handleSignInWithGoogleFailure(e, wasUserInitiated)
-                }
-            }
-        }
-    }
-
-    private suspend fun handleSignInWithGoogle(result: GetCredentialResponse) {
-        when (val credential = result.credential) {
-            is CustomCredential -> {
-                if (credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL) {
-                    try {
-                        // Use googleIdTokenCredential and extract id to validate and
-                        // authenticate on your server.
-                        val googleIdTokenCredential = GoogleIdTokenCredential
-                            .createFrom(credential.data)
-
-                        val tokenResp = authRepo.getAccessToken(
-                            googleIdTokenCredential.idToken,
-                            intent = googleSignInIntent,
-                            type = AuthRepo.AccessTokenType.google
-                        )
-
-                        tokenResp?.let {
-                            eventEmitter.emit(RowndEvent(
-                                event = RowndEventType.SignInCompleted,
-                                data = buildJsonObject {
-                                    put("method", RowndSignInType.Google.value)
-                                    put("user_type", it.userType?.value)
-                                }
-                            ))
-                        }
-                    } catch (e: GoogleIdTokenParsingException) {
-                        Log.e("Rownd", "Received an invalid google id token response", e)
-                    } catch (e: ApiException) {
-                        Log.w("Rownd", "Google sign-in failed: code=" + e.statusCode)
-                        eventEmitter.emit(RowndEvent(
-                            event = RowndEventType.SignInFailed,
-                            data = buildJsonObject {
-                                put("method", RowndSignInType.Google.value)
-                                put("error", e.message)
-                            }
-                        ))
-                    }
-                } else {
-                    // Catch any unrecognized custom credential type here.
-                    Log.e("Rownd", "Unexpected type of credential: '$credential.type'")
-                }
-            }
-
-            else -> {
-                // Catch any unrecognized credential type here.
-                Log.e("Rownd", "Unexpected type of credential")
-            }
-        }
-    }
-
-    private fun handleSignInWithGoogleFailure(e: Exception, wasUserInitiated: Boolean? = true) {
-        Log.w("Rownd", "Google sign-in failed", e)
-        eventEmitter.emit(RowndEvent(
-            event = RowndEventType.SignInFailed,
-            data = buildJsonObject {
-                put("method", RowndSignInType.Google.value)
-                put("error", e.message)
-            }
-        ))
-
-        // If the user explicitly cancels, don't show any errors
-        if (e is GetCredentialCancellationException && e.type == android.credentials.GetCredentialException.TYPE_USER_CANCELED) {
-            return
-        }
-
-        var errMessage = e.localizedMessage
-        when (e) {
-            is GetCredentialProviderConfigurationException -> errMessage = "Google Play Services is missing or out of date."
-        }
-
-        if (rowndContext.isDisplayingHub() || wasUserInitiated == true) {
-            Rownd.requestSignIn(
-                RowndSignInJsOptions(
-                    intent = googleSignInIntent,
-                    loginStep = RowndSignInLoginStep.Error,
-                    errorMessage = errMessage
-                )
-            )
-        }
-    }
-
-    private fun showGoogleOneTap() {
-        isDisplayingOneTap = true
-        val googleSignInMethodConfig =
-            state.value.appConfig.config.hub.auth.signInMethods.google
-
-        fun cancel() {
-            hasDisplayedOneTap = true
-            isDisplayingOneTap = false
-            userRequestedGoogleSignIn = false
-            runRememberedRequestSignIn()
-        }
-
-        // Don't show Google one tap when the hub is displayed
-        val composableBottomSheet = rowndContext.hubView?.get()
-        if (composableBottomSheet != null && composableBottomSheet.isVisible) {
-            cancel()
-            return
-        }
-
-        if (!googleSignInMethodConfig.enabled) {
-            throw RowndException("Google sign-in is not enabled. Turn it on in the Rownd Platform https://app.rownd.io/applications/" + state.value.appConfig.id)
-        }
-        if (googleSignInMethodConfig.clientId == "") {
-            throw RowndException("Cannot sign in with Google. Missing client configuration")
-        }
-
-        signInWithGoogle(RowndSignInIntent.SignIn, wasUserInitiated = false)
-    }
-
     suspend fun getAccessToken(): String? {
         return authRepo.getAccessToken()
     }
@@ -644,9 +390,9 @@ class RowndClient constructor(
         }
 
         // Prevent Hub from displaying when Google One Tap is requested
-        if (isOneTapRequestedAndNotDisplayedYet()) {
+        if (signInWithGoogle.isOneTapRequestedAndNotDisplayedYet()) {
             if (targetPage === HubPageSelector.SignIn) {
-                rememberedRequestSignIn = { displayHub(targetPage, jsFnOptions) }
+                signInWithGoogle.rememberedRequestSignIn = { displayHub(targetPage, jsFnOptions) }
             }
             return
         }
