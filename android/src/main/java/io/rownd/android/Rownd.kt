@@ -45,6 +45,7 @@ import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventEmitter
 import io.rownd.android.util.RowndException
 import io.rownd.android.util.SignInWithGoogle
+import io.rownd.android.util.Telemetry
 import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndWebViewModel
@@ -77,6 +78,7 @@ interface RowndGraph {
     fun passkeyAuthenticator(): PasskeysCommon
     fun rowndEventEmitter(): RowndEventEmitter<RowndEvent>
     fun signInWithGoogle(): SignInWithGoogle
+    fun telemetry(): Telemetry
     fun inject(rowndConfig: RowndConfig)
 }
 
@@ -98,6 +100,7 @@ class RowndClient constructor(
     internal var connectionAction = graph.connectionAction()
     internal var eventEmitter = graph.rowndEventEmitter()
     internal var signInWithGoogle = graph.signInWithGoogle()
+    internal var telemetry = graph.telemetry()
 
     var state = stateRepo.state
     var user = userRepo
@@ -109,11 +112,15 @@ class RowndClient constructor(
         rowndContext.authRepo = authRepo
         rowndContext.store = stateRepo.getStore()
         rowndContext.eventEmitter = eventEmitter
+        rowndContext.telemetry = telemetry
+
         stateRepo.userRepo = userRepo
         stateRepo.authRepo = authRepo
     }
 
     private fun configure(appKey: String) {
+        telemetry.init()
+
         // Init NTP sync ASAP
         rowndContext.kronosClock = AndroidClockFactory.createKronosClock(
             appHandleWrapper?.app?.get()!!.applicationContext,

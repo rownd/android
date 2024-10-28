@@ -28,6 +28,10 @@ import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
 import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
+import io.opentelemetry.api.common.AttributeKey
+import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.trace.Span
+import io.opentelemetry.api.trace.StatusCode
 import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInIntent
 import io.rownd.android.RowndSignInJsOptions
@@ -52,6 +56,8 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
     private var googleSignInIntent: RowndSignInIntent? = null
 
     private val SIGN_IN_WITH_GOOGLE_NOT_ENABLED = "Sign-in with Google is not enabled."
+
+    private var currentSpan: Span? = null
 
     internal var rememberedRequestSignIn: (() -> Unit)? = null
 
@@ -100,6 +106,11 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
         hint: String?,
         wasUserInitiated: Boolean? = true
     ) {
+        val tracer = rowndContext.telemetry?.getTracer()
+        val span = tracer?.spanBuilder("signInWithGoogle")?.startSpan()
+        currentSpan = span
+        span?.setAttribute("wasUserInitiated", wasUserInitiated.toString())
+
         googleSignInIntent = intent
         val googleSignInMethodConfig = getGoogleConfig()
 
@@ -113,9 +124,12 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
             if (wasUserInitiated == true) {
                 showErrorToUser(SIGN_IN_WITH_GOOGLE_NOT_ENABLED)
             }
+            span?.setAttribute("error", "not_enabled")
+            endSpan()
+            return
         }
 
-        val googleClientId = googleSignInMethodConfig?.clientId?.takeIf {
+        val googleClientId = googleSignInMethodConfig.clientId.takeIf {
             it.isNotEmpty()
         } ?: run {
             Log.e(
@@ -123,6 +137,8 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                 "Cannot sign in with Google. Missing client_id. Add it to your app in the Rownd dashboard."
             )
             showErrorToUser(SIGN_IN_WITH_GOOGLE_NOT_ENABLED)
+            span?.setAttribute("error", "missing_client_id")
+            endSpan()
             return
         }
 
@@ -215,9 +231,14 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                                     put("user_type", it.userType?.value)
                                 }
                             ))
+
+                            currentSpan?.setStatus(StatusCode.OK)
+                            endSpan()
                         }
                     } catch (e: GoogleIdTokenParsingException) {
                         Log.e("Rownd", "Received an invalid google id token response", e)
+                        currentSpan?.setStatus(StatusCode.ERROR, e.message ?: "Unknown error")
+                        endSpan()
                     } catch (e: ApiException) {
                         Log.w("Rownd", "Google sign-in failed: code=" + e.statusCode)
                         rowndContext.eventEmitter?.emit(RowndEvent(
@@ -227,16 +248,23 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                                 put("error", e.message)
                             }
                         ))
+                        currentSpan?.setStatus(StatusCode.ERROR, e.message ?: "Unknown error")
+                        endSpan()
                     }
                 } else {
                     // Catch any unrecognized custom credential type here.
-                    Log.e("Rownd", "Unexpected type of credential: '$credential.type'")
+                    Log.e("Rownd", "Unexpected type of credential: '${credential.type}'")
+                    currentSpan?.setStatus(StatusCode.ERROR, "Unexpected type of credential '${credential.type}'")
+                    currentSpan?.setAttribute("was_error_presented_to_user", "false")
+                    endSpan()
                 }
             }
-
             else -> {
                 // Catch any unrecognized credential type here.
                 Log.e("Rownd", "Unexpected type of credential")
+                currentSpan?.setStatus(StatusCode.ERROR, "Unexpected type of credential")
+                currentSpan?.setAttribute("was_error_presented_to_user", "false")
+                endSpan()
             }
         }
     }
@@ -246,6 +274,7 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
 
         // If the user explicitly cancels, don't show any errors
         if (e is GetCredentialCancellationException && e.type == android.credentials.GetCredentialException.TYPE_USER_CANCELED) {
+            endSpan()
             return
         }
 
@@ -264,8 +293,14 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                     intentLaunchers[activity.toString()]?.launch(intent)
                 }
             }
+            currentSpan?.addEvent("Fallback to legacy sign-in", Attributes.of(
+                AttributeKey.stringKey("reason"), e.errorMessage.toString()
+            ))
+            endSpan()
             return
         }
+
+        currentSpan?.setStatus(StatusCode.ERROR, e.message ?: "Unknown error")
 
         rowndContext.eventEmitter?.emit(RowndEvent(
             event = RowndEventType.SignInFailed,
@@ -286,6 +321,7 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
         }
 
         if (rowndContext.isDisplayingHub() || wasUserInitiated == true) {
+            currentSpan?.addEvent("Displayed error to user")
             Rownd.requestSignIn(
                 RowndSignInJsOptions(
                     intent = googleSignInIntent,
@@ -294,6 +330,7 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                 )
             )
         }
+        endSpan()
     }
 
     internal fun showGoogleOneTap() {
@@ -370,12 +407,16 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                             put("user_type", it.userType?.value)
                         }
                     ))
+                    currentSpan?.setStatus(StatusCode.OK)
                 }
+                endSpan()
                 return
             }
 
             Log.w("Rownd", "Google sign-in failed: missing idToken")
             showErrorToUser("The Google ID token was missing.")
+            currentSpan?.setStatus(StatusCode.ERROR, "The Google ID token was missing.")
+            endSpan()
         } catch (e: ApiException) {
             // The ApiException status code indicates the detailed failure reason.
             // Please refer to the GoogleSignInStatusCodes class reference for more information.
@@ -387,6 +428,8 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                     put("error", e.message)
                 }
             ))
+            currentSpan?.setStatus(StatusCode.ERROR, e.message ?: "Unknown error")
+            endSpan()
         }
     }
 
@@ -398,10 +441,11 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                 errorMessage = message
             )
         )
+        currentSpan?.setAttribute("was_error_presented_to_user", "true")
     }
 
     private suspend fun exchangeGoogleTokenForRowndToken(idToken: String): TokenResponse? {
-        return authRepo?.getAccessToken(
+        return authRepo.getAccessToken(
             idToken,
             intent = googleSignInIntent,
             type = AuthRepo.AccessTokenType.google
@@ -439,5 +483,10 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
         val google = getGoogleConfig() ?: return false
 
         return google.enabled && google.oneTap.mobileApp.autoPrompt && google.oneTap.mobileApp.delay == 0 && !hasDisplayedOneTap
+    }
+
+    private fun endSpan() {
+        currentSpan?.end()
+        currentSpan = null
     }
 }
