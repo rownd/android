@@ -1,5 +1,18 @@
 
 
+# [2.13.0](https://github.com/rownd/android/compare/2.12.1...2.13.0) (2024-10-29)
+
+
+### Bug Fixes
+
+* **google:** handle supervised users not supported by credential manager ([60e629a](https://github.com/rownd/android/commit/60e629a6a65385982a756fe025b81debb9861d5e))
+* **otel:** update aar build approach ([4c50d2a](https://github.com/rownd/android/commit/4c50d2af114d5c1573a49d2617ed057bba3fbba9))
+
+
+### Features
+
+* **otel:** initial telemetry support ([809a748](https://github.com/rownd/android/commit/809a74888db6e835bad8aa07050a4693708e23ae))
+
 ## [2.12.1](https://github.com/rownd/android/compare/2.12.0...2.12.1) (2024-08-21)
 
 
