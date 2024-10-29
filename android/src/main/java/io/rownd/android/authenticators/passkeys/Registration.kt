@@ -68,7 +68,7 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
 
         CoroutineScope(Dispatchers.IO).launch IO@ {
             try {
-                if (Build.VERSION.SDK_INT < 29) {
+                if (Build.VERSION.SDK_INT < 28) {
                     throw RowndException("This device is incompatible with passkeys")
                 }
 

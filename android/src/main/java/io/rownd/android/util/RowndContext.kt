@@ -24,8 +24,11 @@ class RowndContext @Inject constructor() {
     var hubView: WeakReference<ComposableBottomSheetFragment>? = null
     var hubViewModel: RowndWebViewModel? = null
     var eventEmitter: RowndEventEmitter<RowndEvent>? = null
+    var telemetry: Telemetry? = null
 
     fun isDisplayingHub(): Boolean {
-        return hubView != null && hubView?.get() != null
+        hubView?.get().let {
+            return it?.isVisible == true
+        }
     }
 }

@@ -44,13 +44,13 @@ jobs:
         run: ./gradlew assembleDebug
 
       - name: Upload apk
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: debug apk
           path: app/build/outputs/apk/debug/app-debug.apk
           
       - name: Upload aar
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: debug aar
           path: android/build/outputs/aar/android-debug.aar
@@ -106,7 +106,7 @@ jobs:
           script: ./gradlew :android:connectedDebugAndroidTest --stacktrace
 
       - name: Upload Reports
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: Test-Reports
           path: android/build/reports
