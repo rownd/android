@@ -1,5 +1,12 @@
 
 
+## [2.13.1](https://github.com/rownd/android/compare/2.13.0...2.13.1) (2024-11-07)
+
+
+### Bug Fixes
+
+* **pkg:** bad telemetry package ref ([ef5e9cf](https://github.com/rownd/android/commit/ef5e9cf3dcef6474d51fcbd7f690ac7ec8578da2))
+
 # [2.13.0](https://github.com/rownd/android/compare/2.12.1...2.13.0) (2024-10-29)
 
 
