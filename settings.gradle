@@ -15,4 +15,3 @@ dependencyResolutionManagement {
 rootProject.name = "Rownd Test Sandbox"
 include ':app'
 include ':android'
-include ':telemetry'
