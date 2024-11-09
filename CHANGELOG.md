@@ -1,5 +1,12 @@
 
 
+## [2.13.2](https://github.com/rownd/android/compare/2.13.1...2.13.2) (2024-11-08)
+
+
+### Bug Fixes
+
+* **pkg:** include minification rules in aar ([340fd4c](https://github.com/rownd/android/commit/340fd4cc34c014693b7d8705c2c323c117a24029))
+
 ## [2.13.1](https://github.com/rownd/android/compare/2.13.0...2.13.1) (2024-11-07)
 
 
