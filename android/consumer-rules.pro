@@ -135,7 +135,9 @@
 -dontwarn com.google.common.util.concurrent.FutureCallback
 -dontwarn com.google.common.util.concurrent.Futures
 -dontwarn com.google.common.util.concurrent.MoreExecutors
+-dontwarn io.grpc.CallOptions
 -dontwarn io.grpc.Channel
+-dontwarn io.grpc.ClientCall
 -dontwarn io.grpc.ClientInterceptor
 -dontwarn io.grpc.ClientInterceptors
 -dontwarn io.grpc.Codec$Gzip
@@ -148,10 +150,12 @@
 -dontwarn io.grpc.MethodDescriptor$Marshaller
 -dontwarn io.grpc.MethodDescriptor$MethodType
 -dontwarn io.grpc.MethodDescriptor
+-dontwarn io.grpc.Status
 -dontwarn io.grpc.Status$Code
 -dontwarn io.grpc.stub.AbstractFutureStub
 -dontwarn io.grpc.stub.AbstractStub$StubFactory
 -dontwarn io.grpc.stub.AbstractStub
+-dontwarn io.grpc.stub.ClientCalls
 -dontwarn io.grpc.stub.MetadataUtils
 -dontwarn java.awt.Component
 -dontwarn java.awt.GraphicsEnvironment
