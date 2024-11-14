@@ -1,5 +1,13 @@
 
 
+## [2.13.3](https://github.com/rownd/android/compare/2.13.2...2.13.3) (2024-11-14)
+
+
+### Bug Fixes
+
+* **pkg:** add missing minification rules ([f320ba6](https://github.com/rownd/android/commit/f320ba65e134b03829711461253383d55e53f884))
+* **store:** regression/crash caused by updates to androidx.datastore ([b680c70](https://github.com/rownd/android/commit/b680c70c1b6fdf96ffd7e9ae390db89cd48d6253))
+
 ## [2.13.2](https://github.com/rownd/android/compare/2.13.1...2.13.2) (2024-11-08)
 
 
