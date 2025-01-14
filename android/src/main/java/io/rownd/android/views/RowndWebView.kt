@@ -40,6 +40,7 @@ import io.rownd.android.models.UserDataUpdateMessage
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.util.Constants
+import io.rownd.android.util.redactSensitiveKeys
 import io.rownd.android.views.html.noInternetHTML
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
@@ -346,11 +347,10 @@ class RowndJavascriptInterface constructor(
 
     @JavascriptInterface
     fun postMessage(message: String) {
-        Log.d("Rownd.hub", "postMessage: $message")
-
+        Log.d("Rownd.hub", "postMessage: " + redactSensitiveKeys(message))
         try {
             val interopMessage = json.decodeFromString(RowndHubInteropMessage.serializer(), message)
-            Log.d("Rownd.hub", interopMessage.toString())
+            Log.d("Rownd.hub", redactSensitiveKeys(interopMessage.toString()))
 
             when (interopMessage.type) {
                 MessageType.authentication -> {
