@@ -77,7 +77,8 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                         event = RowndEventType.SignInCompleted,
                         data = buildJsonObject {
                             put("method", RowndSignInType.Passkey.value)
-                            put("user_type", RowndSignInUserType.ExistingUser.value)
+                            put("user_type", fidoAuthResp.userType?.value)
+                            put("app_variant_user_type", fidoAuthResp.appVariantUserType?.value)
                         }
                     )
                 )
@@ -88,7 +89,8 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                     loginStep = RowndSignInLoginStep.Success,
                     signInType = RowndSignInType.Passkey,
                     intent = RowndSignInIntent.SignIn,
-                    userType = RowndSignInUserType.ExistingUser,
+                    userType = fidoAuthResp.userType,
+                    appVariantUserType = fidoAuthResp.appVariantUserType,
                 )
 
                 hubWebView.loadNewPage(targetPage = HubPageSelector.SignIn, jsFnOptions = jsFnOptions)
