@@ -103,9 +103,7 @@ jobs:
           target: ${{ matrix.target }}
           arch: ${{ matrix.api-level > 27 && 'x86_64' || 'x86' }}
           profile: pixel_3a
-          script: |
-            adb wait-for-device shell getprop sys.boot_completed 1>/dev/null
-            ./gradlew :android:connectedDebugAndroidTest --stacktrace
+          script: ./gradlew :android:connectedDebugAndroidTest --stacktrace
 
       - name: Upload Reports
         uses: actions/upload-artifact@v4
