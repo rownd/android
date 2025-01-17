@@ -58,9 +58,17 @@ internal class DefaultHeadersInterceptor : Interceptor {
 
         return chain.proceed(newRequest.build())
     }
+
 }
 
-internal var reqLogging = HttpLoggingInterceptor().apply {
+// Define a custom Logger
+class CustomLogger : HttpLoggingInterceptor.Logger {
+    override fun log(message: String) {
+        Log.d("Rownd.ApiClient", redactSensitiveKeys(message))
+    }
+}
+
+internal var reqLogging = HttpLoggingInterceptor(CustomLogger()).apply {
     this.setLevel(HttpLoggingInterceptor.Level.BODY)
 }
 

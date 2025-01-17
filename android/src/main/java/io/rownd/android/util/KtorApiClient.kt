@@ -21,7 +21,7 @@ private object CustomAndroidHttpLogger : Logger {
     private const val logTag = "Rownd.ApiClient"
 
     override fun log(message: String) {
-        Log.d(logTag, message)
+        Log.d(logTag, redactSensitiveKeys(message))
     }
 }
 

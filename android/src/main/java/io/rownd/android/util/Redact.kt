@@ -9,8 +9,12 @@ fun redactSensitiveKeys(jsonString: String?): String {
 
     // Compile the combined pattern to match both JSON-like and non-JSON structures
     val pattern = Pattern.compile(
-        "\\\"(accessToken|refreshToken|refresh_token|access_token)\\\"\\s*:\\s*\\\"[^\"\\\\]*\\\"" +
-                "|(accessToken=|refreshToken)[^,\\)]+"
+        // Matches JSON-like tokens
+        "\\\"(accessToken|refreshToken|refresh_token|access_token|id_token)\\\"\\s*:\\s*\\\"[^\"\\\\]*\\\"" +
+                // Matches key-value token structures
+                "|(accessToken=|refreshToken=)[^,\\)]+" +
+                // Matches Authorization headers with JWT
+                "|(Authorization: Bearer [A-Za-z0-9-._~+/]+=*)"
     )
 
     // Create a matcher for the combined pattern
@@ -26,6 +30,8 @@ fun redactSensitiveKeys(jsonString: String?): String {
             matcher.appendReplacement(stringBuffer, "\"${matcher.group(1)}\": \"[REDACTED]\"")
         } else if (matcher.group(2) != null) {
             matcher.appendReplacement(stringBuffer, "${matcher.group(2)}[REDACTED]")
+        } else if (matcher.group(3) != null) {
+            matcher.appendReplacement(stringBuffer, "Authorization: Bearer [REDACTED]")
         }
     }
 
