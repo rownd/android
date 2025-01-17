@@ -325,6 +325,7 @@ Here's a list of events that the Rownd SDK emits and the corresponding data that
 {
 	method: "google" | "apple" | "phone" | "email" | "passkey" | etc,
 	user_type: "new_user" | "existing_user"
+	app_variant_user_type: "new_user" | "existing_user"
 }
 ```
 

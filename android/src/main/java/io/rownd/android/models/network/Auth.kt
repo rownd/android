@@ -50,6 +50,8 @@ data class TokenResponse internal constructor(
     val refreshToken: String? = null,
     @SerialName("user_type")
     val userType: RowndSignInUserType? = null,
+    @SerialName("app_variant_user_type")
+    val appVariantUserType: RowndSignInUserType? = null,
 )
 
 interface TokenService {

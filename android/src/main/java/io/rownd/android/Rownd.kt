@@ -486,6 +486,8 @@ internal data class RowndSignInJsOptions(
     var intent: RowndSignInIntent? = null,
     @SerialName("user_type")
     var userType: RowndSignInUserType? = null,
+    @SerialName("app_variant_user_type")
+    var appVariantUserType: RowndSignInUserType? = null,
     @SerialName("method")
     var signInType: RowndSignInType? = null,
     @SerialName("request_id")
@@ -527,6 +529,9 @@ enum class RowndSignInUserType(var value: String) {
 
     @SerialName("existing_user")
     ExistingUser("existing_user"),
+
+    @SerialName("unknown")
+    Unknown("unknown"),
 }
 
 @Serializable

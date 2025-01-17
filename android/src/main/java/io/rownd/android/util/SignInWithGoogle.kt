@@ -229,6 +229,7 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                                 data = buildJsonObject {
                                     put("method", RowndSignInType.Google.value)
                                     put("user_type", it.userType?.value)
+                                    put("app_variant_user_type", it.appVariantUserType?.value)
                                 }
                             ))
 
@@ -405,6 +406,7 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                         data = buildJsonObject {
                             put("method", RowndSignInType.Google.value)
                             put("user_type", it.userType?.value)
+                            put("app_variant_user_type", it.userType?.value)
                         }
                     ))
                     currentSpan?.setStatus(StatusCode.OK)

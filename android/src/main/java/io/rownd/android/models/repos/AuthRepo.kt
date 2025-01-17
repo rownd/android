@@ -106,7 +106,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         }
 
         refreshTokenJob = CoroutineScope(Dispatchers.IO).async {
-            Log.d("Rownd.Auth", "Refreshing tokens via ${stateRepo.state.value.auth.refreshToken}")
+            Log.d("Rownd.Auth", "Refreshing tokens: in progress")
 
             try {
                 val authState: Auth = tokenApi.client.post("/hub/auth/token") {
