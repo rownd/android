@@ -17,6 +17,8 @@ import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.Auth
 import io.rownd.android.models.network.AuthApi
 import io.rownd.android.models.network.RowndAPIException
+import io.rownd.android.models.network.SignOutRequestBody
+import io.rownd.android.models.network.SignOutResponse
 import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.models.network.TokenResponse
 import io.rownd.android.util.RowndContext
@@ -90,6 +92,13 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         return fetchTokenAsync(tokenRequest, intent, type).await()
     }
 
+    fun signOutUser(){
+        val appId = stateRepo.getStore().currentState.appConfig.id
+        val signOutRequest = SignOutRequestBody(
+            signOutAll = true
+        )
+        signOutUserAsync(appId, signOutRequest)
+    }
 
     @Serializable
     internal enum class AccessTokenType {
@@ -97,6 +106,21 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         default,
         @SerialName("google")
         google,
+    }
+
+    @Synchronized
+    internal fun signOutUserAsync(appId: String, signOutRequest: SignOutRequestBody): Deferred<SignOutResponse?>{
+        return CoroutineScope(Dispatchers.IO).async {
+            val resp = authApi.client.signOutUser(appId, signOutRequest)
+            if (resp.isSuccessful) {
+                Rownd.signOut()
+                return@async null
+            } else {
+                val error = RowndAPIException(resp)
+                Log.e("Rownd.Auth", "Failed to signOut user:", error)
+                null
+            }
+        }
     }
 
     @Synchronized
