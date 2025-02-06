@@ -117,8 +117,8 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 return@async null
             } else {
                 val error = RowndAPIException(resp)
-                Log.e("Rownd.Auth", "Failed to signOut user:", error)
-                null
+                Log.e("Rownd.Auth", "Failed to sign out user from all sessions:", error)
+                throw RowndException("Failed to sign out user from all sessions")
             }
         }
     }
