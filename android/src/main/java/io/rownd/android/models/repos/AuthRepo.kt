@@ -92,7 +92,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         return fetchTokenAsync(tokenRequest, intent, type).await()
     }
 
-    fun signOutUser(){
+    fun signOutUser() {
         val appId = stateRepo.getStore().currentState.appConfig.id
         val signOutRequest = SignOutRequestBody(
             signOutAll = true
