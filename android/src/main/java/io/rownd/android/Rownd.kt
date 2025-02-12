@@ -304,11 +304,10 @@ class RowndClient constructor(
         }
     }
 
-    fun signOut(with: RowndSignOutScope){
-        when (with) {
+    fun signOut(scope: RowndSignOutScope) {
+        when (scope) {
             RowndSignOutScope.all ->  authRepo.signOutUser()
         }
-
     }
 
     fun signOut() {
