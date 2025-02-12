@@ -1,5 +1,12 @@
 
 
+# [2.15.0](https://github.com/rownd/android/compare/2.14.0...2.15.0) (2025-02-12)
+
+
+### Features
+
+* support for signing a user out of all sessions ([#58](https://github.com/rownd/android/issues/58)) ([031cc00](https://github.com/rownd/android/commit/031cc00d2f96611d7338fd6dcc10633fa02bd093))
+
 # [2.14.0](https://github.com/rownd/android/compare/2.13.3...2.14.0) (2025-01-17)
 
 ## [2.13.3](https://github.com/rownd/android/compare/2.13.2...2.13.3) (2024-11-14)
