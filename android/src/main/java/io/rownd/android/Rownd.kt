@@ -304,6 +304,13 @@ class RowndClient constructor(
         }
     }
 
+    fun signOut(with: RowndSignOutScope){
+        when (with) {
+            RowndSignOutScope.all ->  authRepo.signOutUser()
+        }
+
+    }
+
     fun signOut() {
         rowndContext.hubViewModel?.webView()?.postValue(null)
         store.dispatch(StateAction.SetAuth(AuthState()))
@@ -574,4 +581,8 @@ enum class RowndSignInLoginStep {
 
     @SerialName("error")
     Error,
+}
+
+enum class RowndSignOutScope {
+    all
 }

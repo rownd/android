@@ -1,15 +1,16 @@
 package io.rownd.android.models.network
 
-import io.ktor.resources.*
 import io.rownd.android.RowndSignInIntent
 import io.rownd.android.RowndSignInUserType
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.util.ApiClient
+import io.rownd.android.util.RequireAccessToken
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.Path
 import javax.inject.Inject
 
 @Serializable
@@ -54,9 +55,25 @@ data class TokenResponse internal constructor(
     val appVariantUserType: RowndSignInUserType? = null,
 )
 
+@Serializable
+data class SignOutRequestBody internal constructor(
+    @SerialName("sign_out_all")
+    val signOutAll: Boolean
+)
+
+@Serializable
+data class SignOutResponse internal constructor(
+    @SerialName("sign_out_all")
+    val signOutAll: Boolean
+)
+
 interface TokenService {
     @POST("hub/auth/token")
     suspend fun exchangeToken(@Body requestBody: TokenRequestBody) : Response<TokenResponse>
+
+    @RequireAccessToken
+    @POST("me/applications/{app}/signout")
+    suspend fun signOutUser(@Path("app") appId: String, @Body requestBody: SignOutRequestBody) : Response<SignOutResponse>
 }
 
 class AuthApi @Inject constructor(apiClient: ApiClient) {
