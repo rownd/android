@@ -382,6 +382,14 @@ Rownd.requestSignIn(RowndSignInOpts(
     intent = RowndSignInIntent.SignUp
 ))
 ```
+### Rownd.signOut(): Void
+Clears the user's access token, removes the user's profile data, and returns the user to a completely unauthenticated state.
+
+### Rownd.signOut(scope = RowndSignOutScope): Void
+Revokes all tokens for the specified user causing them to be signed out on all devices.
+
+Supported values:
+- `RowndSignOutScope.all` - All devices
 
 <br />
 > NOTE: The following user profile APIs technically accept `Any` as the value of a field. However, that value **must** be serializable using [Kotlin's Serialization](https://kotlinlang.org/docs/serialization.html) library. If the value is not serializable out of the box, you'll need to provide your own serializer implementation as described in the Kotlin documentation.
