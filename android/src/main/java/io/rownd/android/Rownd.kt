@@ -37,7 +37,6 @@ import io.rownd.android.models.repos.SignInRepo
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
-import io.rownd.android.models.repos.dataStore
 import io.rownd.android.util.ApiClientModule
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.RowndContext
@@ -121,16 +120,18 @@ class RowndClient constructor(
     private fun configure(appKey: String) {
         telemetry.init()
 
+        val appContext = appHandleWrapper?.app?.get()!!.applicationContext
+
         // Init NTP sync ASAP
         rowndContext.kronosClock = AndroidClockFactory.createKronosClock(
-            appHandleWrapper?.app?.get()!!.applicationContext,
+            appContext,
             ntpHosts = listOf("time.cloudflare.com")
         )
         rowndContext.kronosClock?.syncInBackground()
 
         config.appKey = appKey
 
-        store = stateRepo.setup(appHandleWrapper?.app?.get()!!.applicationContext.dataStore)
+        store = stateRepo.setup(StateRepo.defaultDataStore(appContext))
 
         // Clear webview cache on startup
         Handler(Looper.getMainLooper()).post {
@@ -399,6 +400,7 @@ class RowndClient constructor(
         }
 
         if (isAppConfigLoading) {
+            Log.w("Rownd", "App config is not ready yet.")
             return
         }
 

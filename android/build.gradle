@@ -87,10 +87,7 @@ dependencies {
 
     implementation 'io.rownd:telemetry:1.0.1'
 
-    // TODO: Google critically regressed the datastore libraries in v1.1.x
-    // Do not upgrade until this is fixed.
-    // See https://issuetracker.google.com/issues/346197747
-    implementation 'androidx.datastore:datastore-preferences:1.0.0'
+    implementation 'androidx.datastore:datastore-preferences:1.1.3'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
 
