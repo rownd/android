@@ -487,9 +487,9 @@ class RowndJavascriptInterface constructor(
                 }
             }
         } catch (e : Exception) {
-            Log.w("Rownd.hub", "Unparseable message", e)
+            Log.d("Rownd.hub", "Unparseable message", e)
         } catch (e : Error) {
-            Log.w("Rownd.hub", "Unparseable message", e)
+            Log.d("Rownd.hub", "Unparseable message", e)
         }
     }
 }

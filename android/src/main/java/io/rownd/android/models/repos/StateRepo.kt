@@ -4,8 +4,12 @@ import android.content.Context
 import android.util.Log
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.DataStore
+import androidx.datastore.core.DataStoreFactory
+import androidx.datastore.core.FileStorage
 import androidx.datastore.core.Serializer
-import androidx.datastore.dataStore
+import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import androidx.datastore.dataStoreFile
+import io.opentelemetry.api.trace.StatusCode
 import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInJsOptions
 import io.rownd.android.RowndSignInLoginStep
@@ -31,8 +35,6 @@ import java.io.OutputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
-val Context.dataStore by dataStore("rownd_state.json", GlobalStateSerializer)
-
 @Serializable
 data class GlobalState(
     val appConfig: AppConfigState = AppConfigState(),
@@ -56,8 +58,8 @@ object GlobalStateSerializer : Serializer<GlobalState> {
             return json.decodeFromString(
                 GlobalState.serializer(), input.readBytes().decodeToString()
             )
-        } catch (serialization: SerializationException) {
-            throw CorruptionException("Unable to read GlobalState", serialization)
+        } catch (ex: SerializationException) {
+            throw CorruptionException("Unable to read GlobalState", ex)
         }
     }
 
@@ -164,5 +166,28 @@ class StateRepo @Inject constructor() {
 
     fun getStore(): Store<GlobalState, StateAction> {
         return store
+    }
+
+    companion object {
+        fun defaultDataStore(context: Context): DataStore<GlobalState> {
+            return DataStoreFactory.create(
+                storage = FileStorage(GlobalStateSerializer) {
+                    context.dataStoreFile("rownd_state.json")
+                },
+                corruptionHandler = ReplaceFileCorruptionHandler { ex ->
+                    // Handle cases where on-device state has become corrupt.
+                    // First, log the exception and send a trace
+                    Log.w("Rownd.StateRepo", "Failed to load existing state from device", ex)
+                    val tracer = Rownd.rowndContext.telemetry?.getTracer()
+                    val span = tracer?.spanBuilder("globalStateCorruption")?.startSpan()
+                    span?.setStatus(StatusCode.ERROR)
+                    span?.recordException(ex)
+                    span?.end()
+
+                    // Finally, reset the state to default (unfortunately, signing-out the user)
+                    return@ReplaceFileCorruptionHandler GlobalState()
+                }
+            )
+        }
     }
 }
