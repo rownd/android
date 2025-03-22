@@ -1,5 +1,12 @@
 
 
+## [2.15.1](https://github.com/rownd/android/compare/2.15.0...2.15.1) (2025-03-22)
+
+
+### Bug Fixes
+
+* **state:** prevent crash when state is unparseable ([#60](https://github.com/rownd/android/issues/60)) ([fc25b6b](https://github.com/rownd/android/commit/fc25b6b838b04c6cb174739ea9924572cd0bdcd4))
+
 # [2.15.0](https://github.com/rownd/android/compare/2.14.0...2.15.0) (2025-02-12)
 
 
