@@ -9,19 +9,24 @@ import android.content.Intent.ACTION_VIEW
 import android.net.Uri
 import android.util.Log
 import android.view.View
+import androidx.core.net.toUri
 import androidx.core.view.doOnLayout
+import io.ktor.client.call.body
+import io.ktor.client.request.get
+import io.ktor.client.request.post
 import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInType
 import io.rownd.android.RowndSignInUserType
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.UserRepo
-import io.rownd.android.util.ApiClient
+import io.rownd.android.util.AuthenticatedApi
 import io.rownd.android.util.Encryption
-import io.rownd.android.util.RequireAccessToken
+import io.rownd.android.util.KtorApiClient
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventType
+import io.rownd.android.util.RowndException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -29,10 +34,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import retrofit2.Response
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Url
 import javax.inject.Inject
 
 @Serializable
@@ -54,26 +55,23 @@ data class SignInAuthenticationResponse(
     val appUserId: String
 )
 
-interface SignInLinkService {
-    @POST("me/auth/magic")
-    @RequireAccessToken
-    suspend fun createSignInLink() : Response<SignInLink>
-
-    @GET
-    suspend fun authenticateWithSignInLink(@Url url: String) : Response<SignInAuthenticationResponse>
-}
-
-class SignInLinkApi @Inject constructor(var apiClient: ApiClient) {
+class SignInLinkApi @Inject constructor(var rowndContext: RowndContext) {
     @Inject lateinit var userRepo: UserRepo
-    @Inject lateinit var rowndContext: RowndContext
 
-    internal val client: SignInLinkService by lazy {
-        apiClient.client.get().create(SignInLinkService::class.java)
+    private val authApiClient: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
+    private val apiClient: KtorApiClient by lazy { KtorApiClient(rowndContext) }
+
+    suspend fun createSignInLink() : SignInLink {
+        return authApiClient.client.post("me/auth/magic").body()
+    }
+
+    suspend fun authenticateWithSignInLink(url: String) : SignInAuthenticationResponse {
+        return apiClient.client.get(url).body()
     }
 
     internal suspend fun signInWithLink(url: String) {
         var signInUrl = url
-        val urlObj = Uri.parse(url)
+        val urlObj = url.toUri()
         var encKey: String? = null
 
         if (urlObj.fragment != null) {
@@ -86,14 +84,7 @@ class SignInLinkApi @Inject constructor(var apiClient: ApiClient) {
         signInUrl = signInUrl.replace("http://", "https://")
 
         try {
-            val authResp = client.authenticateWithSignInLink(signInUrl)
-            if (!authResp.isSuccessful) {
-                Log.e("Rownd.SignInLink", "Auto sign-in failed for ${urlObj.path}")
-                throw RowndAPIException(authResp)
-            }
-
-            val authBody: SignInAuthenticationResponse =
-                authResp.body() ?: throw RowndAPIException(authResp)
+            val authBody = authenticateWithSignInLink(signInUrl)
 
             if (encKey != null) {
                 Encryption.deleteKey(authBody.appUserId)
@@ -121,7 +112,8 @@ class SignInLinkApi @Inject constructor(var apiClient: ApiClient) {
 
             userRepo.loadUserAsync().await()
         } catch (err: Exception) {
-            Log.e("Rownd.SignInLink", "Exception thrown during auto sign-in attempt:", err)
+            Log.e("Rownd.SignInLink", "Exception thrown during auto sign-in attempt (url: ${urlObj.path}):", err)
+            throw RowndException(err.message ?: "An unknown auto-sign-in error occurred")
         }
     }
 

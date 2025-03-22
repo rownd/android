@@ -24,10 +24,6 @@ import io.rownd.android.models.network.User as NetworkUser
 
 @Singleton
 class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndContext: RowndContext) {
-
-//    @Inject
-//    lateinit var userApi: UserApi
-
     internal val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
     internal fun setIsLoading(value: Boolean) {
         stateRepo.getStore().dispatch(StateAction.SetUserIsLoading(value))

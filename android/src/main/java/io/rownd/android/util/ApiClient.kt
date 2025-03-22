@@ -96,7 +96,7 @@ class ApiClientModule {
         .build()
 }
 
-class ApiClient @Inject constructor() {
+class ApiClientt @Inject constructor() {
     @Inject
     @Named("OkHttpClient")
     lateinit var okHttpClient: OkHttpClient
