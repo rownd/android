@@ -5,9 +5,12 @@ plugins {
     id 'androidx.navigation.safeargs'
     id 'org.jetbrains.kotlin.android'
     id 'maven-publish'
+    id 'org.jetbrains.kotlin.plugin.compose'
 }
 
 apply from: "${rootProject.projectDir}/android/versioning.gradle"
+
+def VERSION_NAME = ""
 
 android {
     namespace "io.rownd.android"
@@ -17,7 +20,6 @@ android {
         minSdk 26
         targetSdk 34
 
-        versionName project.package_version
 
         aarMetadata {
             minCompileSdk 26
@@ -30,13 +32,13 @@ android {
 
     buildTypes {
         debug {
-            buildConfigField "String", "VERSION_NAME", "\"${defaultConfig.versionName}\""
+            buildConfigField "String", "VERSION_NAME", "\"${project.package_version}\""
         }
 
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            buildConfigField "String", "VERSION_NAME", "\"${defaultConfig.versionName}\""
+            buildConfigField "String", "VERSION_NAME", "\"${project.package_version}\""
         }
     }
     compileOptions {
@@ -68,12 +70,10 @@ android {
 }
 
 dependencies {
-    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
-
     def lifecycle_version = '2.8.3'
-    def dagger_version = '2.51.1'
+    def dagger_version = '2.56'
     def coroutines_version = "1.3.9"
-    def ktor_version = "2.1.3"
+    def ktor_version = "3.1.1"
 
     implementation platform('io.opentelemetry:opentelemetry-bom:1.25.0')
     implementation "io.opentelemetry:opentelemetry-api"
@@ -123,9 +123,6 @@ dependencies {
     implementation "io.ktor:ktor-client-encoding:$ktor_version"
     implementation "io.ktor:ktor-client-logging:$ktor_version"
     implementation "io.ktor:ktor-client-auth:$ktor_version"
-    implementation 'com.squareup.retrofit2:retrofit:2.11.0'
-    implementation 'com.jakewharton.retrofit:retrofit2-kotlinx-serialization-converter:0.8.0'
-    implementation 'com.squareup.okhttp3:logging-interceptor:4.9.1'
 
     // JWTs
     implementation 'com.auth0.android:jwtdecode:2.0.2'
@@ -135,12 +132,11 @@ dependencies {
     implementation "net.java.dev.jna:jna:5.8.0@aar"
     implementation "androidx.security:security-crypto:1.0.0"
 
-    // Sign in with Google
-    implementation 'com.google.android.gms:play-services-auth:21.3.0'
-
-    // Passkeys
+    // Passkeys & Google sign-in
     implementation "androidx.credentials:credentials:1.5.0"
     implementation "androidx.credentials:credentials-play-services-auth:1.5.0"
+    implementation 'com.google.android.libraries.identity.googleid:googleid:1.1.1'
+    implementation 'com.google.android.gms:play-services-auth:21.3.0'
 
     // Dependency injection via Dagger
     implementation "com.google.dagger:dagger:$dagger_version"
@@ -148,7 +144,7 @@ dependencies {
 
     // For instrumentation tests
     androidTestImplementation 'androidx.test.ext:junit-ktx:1.2.1'
-    androidTestImplementation 'com.squareup.okhttp3:mockwebserver:4.9.3'
+//    androidTestImplementation 'com.squareup.okhttp3:mockwebserver:4.9.3'
     androidTestImplementation 'com.nimbusds:nimbus-jose-jwt:7.8.1'
 
     androidTestImplementation "com.google.dagger:dagger:$dagger_version"
@@ -158,7 +154,7 @@ dependencies {
     androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-test:$coroutines_version"
 
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 }
 
 kapt {
@@ -168,7 +164,7 @@ kapt {
 ext {
     // Provide your own coordinates here
     PUBLISH_GROUP_ID = 'io.rownd'
-    PUBLISH_VERSION = android.defaultConfig.versionName
+    PUBLISH_VERSION = project.package_version
     PUBLISH_ARTIFACT_ID = 'android'
 }
 

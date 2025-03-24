@@ -238,26 +238,13 @@ data class AppConfigResponse(
     var app: AppConfig
 )
 
-//interface AppConfigService {
-//    @GET("hub/app-config")
-//    suspend fun getAppConfig() : Result<AppConfigResponse>
-//}
-
 class AppConfigApi @Inject constructor(private val rowndContext: RowndContext) {
 
-//    var apiClient: ApiClient
     private val api: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
-
-//    init {
-//        this.apiClient = apiClient
-//    }
 
     suspend fun getAppConfig(): AppConfigResponse {
         val appConfig: AppConfigResponse = api.client.get("hub/app-config").body()
         return appConfig
     }
 
-//    val client: AppConfigService by lazy {
-//        apiClient.client.get().create(AppConfigService::class.java)
-//    }
 }

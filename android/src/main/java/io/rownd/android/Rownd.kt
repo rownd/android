@@ -19,9 +19,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.lyft.kronos.AndroidClockFactory
 import dagger.Component
-import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.authProviders
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
-import io.ktor.client.plugins.plugin
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
 import io.rownd.android.models.AuthenticatorType
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
@@ -37,7 +36,6 @@ import io.rownd.android.models.repos.SignInRepo
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
-import io.rownd.android.util.ApiClientModule
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
@@ -65,7 +63,7 @@ import javax.inject.Singleton
 val Rownd = RowndClient(DaggerRowndGraph.create())
 
 @Singleton
-@Component(modules = [ApiClientModule::class])
+@Component()
 interface RowndGraph {
     fun stateRepo(): StateRepo
     fun userRepo(): UserRepo
@@ -317,7 +315,7 @@ class RowndClient constructor(
         store.dispatch(StateAction.SetUser(User()))
 
         // Remove any cached access/refresh tokens in authenticatedApi client
-        userRepo.userApi.client.plugin(Auth).providers.filterIsInstance<BearerAuthProvider>()
+        userRepo.userApi.client.authProviders.filterIsInstance<BearerAuthProvider>()
             .firstOrNull()?.clearToken()
 
         val googleSignInMethodConfig =
