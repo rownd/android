@@ -37,6 +37,8 @@ import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AppLifecycleListener
+import io.rownd.android.util.InvalidRefreshTokenException
+import io.rownd.android.util.NoAccessTokenPresentException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventEmitter
@@ -366,10 +368,27 @@ class RowndClient constructor(
         return signInOptions
     }
 
-    suspend fun getAccessToken(): String? {
-        return authRepo.getAccessToken()
+    @Throws(RowndException::class)
+    suspend fun getAccessToken(throwIfMissing: Boolean = false): String? {
+        try {
+            return authRepo.getAccessToken()
+        } catch (ex: RowndException) {
+            when (ex) {
+                is InvalidRefreshTokenException,
+                is NoAccessTokenPresentException -> {
+                    if (throwIfMissing) {
+                        throw ex
+                    } else {
+                        return null
+                    }
+                }
+            }
+
+            throw ex
+        }
     }
 
+    @Throws(RowndException::class)
     suspend fun getAccessToken(idToken: String): String? {
         return authRepo.getAccessToken(idToken)?.accessToken
     }

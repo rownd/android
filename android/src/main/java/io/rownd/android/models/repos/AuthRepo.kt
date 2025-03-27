@@ -4,7 +4,7 @@ import android.util.Log
 import com.auth0.android.jwt.JWT
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
-import io.ktor.client.plugins.ResponseException
+import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpStatusCode
@@ -21,8 +21,11 @@ import io.rownd.android.models.network.SignOutRequestBody
 import io.rownd.android.models.network.SignOutResponse
 import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.models.network.TokenResponse
+import io.rownd.android.util.InvalidRefreshTokenException
+import io.rownd.android.util.NetworkConnectionFailureException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
+import io.rownd.android.util.ServerException
 import io.rownd.android.util.TokenApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -82,7 +85,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         return getAccessToken(idToken, intent = null, type = AccessTokenType.default)
     }
 
-    internal suspend fun getAccessToken(idToken: String, intent: RowndSignInIntent?, type: AccessTokenType ): TokenResponse? {
+    internal suspend fun getAccessToken(idToken: String, intent: RowndSignInIntent?, type: AccessTokenType): TokenResponse? {
         val appId = stateRepo.getStore().currentState.appConfig.id
         val tokenRequest = TokenRequestBody(
             appId = appId,
@@ -116,9 +119,9 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 authApi.signOutUser(appId, signOutRequest)
                 Rownd.signOut()
                 return@async null
-            } catch(ex: ClientRequestException) {
+            } catch(ex: Exception) {
                 Log.e("Rownd.Auth", "Failed to sign out user from all sessions:", ex)
-                throw RowndException("Failed to sign out user from all sessions")
+                throw RowndException("Failed to sign out user from all sessions: ${ex.message}")
             }
         }
     }
@@ -148,21 +151,27 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 return@async authState
             } catch (ex: ClientRequestException) {
                 if (ex.response.status != HttpStatusCode.BadRequest) {
-                    throw RowndException(ex.message)
+                    throw ServerException(ex.message)
                 }
 
-                Log.e("Rownd.AuthRepo", "Failed to refresh tokens, likely because it has already been consumed:", ex)
+                Log.e(
+                    "Rownd.AuthRepo",
+                    "Failed to refresh tokens, likely because it has already been consumed:",
+                    ex
+                )
                 refreshTokenJob = null
 
                 // Sign out on HTTP 400s
                 stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState()))
                 stateRepo.getStore().dispatch(StateAction.SetUser(User()))
 
-                return@async null
+                throw InvalidRefreshTokenException(ex.message)
+            } catch (ex: ServerResponseException) {
+                throw ServerException(ex.message)
             } catch (ex: Exception) {
                 refreshTokenJob = null
                 Log.e("Rownd.AuthRepo", "Failed to refresh tokens:", ex)
-                throw RowndException(ex.message ?: "An unknown refresh token error occurred.")
+                throw NetworkConnectionFailureException(ex.message ?: "An unknown refresh token error occurred.")
             }
         }
 
@@ -215,9 +224,15 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 if (ex.response.status == HttpStatusCode.BadRequest) {
                     // The token refresh failed, so we need to sign-out
                     Rownd.signOut()
+                    throw InvalidRefreshTokenException(ex.message)
                 }
+
+                throw ServerException(ex.message)
                 return@async null
-            } catch (ex: ResponseException) {
+            } catch (ex: ServerResponseException) {
+                throw ServerException(ex.message)
+                return@async null
+            } catch (ex: Exception) {
                 return@async null
             }
         }

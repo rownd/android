@@ -67,15 +67,6 @@ data class SignOutResponse internal constructor(
     val signOutAll: Boolean
 )
 
-//interface TokenService {
-//    @POST("hub/auth/token")
-//    suspend fun exchangeToken(@Body requestBody: TokenRequestBody) : Response<TokenResponse>
-//
-//    @RequireAccessToken
-//    @POST("me/applications/{app}/signout")
-//    suspend fun signOutUser(@Path("app") appId: String, @Body requestBody: SignOutRequestBody) : Response<SignOutResponse>
-//}
-
 class AuthApi @Inject constructor(rowndContext: RowndContext) {
     private val tokenApi: TokenApi by lazy { TokenApi(rowndContext) }
     private val authApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
