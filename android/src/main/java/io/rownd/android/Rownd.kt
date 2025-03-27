@@ -216,7 +216,7 @@ class RowndClient constructor(
 
     private fun isAppConfigLoadingWithCallback(callback: () -> (Unit)): Boolean {
         val scope = CoroutineScope(Dispatchers.IO)
-        val isLoading = state.value.appConfig.isLoading
+        val isLoading = state.value.appConfig.isLoading && state.value.appConfig.id == ""
         if (isLoading) {
             scope.launch {
                 store.stateAsStateFlow().collect {

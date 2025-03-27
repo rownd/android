@@ -4,6 +4,7 @@ import android.util.Log
 import com.auth0.android.jwt.JWT
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.ResponseException
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpStatusCode
@@ -108,6 +109,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     }
 
     @Synchronized
+    @Throws(RowndException::class)
     internal fun signOutUserAsync(appId: String, signOutRequest: SignOutRequestBody): Deferred<SignOutResponse?>{
         return CoroutineScope(Dispatchers.IO).async {
             try {
@@ -188,7 +190,8 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                         RowndSignInJsOptions(
                             intent = intent,
                             loginStep = RowndSignInLoginStep.Success,
-                            userType = tokenResponse.userType
+                            userType = tokenResponse.userType,
+                            appVariantUserType = tokenResponse.appVariantUserType
                         )
                     )
                 }
@@ -214,6 +217,8 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                     Rownd.signOut()
                 }
                 return@async null
+            } catch (ex: ResponseException) {
+                return@async null
             }
         }
     }
@@ -224,7 +229,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         }
 
         val currentTime = rowndContext.kronosClock?.getCurrentTimeMs() ?: System.currentTimeMillis()
-        val currentDateWithMargin = Date(currentTime + (60 * 1000)) //Add 60 secs to current Date
+        val currentDateWithMargin = Date(currentTime + (60 * 1000)) // Add 60 sec margin to current Date
 
         return currentDateWithMargin.after(jwt.expiresAt)
     }

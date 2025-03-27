@@ -22,12 +22,33 @@ class AppConfigRepo @Inject constructor() {
                 val result = appConfigApi.getAppConfig()
                 stateRepo.getStore().dispatch(StateAction.SetAppConfig(result.app.asDomainModel()))
 
-                return@async result.app?.asDomainModel()
+                return@async result.app.asDomainModel()
             } catch (ex: ClientRequestException) {
                 Log.e(
-                    "Rownd",
+                    "Rownd.AppConfig",
                     "Failed to load Rownd app config. This probably means you specified an invalid app key. ${ex.message}",
                     ex
+                )
+                stateRepo.getStore().dispatch(
+                    StateAction.SetAppConfig(
+                        stateRepo.getStore().currentState.appConfig.copy(
+                            isLoading = false
+                        )
+                    )
+                )
+                return@async null
+            } catch (ex: Exception) {
+                Log.e(
+                    "Rownd.AppConfig",
+                    "Failed to load Rownd app config.",
+                    ex
+                )
+                stateRepo.getStore().dispatch(
+                    StateAction.SetAppConfig(
+                        stateRepo.getStore().currentState.appConfig.copy(
+                            isLoading = false
+                        )
+                    )
                 )
                 return@async null
             }

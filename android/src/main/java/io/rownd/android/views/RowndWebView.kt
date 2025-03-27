@@ -17,6 +17,9 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.core.net.toUri
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
@@ -85,21 +88,28 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         this.setLayerType(LAYER_TYPE_HARDWARE, null)
         this.setBackgroundColor(0x00000000)
         this.isHorizontalScrollBarEnabled = false
-        this.isVerticalScrollBarEnabled = false
+//        this.isVerticalScrollBarEnabled = false
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
 
         fun dynamicBottomSheet(height: String) {
+            val isKeyboardOpen = ViewCompat.getRootWindowInsets(rootView)?.isVisible(
+                WindowInsetsCompat.Type.ime()) ?: true;
+
+            if (isKeyboardOpen) {
+                animateBottomSheet?.let { it(100F) }
+                return
+            }
+
             val deviceMetrics = Rownd.getDeviceSize(context)
             val viewportPixelHeight = deviceMetrics.heightPixels / deviceMetrics.density
             val deviceHeight = deviceMetrics.heightPixels
-            height.toIntOrNull()?.let { it
+            height.toIntOrNull()?.let {
                 val ratio = it / viewportPixelHeight
                 val targetOffset = deviceHeight.toFloat() - deviceHeight.toFloat() * ratio - 100F
                 animateBottomSheet?.let { it(targetOffset) }
             }
-
         }
 
         fun setCanTouchBackground(enable: Boolean) {
@@ -255,11 +265,8 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
         val match = urlStrings.find {
             url.toString().startsWith(it)
         }
-        if (match != null && match != "") {
-            return false
-        }
 
-        return true
+        return !(match != null && match != "")
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -272,6 +279,7 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
             view?.setBackgroundColor(0x00000000)
         } else {
             view?.setBackgroundColor(Color.WHITE)
+
         }
     }
 
@@ -306,7 +314,26 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
     ) {
         super.onReceivedError(view, request, error)
 
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION) && error.description == "net::ERR_ADDRESS_UNREACHABLE") {
+        try {
+            val targetUri = this.webView.url?.toUri()
+            val currentUri = request.url
+
+            if (
+                targetUri?.host != currentUri.host &&
+                targetUri?.path != currentUri?.path
+                )
+            {
+                return
+            }
+        } catch (ex: Exception) {
+            // No-op
+        }
+
+        if (
+            WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION) &&
+            error.description.contains("net::ERR")
+            )
+        {
             loadNoInternetHTML()
         }
     }

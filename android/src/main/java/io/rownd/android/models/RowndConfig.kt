@@ -1,8 +1,8 @@
 package io.rownd.android.models
 
-import android.net.Uri
 import android.util.Base64
 import android.util.Log
+import androidx.core.net.toUri
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.AuthRepo
 import io.rownd.android.models.repos.SignInRepo
@@ -49,7 +49,7 @@ data class RowndConfig(
         val jsonConfig = json.encodeToString(serializer(), this)
         val base64Config = Base64.encodeToString(jsonConfig.encodeToByteArray(), Base64.NO_WRAP)
 
-        val uriBuilder = Uri.parse("$baseUrl/mobile_app").buildUpon()
+        val uriBuilder = "$baseUrl/mobile_app".toUri().buildUpon()
         uriBuilder.appendQueryParameter("config", base64Config)
 
         val signInState = signInRepo.get()
