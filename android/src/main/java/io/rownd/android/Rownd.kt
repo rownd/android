@@ -287,10 +287,11 @@ class RowndClient constructor(
 
     @Suppress("unused")
     fun requestSignIn() {
-        displayHub(HubPageSelector.SignIn)
+        displayHub(HubPageSelector.SignIn, RowndSignInOptions())
     }
 
     inner class auth {
+        @Suppress("unused")
         inner class passkeys {
             fun register() {
                 displayHub(
@@ -452,8 +453,12 @@ class RowndClient constructor(
                 jsFnOptionsStr = jsFnOptions.toJsonString()
             }
 
-            if (rowndContext.hubView?.get() != null && (rowndContext.hubView?.get() as? HubComposableBottomSheet)?.isDismissing == false) {
-                rowndContext.hubView?.get()?.dismissNow()
+            try {
+                if (rowndContext.hubView?.get() != null && (rowndContext.hubView?.get() as? HubComposableBottomSheet)?.isDismissing == false) {
+                    rowndContext.hubView?.get()?.dismissNow()
+                }
+            } catch (ex: Exception) {
+                // no-op
             }
 
             val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)

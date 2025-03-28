@@ -69,7 +69,7 @@ enum class HubPageSelector {
     Unknown
 }
 
-private const val HUB_CLOSE_AFTER_SECS: Long = 1
+private const val HUB_CLOSE_AFTER_MILLISECONDS: Long = 1500
 
 @SuppressLint("SetJavaScriptEnabled")
 class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, attrs), DialogChild {
@@ -290,6 +290,14 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
             return
         }
 
+        if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
+            webView.animateBottomSheet?.invoke(100F)
+            setIsLoading(false)
+            return
+        }
+
+        setFeatureFlagJs()
+
         view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.VISUAL_STATE_CALLBACK)) {
@@ -300,10 +308,6 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
             // If VISUAL_STATE_CALLBACK isn't supported on this platform, try to display the
             // appropriate content.
             displayTargetPage(view)
-        }
-
-        if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
-            webView.animateBottomSheet?.invoke(100F)
         }
     }
 
@@ -339,7 +343,6 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
     }
 
     private fun displayTargetPage(view: WebView) {
-        setFeatureFlagJs()
         when ((view as RowndWebView).targetPage) {
             HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
             HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
@@ -399,13 +402,13 @@ class RowndJavascriptInterface constructor(
 
                     Executors.newSingleThreadScheduledExecutor().schedule({
                         parentWebView.dismiss?.invoke()
-                    }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
+                    }, HUB_CLOSE_AFTER_MILLISECONDS, TimeUnit.MILLISECONDS)
                 }
 
                 MessageType.signOut -> {
                     Executors.newSingleThreadScheduledExecutor().schedule({
                         parentWebView.dismiss?.invoke()
-                    }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
+                    }, HUB_CLOSE_AFTER_MILLISECONDS, TimeUnit.MILLISECONDS)
 
                     Rownd.signOut()
                 }
