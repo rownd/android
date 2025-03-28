@@ -1,20 +1,22 @@
 package io.rownd.android.util
 
 import android.util.Log
-import io.ktor.client.*
-import io.ktor.client.engine.android.*
-import io.ktor.client.plugins.*
-import io.ktor.client.plugins.compression.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.plugins.logging.*
-import io.ktor.client.plugins.resources.*
-import io.ktor.client.request.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import io.ktor.client.HttpClient
+import io.ktor.client.engine.android.Android
+import io.ktor.client.plugins.HttpRequestRetry
+import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.UserAgent
+import io.ktor.client.plugins.compression.ContentEncoding
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.plugins.defaultRequest
+import io.ktor.client.plugins.logging.LogLevel
+import io.ktor.client.plugins.logging.Logger
+import io.ktor.client.plugins.logging.Logging
+import io.ktor.client.plugins.resources.Resources
+import io.ktor.client.request.headers
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 
 private object CustomAndroidHttpLogger : Logger {
@@ -49,11 +51,10 @@ open class KtorApiClient constructor(rowndContext: RowndContext)  {
         }
         install(Resources)
 
-        // Uncomment after upgrading to ktor 2.2, since the HttpRequestRetry
-        // plugin should catch timeouts at that point. It does not as of ktor 2.1.
-//        install(HttpTimeout) {
-//            requestTimeoutMillis = rowndContext.config.defaultRequestTimeout
-//        }
+        // Handle request timeouts
+        install(HttpTimeout) {
+            requestTimeoutMillis = rowndContext.config.defaultRequestTimeout
+        }
 
         expectSuccess = true
 //        HttpResponseValidator {
@@ -81,21 +82,4 @@ open class KtorApiClient constructor(rowndContext: RowndContext)  {
     }
 
     open var client = base
-
-    init {
-        // Remove after upgrading to ktor 2.2+, since it should
-        // be able to catch request timeouts directly vs. this workaround.
-        base.plugin(HttpSend).intercept { request ->
-            val executionContext = request.executionContext
-            val killer = client.launch(Dispatchers.Default) {
-                delay(rowndContext.config.defaultRequestTimeout)
-                val cause = HttpRequestTimeoutException(request)
-                executionContext.cancel(cause.message!!, cause)
-            }
-            executionContext.invokeOnCompletion {
-                killer.cancel()
-            }
-            execute(request)
-        }
-    }
 }

@@ -2,9 +2,9 @@ package io.rownd.android.views
 
 import android.app.Dialog
 import android.content.Context
-import android.graphics.Rect
-import android.graphics.drawable.ColorDrawable
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -28,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +38,9 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
+import androidx.core.graphics.drawable.toDrawable
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.compose.LottieAnimation
@@ -59,6 +61,8 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
     @OptIn(ExperimentalMaterial3Api::class)
     var sheetState: SheetState? = null
 
+    var isKeyboardOpen = false
+
     override fun onStart() {
         super.onStart()
         val dialog: Dialog? = dialog
@@ -74,21 +78,37 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        dialog?.window?.setBackgroundDrawable(ColorDrawable(Color.Transparent.toArgb()))
+        dialog?.window?.setBackgroundDrawable(Color.Transparent.toArgb().toDrawable())
 
         dialog?.window?.setFlags(
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
         )
-        dialog?.window?.decorView?.systemUiVisibility =
-            requireActivity().window!!.decorView.systemUiVisibility
+
+        dialog?.window?.decorView?.let { decorView ->
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    requireActivity().window?.insetsController?.let { controller ->
+                        decorView.setOnApplyWindowInsetsListener { _, insets ->
+                            controller.show(WindowInsetsCompat.Type.systemBars())
+                            insets
+                        }
+                    }
+                } else {
+                    decorView.systemUiVisibility =
+                        requireActivity().window?.decorView?.systemUiVisibility ?: 0
+                }
+            } catch (e: Exception) {
+                Log.d("ComposableBottomSheetFragment", "onCreateView: $e")
+            }
+        }
 
         dialog?.setOnShowListener { // Clear the not focusable flag from the window
             dialog?.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
 
             // Update the WindowManager with the new attributes (no nicer way I know of to do this)..
-            val wm = activity?.getSystemService(Context.WINDOW_SERVICE) as WindowManager
-            wm.updateViewLayout(dialog?.window?.decorView, dialog?.window?.attributes)
+            val wm = activity?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+            wm?.updateViewLayout(dialog?.window?.decorView, dialog?.window?.attributes)
         }
 
         return ComposeView(requireContext()).apply {
@@ -109,7 +129,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
 
         // Declaring a Boolean value to
         // store bottom sheet collapsed state
-        var openBottomSheet by rememberSaveable { mutableStateOf(false) }
+//        var openBottomSheet by rememberSaveable { mutableStateOf(false) }
         var skipPartiallyExpanded by remember { mutableStateOf(false) }
         val bottomSheetState = io.rownd.android.util.bottom.sheet.rememberModalBottomSheetState(
             skipPartiallyExpanded = skipPartiallyExpanded,
@@ -197,18 +217,16 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
             val activity = context as? ComponentActivity ?: return@DisposableEffect onDispose { }
             val rootView = activity.window.decorView.rootView
             val globalLayoutListener = ViewTreeObserver.OnGlobalLayoutListener {
-                val rect = Rect().apply { rootView.getWindowVisibleDisplayFrame(this) }
-                val screenHeight = rootView.height
+                val isKeyboardOpen = ViewCompat.getRootWindowInsets(rootView)?.isVisible(WindowInsetsCompat.Type.ime()) ?: true;
 
-                // Calculate the difference between the screen height and the visible display frame height
-                val keypadHeight = screenHeight - rect.bottom
-                val isKeyboardOpen = keypadHeight > screenHeight * 0.15
-
-                // Arbitrary threshold indicating that the keypad is likely open
-                if (isKeyboardOpen) {
+                if (isKeyboardOpen != this@ComposableBottomSheetFragment.isKeyboardOpen || !this@ComposableBottomSheetFragment.isKeyboardOpen)
+                {
                     coroutineScope.launch {
-                        bottomSheetState.animateTo(SheetValue.Expanded)
+                        if (bottomSheetState.currentValue != SheetValue.Expanded) {
+                            bottomSheetState.snapTo(SheetValue.Expanded)
+                        }
                     }
+                    this@ComposableBottomSheetFragment.isKeyboardOpen = isKeyboardOpen;
                 }
             }
 

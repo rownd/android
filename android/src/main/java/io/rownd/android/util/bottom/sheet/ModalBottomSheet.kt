@@ -424,7 +424,7 @@ internal fun ModalBottomSheetPopup(
                             Modifier
                                 .semantics { this.popup() }
                                 .windowInsetsPadding(windowInsets)
-                                .imePadding()
+//                                .imePadding()
                         ) {
                             currentContent()
                         }

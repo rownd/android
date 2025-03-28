@@ -4,6 +4,7 @@ import android.util.Log
 import com.auth0.android.jwt.JWT
 import io.ktor.client.call.body
 import io.ktor.client.plugins.ClientRequestException
+import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpStatusCode
@@ -16,13 +17,15 @@ import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.Auth
 import io.rownd.android.models.network.AuthApi
-import io.rownd.android.models.network.RowndAPIException
 import io.rownd.android.models.network.SignOutRequestBody
 import io.rownd.android.models.network.SignOutResponse
 import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.models.network.TokenResponse
+import io.rownd.android.util.InvalidRefreshTokenException
+import io.rownd.android.util.NetworkConnectionFailureException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
+import io.rownd.android.util.ServerException
 import io.rownd.android.util.TokenApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
@@ -82,7 +85,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         return getAccessToken(idToken, intent = null, type = AccessTokenType.default)
     }
 
-    internal suspend fun getAccessToken(idToken: String, intent: RowndSignInIntent?, type: AccessTokenType ): TokenResponse? {
+    internal suspend fun getAccessToken(idToken: String, intent: RowndSignInIntent?, type: AccessTokenType): TokenResponse? {
         val appId = stateRepo.getStore().currentState.appConfig.id
         val tokenRequest = TokenRequestBody(
             appId = appId,
@@ -109,16 +112,16 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     }
 
     @Synchronized
+    @Throws(RowndException::class)
     internal fun signOutUserAsync(appId: String, signOutRequest: SignOutRequestBody): Deferred<SignOutResponse?>{
         return CoroutineScope(Dispatchers.IO).async {
-            val resp = authApi.client.signOutUser(appId, signOutRequest)
-            if (resp.isSuccessful) {
+            try {
+                authApi.signOutUser(appId, signOutRequest)
                 Rownd.signOut()
                 return@async null
-            } else {
-                val error = RowndAPIException(resp)
-                Log.e("Rownd.Auth", "Failed to sign out user from all sessions:", error)
-                throw RowndException("Failed to sign out user from all sessions")
+            } catch(ex: Exception) {
+                Log.e("Rownd.Auth", "Failed to sign out user from all sessions:", ex)
+                throw RowndException("Failed to sign out user from all sessions: ${ex.message}")
             }
         }
     }
@@ -148,21 +151,27 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 return@async authState
             } catch (ex: ClientRequestException) {
                 if (ex.response.status != HttpStatusCode.BadRequest) {
-                    throw RowndException(ex.message)
+                    throw ServerException(ex.message)
                 }
 
-                Log.e("Rownd.AuthRepo", "Failed to refresh tokens, likely because it has already been consumed:", ex)
+                Log.e(
+                    "Rownd.AuthRepo",
+                    "Failed to refresh tokens, likely because it has already been consumed:",
+                    ex
+                )
                 refreshTokenJob = null
 
                 // Sign out on HTTP 400s
                 stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState()))
                 stateRepo.getStore().dispatch(StateAction.SetUser(User()))
 
-                return@async null
+                throw InvalidRefreshTokenException(ex.message)
+            } catch (ex: ServerResponseException) {
+                throw ServerException(ex.message)
             } catch (ex: Exception) {
                 refreshTokenJob = null
                 Log.e("Rownd.AuthRepo", "Failed to refresh tokens:", ex)
-                throw RowndException(ex.message ?: "An unknown refresh token error occurred.")
+                throw NetworkConnectionFailureException(ex.message ?: "An unknown refresh token error occurred.")
             }
         }
 
@@ -172,9 +181,9 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     @Synchronized
     internal fun fetchTokenAsync(tokenRequest: TokenRequestBody, intent: RowndSignInIntent?, type: AccessTokenType): Deferred<TokenResponse?> {
         return CoroutineScope(Dispatchers.IO).async {
-            val resp = authApi.client.exchangeToken(tokenRequest)
-            if (resp.isSuccessful) {
-                val tokenResponse = resp.body() as TokenResponse
+            try {
+                val tokenResponse = authApi.exchangeToken(tokenRequest)
+
                 if (type != AccessTokenType.default) {
                     if (tokenResponse.userType === RowndSignInUserType.NewUser && intent === RowndSignInIntent.SignIn) {
                         Rownd.requestSignIn(
@@ -190,7 +199,8 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                         RowndSignInJsOptions(
                             intent = intent,
                             loginStep = RowndSignInLoginStep.Success,
-                            userType = tokenResponse.userType
+                            userType = tokenResponse.userType,
+                            appVariantUserType = tokenResponse.appVariantUserType
                         )
                     )
                 }
@@ -199,17 +209,31 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                     signInRepo.setLastSignInMethod("google")
                 }
 
-                stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState(accessToken = tokenResponse.accessToken, refreshToken = tokenResponse.refreshToken)))
+                stateRepo.getStore().dispatch(
+                    StateAction.SetAuth(
+                        AuthState(
+                            accessToken = tokenResponse.accessToken,
+                            refreshToken = tokenResponse.refreshToken
+                        )
+                    )
+                )
                 userRepo?.loadUserAsync()
-                tokenResponse
-            } else {
-                val error = RowndAPIException(resp)
-                Log.e("RowndAuthApi", "Fetching token failed: ${error.message}")
-                if (resp.code() == 400) {
+                return@async tokenResponse
+            } catch (ex: ClientRequestException) {
+                Log.e("RowndAuthApi", "Fetching token failed: ${ex.message}")
+                if (ex.response.status == HttpStatusCode.BadRequest) {
                     // The token refresh failed, so we need to sign-out
                     Rownd.signOut()
+                    throw InvalidRefreshTokenException(ex.message)
                 }
-                null
+
+                throw ServerException(ex.message)
+                return@async null
+            } catch (ex: ServerResponseException) {
+                throw ServerException(ex.message)
+                return@async null
+            } catch (ex: Exception) {
+                return@async null
             }
         }
     }
@@ -220,7 +244,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         }
 
         val currentTime = rowndContext.kronosClock?.getCurrentTimeMs() ?: System.currentTimeMillis()
-        val currentDateWithMargin = Date(currentTime + (60 * 1000)) //Add 60 secs to current Date
+        val currentDateWithMargin = Date(currentTime + (60 * 1000)) // Add 60 sec margin to current Date
 
         return currentDateWithMargin.after(jwt.expiresAt)
     }

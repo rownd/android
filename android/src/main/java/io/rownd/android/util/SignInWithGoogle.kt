@@ -23,6 +23,8 @@ import androidx.credentials.exceptions.GetCredentialProviderConfigurationExcepti
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.api.ApiException
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GetSignInWithGoogleOption
@@ -302,16 +304,10 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
         }
 
         currentSpan?.setStatus(StatusCode.ERROR, e.message ?: "Unknown error")
-
-        rowndContext.eventEmitter?.emit(RowndEvent(
-            event = RowndEventType.SignInFailed,
-            data = buildJsonObject {
-                put("method", RowndSignInType.Google.value)
-                put("error", e.message)
-            }
-        ))
+        currentSpan?.recordException(e)
 
         var errMessage = e.localizedMessage
+
         when (e) {
             is GetCredentialProviderConfigurationException -> errMessage =
                 "Google Play Services is missing or out of date."
@@ -319,6 +315,33 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
 
         if (errMessage?.contains("failure response from one tap") == true) {
             errMessage = errMessage.substringAfterLast(':')
+        }
+
+        rowndContext.eventEmitter?.emit(RowndEvent(
+            event = RowndEventType.SignInFailed,
+            data = buildJsonObject {
+                put("method", RowndSignInType.Google.value)
+                put("error", errMessage)
+            }
+        ))
+
+        // Google Play services may need an update, so let's check that prior to showing an error
+        rowndContext.client?.appHandleWrapper?.activity?.get()?.let { activity ->
+            val googleApiAvailability = GoogleApiAvailability.getInstance()
+            val status = googleApiAvailability.isGooglePlayServicesAvailable(activity)
+
+            if (status != ConnectionResult.SUCCESS) {
+                if (googleApiAvailability.isUserResolvableError(status)) {
+                    // Directly show the dialog and let it handle the result
+                    currentSpan?.addEvent("Requested that user update or enable Google Play Services")
+                    googleApiAvailability.getErrorDialog(activity, status, 0)?.show()
+                    endSpan()
+                    return
+                } else {
+                    // Google Play Services is not supported on this device
+                    errMessage = "Google Play Services is not supported on this device."
+                }
+            }
         }
 
         if (rowndContext.isDisplayingHub() || wasUserInitiated == true) {

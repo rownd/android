@@ -19,9 +19,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.lyft.kronos.AndroidClockFactory
 import dagger.Component
-import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.authProviders
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
-import io.ktor.client.plugins.plugin
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
 import io.rownd.android.models.AuthenticatorType
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
@@ -37,8 +36,9 @@ import io.rownd.android.models.repos.SignInRepo
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
-import io.rownd.android.util.ApiClientModule
 import io.rownd.android.util.AppLifecycleListener
+import io.rownd.android.util.InvalidRefreshTokenException
+import io.rownd.android.util.NoAccessTokenPresentException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventEmitter
@@ -65,7 +65,7 @@ import javax.inject.Singleton
 val Rownd = RowndClient(DaggerRowndGraph.create())
 
 @Singleton
-@Component(modules = [ApiClientModule::class])
+@Component()
 interface RowndGraph {
     fun stateRepo(): StateRepo
     fun userRepo(): UserRepo
@@ -218,7 +218,7 @@ class RowndClient constructor(
 
     private fun isAppConfigLoadingWithCallback(callback: () -> (Unit)): Boolean {
         val scope = CoroutineScope(Dispatchers.IO)
-        val isLoading = state.value.appConfig.isLoading
+        val isLoading = state.value.appConfig.isLoading && state.value.appConfig.id == ""
         if (isLoading) {
             scope.launch {
                 store.stateAsStateFlow().collect {
@@ -287,10 +287,11 @@ class RowndClient constructor(
 
     @Suppress("unused")
     fun requestSignIn() {
-        displayHub(HubPageSelector.SignIn)
+        displayHub(HubPageSelector.SignIn, RowndSignInOptions())
     }
 
     inner class auth {
+        @Suppress("unused")
         inner class passkeys {
             fun register() {
                 displayHub(
@@ -317,7 +318,7 @@ class RowndClient constructor(
         store.dispatch(StateAction.SetUser(User()))
 
         // Remove any cached access/refresh tokens in authenticatedApi client
-        userRepo.userApi.client.plugin(Auth).providers.filterIsInstance<BearerAuthProvider>()
+        userRepo.userApi.client.authProviders.filterIsInstance<BearerAuthProvider>()
             .firstOrNull()?.clearToken()
 
         val googleSignInMethodConfig =
@@ -368,10 +369,27 @@ class RowndClient constructor(
         return signInOptions
     }
 
-    suspend fun getAccessToken(): String? {
-        return authRepo.getAccessToken()
+    @Throws(RowndException::class)
+    suspend fun getAccessToken(throwIfMissing: Boolean = false): String? {
+        try {
+            return authRepo.getAccessToken()
+        } catch (ex: RowndException) {
+            when (ex) {
+                is InvalidRefreshTokenException,
+                is NoAccessTokenPresentException -> {
+                    if (throwIfMissing) {
+                        throw ex
+                    } else {
+                        return null
+                    }
+                }
+            }
+
+            throw ex
+        }
     }
 
+    @Throws(RowndException::class)
     suspend fun getAccessToken(idToken: String): String? {
         return authRepo.getAccessToken(idToken)?.accessToken
     }
@@ -435,8 +453,12 @@ class RowndClient constructor(
                 jsFnOptionsStr = jsFnOptions.toJsonString()
             }
 
-            if (rowndContext.hubView?.get() != null && (rowndContext.hubView?.get() as? HubComposableBottomSheet)?.isDismissing == false) {
-                rowndContext.hubView?.get()?.dismissNow()
+            try {
+                if (rowndContext.hubView?.get() != null && (rowndContext.hubView?.get() as? HubComposableBottomSheet)?.isDismissing == false) {
+                    rowndContext.hubView?.get()?.dismissNow()
+                }
+            } catch (ex: Exception) {
+                // no-op
             }
 
             val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)

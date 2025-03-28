@@ -5,16 +5,9 @@ import io.rownd.android.models.domain.AppSchemaEncryptionState
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AnyValueSerializer
-import io.rownd.android.util.ApiClient
 import io.rownd.android.util.Encryption
-import io.rownd.android.util.RequireAccessToken
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import retrofit2.http.Body
-import retrofit2.http.GET
-import retrofit2.http.POST
-import retrofit2.http.Path
-import javax.inject.Inject
 import io.rownd.android.models.domain.User as DomainUser
 
 @Serializable
@@ -54,27 +47,5 @@ data class User(
             }
         }
         return data
-    }
-}
-
-interface UserService {
-    @RequireAccessToken
-    @GET("me/applications/{app}/data")
-    suspend fun fetchUser(@Path("app") appId: String): Result<User>
-
-    @RequireAccessToken
-    @POST("me/applications/{app}/data")
-    suspend fun saveUser(@Path("app") appId: String, @Body requestBody: User): Result<User>
-}
-
-class UserApi @Inject constructor(apiClient: ApiClient) {
-    private val apiClient: ApiClient
-
-    init {
-        this.apiClient = apiClient
-    }
-
-    internal val client: UserService by lazy {
-        apiClient.client.get().create(UserService::class.java)
     }
 }
