@@ -1,26 +1,24 @@
 package io.rownd.android.views.html
 
 import android.content.Context
-import android.content.res.Configuration
 import io.rownd.android.Rownd
 import io.rownd.android.util.convertRGBtoString
 
 fun noInternetHTML(context: Context): String {
-    var appConfig = Rownd.store.currentState.appConfig
-    var fontSize = Rownd.config.customizations.defaultFontSize
+    val appConfig = Rownd.store.currentState.appConfig
+    val fontSize = Rownd.config.customizations.defaultFontSize
     val primaryColor = appConfig?.config?.customizations?.primaryColor ?: "#5b13df"
 
-    //Set Background Color
-    var dynamicSheetBackgroundColor = Rownd.config.customizations.dynamicSheetBackgroundColor
-    var sheetBackgroundColor = Rownd.config.customizations.sheetBackgroundColor
+    // Set Background Color
+    val dynamicSheetBackgroundColor = Rownd.config.customizations.dynamicSheetBackgroundColor
+    val sheetBackgroundColor = Rownd.config.customizations.sheetBackgroundColor
     var backgroundColor = convertRGBtoString(dynamicSheetBackgroundColor.red, dynamicSheetBackgroundColor.green, dynamicSheetBackgroundColor.blue)
     if (sheetBackgroundColor != null) {
         backgroundColor = convertRGBtoString(sheetBackgroundColor.red, sheetBackgroundColor.green, sheetBackgroundColor.blue)
     }
 
-    //Set Dark Mode
-    val uiMode = context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
-    var isDarkMode = uiMode == Configuration.UI_MODE_NIGHT_YES
+    // Set Dark Mode
+    var isDarkMode = Rownd.config.customizations.isNightMode()
     val darkMode = appConfig?.config?.hub?.customizations?.darkMode
     if (darkMode != null) {
         isDarkMode = darkMode == "enabled" || (isDarkMode && darkMode == "auto")

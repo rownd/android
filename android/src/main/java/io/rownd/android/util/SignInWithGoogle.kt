@@ -45,8 +45,6 @@ import io.rownd.android.models.repos.AuthRepo
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import java.util.UUID
 import javax.inject.Inject
 
@@ -228,11 +226,11 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                         tokenResp?.let {
                             rowndContext.eventEmitter?.emit(RowndEvent(
                                 event = RowndEventType.SignInCompleted,
-                                data = buildJsonObject {
-                                    put("method", RowndSignInType.Google.value)
-                                    put("user_type", it.userType?.value)
-                                    put("app_variant_user_type", it.appVariantUserType?.value)
-                                }
+                                data = mapOf(
+                                    "method" to RowndSignInType.Google.value,
+                                    "user_type" to it.userType?.value,
+                                    "app_variant_user_type" to it.appVariantUserType?.value,
+                                )
                             ))
 
                             currentSpan?.setStatus(StatusCode.OK)
@@ -246,10 +244,10 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                         Log.w("Rownd", "Google sign-in failed: code=" + e.statusCode)
                         rowndContext.eventEmitter?.emit(RowndEvent(
                             event = RowndEventType.SignInFailed,
-                            data = buildJsonObject {
-                                put("method", RowndSignInType.Google.value)
-                                put("error", e.message)
-                            }
+                            data = mapOf(
+                                "method" to RowndSignInType.Google.value,
+                                "error" to e.message
+                            )
                         ))
                         currentSpan?.setStatus(StatusCode.ERROR, e.message ?: "Unknown error")
                         endSpan()
@@ -319,10 +317,10 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
 
         rowndContext.eventEmitter?.emit(RowndEvent(
             event = RowndEventType.SignInFailed,
-            data = buildJsonObject {
-                put("method", RowndSignInType.Google.value)
-                put("error", errMessage)
-            }
+            data = mapOf(
+                "method" to RowndSignInType.Google.value,
+                "error" to errMessage
+            )
         ))
 
         // Google Play services may need an update, so let's check that prior to showing an error
@@ -426,11 +424,11 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
                 tokenResp?.let {
                     rowndContext.eventEmitter?.emit(RowndEvent(
                         event = RowndEventType.SignInCompleted,
-                        data = buildJsonObject {
-                            put("method", RowndSignInType.Google.value)
-                            put("user_type", it.userType?.value)
-                            put("app_variant_user_type", it.userType?.value)
-                        }
+                        data = mapOf(
+                            "method" to RowndSignInType.Google.value,
+                            "user_type" to it.userType?.value,
+                            "app_variant_user_type" to it.userType?.value,
+                        )
                     ))
                     currentSpan?.setStatus(StatusCode.OK)
                 }
@@ -448,10 +446,10 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
             Log.w("Rownd", "Google sign-in failed: code=" + e.statusCode)
             rowndContext.eventEmitter?.emit(RowndEvent(
                 event = RowndEventType.SignInFailed,
-                data = buildJsonObject {
-                    put("method", RowndSignInType.Google.value)
-                    put("error", e.message)
-                }
+                data = mapOf(
+                    "method" to RowndSignInType.Google.value,
+                    "error" to e.message,
+                )
             ))
             currentSpan?.setStatus(StatusCode.ERROR, e.message ?: "Unknown error")
             endSpan()

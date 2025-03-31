@@ -1,5 +1,6 @@
 package io.rownd.android.models
 
+import android.content.res.Configuration
 import android.content.res.Resources
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.graphics.Color
@@ -22,22 +23,33 @@ open class RowndCustomizations() {
     @Transient
     open var sheetBackgroundColor: Color? = null
 
+    internal fun isNightMode(): Boolean {
+        val uiMode = Rownd.appHandleWrapper?.app?.get()?.resources?.configuration?.uiMode ?: Configuration.UI_MODE_NIGHT_UNDEFINED
+        val isSystemInDarkTheme = (uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
+        return when (AppCompatDelegate.getDefaultNightMode()) {
+            AppCompatDelegate.MODE_NIGHT_NO -> false
+            AppCompatDelegate.MODE_NIGHT_YES -> true
+            else -> isSystemInDarkTheme
+        }
+    }
+
     @Serializable(with = ColorAsHexStringSerializer::class)
     open val dynamicSheetBackgroundColor: Color
     get() {
-        val uiMode = AppCompatDelegate.getDefaultNightMode()
         val darkMode = Rownd.stateRepo.state.value.appConfig.config.hub.customizations?.darkMode
+
         return when {
             sheetBackgroundColor != null -> sheetBackgroundColor!!
             darkMode == "disabled" -> Constants.BACKGROUND_LIGHT
             darkMode == "enabled" -> Constants.BACKGROUND_DARK
-            uiMode == AppCompatDelegate.MODE_NIGHT_YES -> Constants.BACKGROUND_DARK
+            isNightMode() -> Constants.BACKGROUND_DARK
             else -> Constants.BACKGROUND_LIGHT
         }
     }
 
     @Serializable(with = DpIntSerializer::class)
-    open var sheetCornerBorderRadius: Dp = 25.dp
+    open var sheetCornerBorderRadius: Dp = 24.dp
 
     open var loadingAnimation: Int? = null
 

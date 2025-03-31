@@ -461,9 +461,12 @@ class RowndClient constructor(
                 // no-op
             }
 
-            val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
-            bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
-            rowndContext.hubView = WeakReference(bottomSheet)
+            val existingFragment = activity.supportFragmentManager.findFragmentByTag(HubComposableBottomSheet.TAG)
+            if (existingFragment == null) {
+                val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
+                bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
+                rowndContext.hubView = WeakReference(bottomSheet)
+            }
 
         } catch (ex: Exception) {
             Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage", ex)
