@@ -12,8 +12,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.viewinterop.AndroidViewBinding
 import androidx.lifecycle.ViewModelProvider
+import com.composables.core.SheetDetent
 import io.rownd.android.databinding.HubViewLayoutBinding
-import io.rownd.android.util.bottom.sheet.SheetState
 import kotlinx.coroutines.launch
 import kotlinx.serialization.json.Json
 
@@ -44,9 +44,13 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
         dismissAllowingStateLoss()
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
+    @ExperimentalMaterial3Api
     @Composable
-    override fun Content(bottomSheetState: SheetState, setIsLoading: (isLoading: Boolean) -> Unit, setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit) {
+    override fun Content(
+        requestDetent: (detent: SheetDetent) -> Unit,
+        setIsLoading: (isLoading: Boolean) -> Unit,
+        setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit
+    ) {
         val bundle = this.arguments
         val targetPage: HubPageSelector =
             (bundle?.getSerializable(HubBottomSheetBundleKeys.TargetPage.key)
@@ -86,9 +90,7 @@ class HubComposableBottomSheet : ComposableBottomSheetFragment() {
                 this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: RowndWebView.DEFAULT_JS_FN_ARGS
 
                 this.hubWebview.animateBottomSheet = {
-                    coroutineScope.launch {
-                        sheetState?.animateToExact(it)
-                    }
+                    requestDetent(it)
                 }
                 this.hubWebview.setCanTouchBackgroundToDismiss = {
                     coroutineScope.launch {

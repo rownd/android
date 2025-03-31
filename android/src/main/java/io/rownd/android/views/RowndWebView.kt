@@ -17,14 +17,14 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.core.net.toUri
-import androidx.core.view.ViewCompat
-import androidx.core.view.WindowInsetsCompat
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.composables.core.SheetDetent
 import io.rownd.android.Rownd
 import io.rownd.android.RowndClient
 import io.rownd.android.RowndSignInHint
@@ -71,6 +71,7 @@ enum class HubPageSelector {
 
 private const val HUB_CLOSE_AFTER_MILLISECONDS: Long = 1500
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
 class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, attrs), DialogChild {
     override var dialog: DialogFragment? = null
@@ -79,7 +80,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal var jsFunctionArgsAsJson: String = DEFAULT_JS_FN_ARGS
     internal var progressBar: ProgressBar? = null
     internal var setIsLoading: ((isLoading: Boolean) -> Unit)? = null
-    internal var animateBottomSheet: ((to: Float) -> Unit)? = null
+    internal var animateBottomSheet: ((to: SheetDetent) -> Unit)? = null
     internal var setCanTouchBackgroundToDismiss: ((to: Boolean) -> Unit)? = null
 
     internal lateinit var rowndClient: RowndClient
@@ -94,21 +95,17 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
 
         fun dynamicBottomSheet(height: String) {
-            val isKeyboardOpen = ViewCompat.getRootWindowInsets(rootView)?.isVisible(
-                WindowInsetsCompat.Type.ime()) ?: true;
-
-            if (isKeyboardOpen) {
-                animateBottomSheet?.let { it(100F) }
-                return
-            }
-
             val deviceMetrics = Rownd.getDeviceSize(context)
             val viewportPixelHeight = deviceMetrics.heightPixels / deviceMetrics.density
             val deviceHeight = deviceMetrics.heightPixels
             height.toIntOrNull()?.let {
                 val ratio = it / viewportPixelHeight
                 val targetOffset = deviceHeight.toFloat() - deviceHeight.toFloat() * ratio - 100F
-                animateBottomSheet?.let { it(targetOffset) }
+                if (ratio >= .5) {
+                    animateBottomSheet?.let { it(SheetDetent.FullyExpanded) }
+                } else {
+                    animateBottomSheet?.let { it(Peek) }
+                }
             }
         }
 
@@ -244,7 +241,7 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
 
         return if (shouldOpenInSeparateActivity(url)) {
             view.context?.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse(urlStr))
+                Intent(Intent.ACTION_VIEW, urlStr.toUri())
             )
             true
         } else {
@@ -291,7 +288,7 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
         }
 
         if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
-            webView.animateBottomSheet?.invoke(100F)
+            webView.animateBottomSheet?.invoke(SheetDetent.FullyExpanded)
             setIsLoading(false)
             return
         }

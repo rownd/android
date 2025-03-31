@@ -1,7 +1,7 @@
 package io.rownd.android.models
 
-import android.content.res.Configuration
 import android.content.res.Resources
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -25,13 +25,13 @@ open class RowndCustomizations() {
     @Serializable(with = ColorAsHexStringSerializer::class)
     open val dynamicSheetBackgroundColor: Color
     get() {
-        val uiMode = Rownd.appHandleWrapper?.app?.get()!!.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
+        val uiMode = AppCompatDelegate.getDefaultNightMode()
         val darkMode = Rownd.stateRepo.state.value.appConfig.config.hub.customizations?.darkMode
         return when {
             sheetBackgroundColor != null -> sheetBackgroundColor!!
             darkMode == "disabled" -> Constants.BACKGROUND_LIGHT
             darkMode == "enabled" -> Constants.BACKGROUND_DARK
-            uiMode == Configuration.UI_MODE_NIGHT_YES -> Constants.BACKGROUND_DARK
+            uiMode == AppCompatDelegate.MODE_NIGHT_YES -> Constants.BACKGROUND_DARK
             else -> Constants.BACKGROUND_LIGHT
         }
     }
