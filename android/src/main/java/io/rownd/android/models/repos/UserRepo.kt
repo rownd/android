@@ -24,10 +24,6 @@ import io.rownd.android.models.network.User as NetworkUser
 
 @Singleton
 class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndContext: RowndContext) {
-
-//    @Inject
-//    lateinit var userApi: UserApi
-
     internal val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
     internal fun setIsLoading(value: Boolean) {
         stateRepo.getStore().dispatch(StateAction.SetUserIsLoading(value))
@@ -98,16 +94,16 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
         }
     }
 
-    fun set(data: Map<String, Any>) {
+    fun set(data: Map<String, Any>): Deferred<User?> {
         val updatedUser = User(
             data = data
         )
         stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
 
-        saveUserAsync(updatedUser)
+        return saveUserAsync(updatedUser)
     }
 
-    fun set(field: String, data: Any) {
+    fun set(field: String, data: Any): Deferred<User?> {
         val existingUser = stateRepo.state.value.user
         val userData = existingUser.data.toMutableMap()
         userData[field] = data
@@ -115,7 +111,7 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
             data = userData
         )
         stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
-        saveUserAsync(updatedUser)
+        return saveUserAsync(updatedUser)
     }
 
     fun getKeyId(user: User): String {

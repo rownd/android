@@ -1,11 +1,14 @@
 package io.rownd.android.models.network
 
+import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.rownd.android.models.domain.AppConfigState
-import io.rownd.android.util.ApiClient
+import io.rownd.android.util.AuthenticatedApi
+import io.rownd.android.util.RowndContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import retrofit2.http.GET
 import javax.inject.Inject
+import io.rownd.android.models.domain.AnonymousSignInMethod as DomainAnonymousSignInMethod
 import io.rownd.android.models.domain.AppConfigConfig as DomainAppConfigConfig
 import io.rownd.android.models.domain.AppSchemaEncryptionState as DomainAppSchemaEncryptionState
 import io.rownd.android.models.domain.AppSchemaField as DomainAppSchemaField
@@ -14,7 +17,6 @@ import io.rownd.android.models.domain.CustomizationsConfig as DomainCustomizatio
 import io.rownd.android.models.domain.GoogleOneTap as DomainGoogleOneTap
 import io.rownd.android.models.domain.GoogleOneTapMobileApp as DomainGoogleOneTapMobileApp
 import io.rownd.android.models.domain.GoogleSignInMethod as DomainGoogleSignInMethod
-import io.rownd.android.models.domain.AnonymousSignInMethod as DomainAnonymousSignInMethod
 import io.rownd.android.models.domain.HubAuthConfig as DomainHubAuthConfig
 import io.rownd.android.models.domain.HubConfig as DomainHubConfig
 import io.rownd.android.models.domain.HubCustomStylesConfig as DomainHubCustomStylesConfig
@@ -236,20 +238,13 @@ data class AppConfigResponse(
     var app: AppConfig
 )
 
-interface AppConfigService {
-    @GET("hub/app-config")
-    suspend fun getAppConfig() : Result<AppConfigResponse>
-}
+class AppConfigApi @Inject constructor(private val rowndContext: RowndContext) {
 
-class AppConfigApi @Inject constructor(apiClient: ApiClient) {
+    private val api: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
 
-    var apiClient: ApiClient
-
-    init {
-        this.apiClient = apiClient
+    suspend fun getAppConfig(): AppConfigResponse {
+        val appConfig: AppConfigResponse = api.client.get("hub/app-config").body()
+        return appConfig
     }
 
-    val client: AppConfigService by lazy {
-        apiClient.client.get().create(AppConfigService::class.java)
-    }
 }

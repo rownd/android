@@ -17,11 +17,14 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.WebResourceErrorCompat
 import androidx.webkit.WebViewClientCompat
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
+import com.composables.core.SheetDetent
 import io.rownd.android.Rownd
 import io.rownd.android.RowndClient
 import io.rownd.android.RowndSignInHint
@@ -66,8 +69,9 @@ enum class HubPageSelector {
     Unknown
 }
 
-private const val HUB_CLOSE_AFTER_SECS: Long = 1
+private const val HUB_CLOSE_AFTER_MILLISECONDS: Long = 1500
 
+@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
 class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, attrs), DialogChild {
     override var dialog: DialogFragment? = null
@@ -76,7 +80,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     internal var jsFunctionArgsAsJson: String = DEFAULT_JS_FN_ARGS
     internal var progressBar: ProgressBar? = null
     internal var setIsLoading: ((isLoading: Boolean) -> Unit)? = null
-    internal var animateBottomSheet: ((to: Float) -> Unit)? = null
+    internal var animateBottomSheet: ((to: SheetDetent) -> Unit)? = null
     internal var setCanTouchBackgroundToDismiss: ((to: Boolean) -> Unit)? = null
 
     internal lateinit var rowndClient: RowndClient
@@ -85,7 +89,7 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
         this.setLayerType(LAYER_TYPE_HARDWARE, null)
         this.setBackgroundColor(0x00000000)
         this.isHorizontalScrollBarEnabled = false
-        this.isVerticalScrollBarEnabled = false
+//        this.isVerticalScrollBarEnabled = false
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
         settings.userAgentString = Constants.DEFAULT_WEB_USER_AGENT
@@ -94,12 +98,15 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
             val deviceMetrics = Rownd.getDeviceSize(context)
             val viewportPixelHeight = deviceMetrics.heightPixels / deviceMetrics.density
             val deviceHeight = deviceMetrics.heightPixels
-            height.toIntOrNull()?.let { it
+            height.toIntOrNull()?.let {
                 val ratio = it / viewportPixelHeight
                 val targetOffset = deviceHeight.toFloat() - deviceHeight.toFloat() * ratio - 100F
-                animateBottomSheet?.let { it(targetOffset) }
+                if (ratio >= .5) {
+                    animateBottomSheet?.let { it(SheetDetent.FullyExpanded) }
+                } else {
+                    animateBottomSheet?.let { it(Peek) }
+                }
             }
-
         }
 
         fun setCanTouchBackground(enable: Boolean) {
@@ -234,7 +241,7 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
 
         return if (shouldOpenInSeparateActivity(url)) {
             view.context?.startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse(urlStr))
+                Intent(Intent.ACTION_VIEW, urlStr.toUri())
             )
             true
         } else {
@@ -255,11 +262,8 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
         val match = urlStrings.find {
             url.toString().startsWith(it)
         }
-        if (match != null && match != "") {
-            return false
-        }
 
-        return true
+        return !(match != null && match != "")
     }
 
     override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
@@ -272,6 +276,7 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
             view?.setBackgroundColor(0x00000000)
         } else {
             view?.setBackgroundColor(Color.WHITE)
+
         }
     }
 
@@ -281,6 +286,14 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
         if (view.progress < 100) {
             return
         }
+
+        if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
+            webView.animateBottomSheet?.invoke(SheetDetent.FullyExpanded)
+            setIsLoading(false)
+            return
+        }
+
+        setFeatureFlagJs()
 
         view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
@@ -293,10 +306,6 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
             // appropriate content.
             displayTargetPage(view)
         }
-
-        if (!url.startsWith(Rownd.config.baseUrl) && url != "about:blank") {
-            webView.animateBottomSheet?.invoke(100F)
-        }
     }
 
     override fun onReceivedError(
@@ -306,13 +315,31 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
     ) {
         super.onReceivedError(view, request, error)
 
-        if (WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION) && error.description == "net::ERR_ADDRESS_UNREACHABLE") {
+        try {
+            val targetUri = this.webView.url?.toUri()
+            val currentUri = request.url
+
+            if (
+                targetUri?.host != currentUri.host &&
+                targetUri?.path != currentUri?.path
+                )
+            {
+                return
+            }
+        } catch (ex: Exception) {
+            // No-op
+        }
+
+        if (
+            WebViewFeature.isFeatureSupported(WebViewFeature.WEB_RESOURCE_ERROR_GET_DESCRIPTION) &&
+            error.description.contains("net::ERR")
+            )
+        {
             loadNoInternetHTML()
         }
     }
 
     private fun displayTargetPage(view: WebView) {
-        setFeatureFlagJs()
         when ((view as RowndWebView).targetPage) {
             HubPageSelector.SignIn, HubPageSelector.Unknown -> evaluateJavascript("rownd.requestSignIn(${webView.jsFunctionArgsAsJson})")
             HubPageSelector.SignOut -> evaluateJavascript("rownd.signOut({\"show_success\":true})")
@@ -372,13 +399,13 @@ class RowndJavascriptInterface constructor(
 
                     Executors.newSingleThreadScheduledExecutor().schedule({
                         parentWebView.dismiss?.invoke()
-                    }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
+                    }, HUB_CLOSE_AFTER_MILLISECONDS, TimeUnit.MILLISECONDS)
                 }
 
                 MessageType.signOut -> {
                     Executors.newSingleThreadScheduledExecutor().schedule({
                         parentWebView.dismiss?.invoke()
-                    }, HUB_CLOSE_AFTER_SECS, TimeUnit.SECONDS)
+                    }, HUB_CLOSE_AFTER_MILLISECONDS, TimeUnit.MILLISECONDS)
 
                     Rownd.signOut()
                 }

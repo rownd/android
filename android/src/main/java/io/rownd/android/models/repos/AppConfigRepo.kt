@@ -1,6 +1,7 @@
 package io.rownd.android.models.repos
 
 import android.util.Log
+import io.ktor.client.plugins.ClientRequestException
 import io.rownd.android.models.domain.AppConfigState
 import io.rownd.android.models.network.AppConfigApi
 import kotlinx.coroutines.CoroutineScope
@@ -17,15 +18,40 @@ class AppConfigRepo @Inject constructor() {
 
     internal fun loadAppConfigAsync(stateRepo: StateRepo): Deferred<AppConfigState?> {
         return CoroutineScope(Dispatchers.IO).async {
-            val result = appConfigApi.client.getAppConfig()
-                .onSuccess {
-                    stateRepo.getStore().dispatch(StateAction.SetAppConfig(it.app.asDomainModel()))
-                }
-                .onFailure {
-                    Log.e("Rownd", "Failed to load Rownd app config. This probably means you specified an invalid app key. ${it.message}", it)
-                }
+            try {
+                val result = appConfigApi.getAppConfig()
+                stateRepo.getStore().dispatch(StateAction.SetAppConfig(result.app.asDomainModel()))
 
-            return@async result.getOrNull()?.app?.asDomainModel()
+                return@async result.app.asDomainModel()
+            } catch (ex: ClientRequestException) {
+                Log.e(
+                    "Rownd.AppConfig",
+                    "Failed to load Rownd app config. This probably means you specified an invalid app key. ${ex.message}",
+                    ex
+                )
+                stateRepo.getStore().dispatch(
+                    StateAction.SetAppConfig(
+                        stateRepo.getStore().currentState.appConfig.copy(
+                            isLoading = false
+                        )
+                    )
+                )
+                return@async null
+            } catch (ex: Exception) {
+                Log.e(
+                    "Rownd.AppConfig",
+                    "Failed to load Rownd app config.",
+                    ex
+                )
+                stateRepo.getStore().dispatch(
+                    StateAction.SetAppConfig(
+                        stateRepo.getStore().currentState.appConfig.copy(
+                            isLoading = false
+                        )
+                    )
+                )
+                return@async null
+            }
         }
     }
 }
