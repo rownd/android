@@ -28,8 +28,6 @@ import io.rownd.android.views.HubPageSelector
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import javax.inject.Inject
 
 class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCommon) {
@@ -75,11 +73,11 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
                 passkeys.rowndContext.eventEmitter?.emit(
                     RowndEvent(
                         event = RowndEventType.SignInCompleted,
-                        data = buildJsonObject {
-                            put("method", RowndSignInType.Passkey.value)
-                            put("user_type", fidoAuthResp.userType?.value)
-                            put("app_variant_user_type", fidoAuthResp.appVariantUserType?.value)
-                        }
+                        data = mapOf(
+                            "method" to RowndSignInType.Passkey.value,
+                            "user_type" to fidoAuthResp.userType?.value,
+                            "app_variant_user_type" to fidoAuthResp.appVariantUserType?.value,
+                        )
                     )
                 )
 
@@ -166,10 +164,10 @@ class PasskeyAuthentication @Inject constructor(private val passkeys: PasskeysCo
         passkeys.rowndContext.eventEmitter?.emit(
             RowndEvent(
                 event = RowndEventType.SignInFailed,
-                data = buildJsonObject {
-                    put("method", RowndSignInType.Passkey.toString())
-                    put("user_type", reason?.message)
-                }
+                data = mapOf(
+                    "method" to RowndSignInType.Passkey.toString(),
+                    "user_type" to reason?.message
+                )
             )
         )
     }

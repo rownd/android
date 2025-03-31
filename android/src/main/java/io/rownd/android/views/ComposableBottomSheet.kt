@@ -35,7 +35,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -54,6 +53,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
@@ -133,6 +133,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
             setViewCompositionStrategy(
                 ViewCompositionStrategy.DisposeOnLifecycleDestroyed(viewLifecycleOwner)
             )
+
             setContent {
                 BottomSheet()
             }
@@ -186,11 +187,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
             },
         ) {
             Scrim(scrimColor = Color.Black.copy(0.3f), enter = fadeIn(), exit = fadeOut())
-            Box(Modifier.padding(
-                // make sure the sheet is not behind nav bars on landscape
-                WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)
-                    .asPaddingValues()
-            )) {
+            Box() {
                 Sheet(
                     modifier = Modifier
                         .statusBarsPadding()
@@ -198,7 +195,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                         .shadow(40.dp, RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius))
                         .clip(RoundedCornerShape(Rownd.config.customizations.sheetCornerBorderRadius))
                         .background(Rownd.config.customizations.dynamicSheetBackgroundColor)
-                        .widthIn(max = 640.dp)
+                        .widthIn(max = 480.dp)
                         .fillMaxWidth()
                         .imePadding(),
                 ) {
@@ -210,6 +207,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
                             )
                             .width(42.dp)
                             .height(4.dp)
+                            .zIndex(100F)
                     )
                     BoxWithConstraints(
                         modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter
@@ -275,7 +273,6 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         }
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     abstract fun Content(
         requestDetent: (detent: SheetDetent) -> Unit,

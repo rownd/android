@@ -2,7 +2,6 @@ package io.rownd.android.util
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.JsonObject
 import javax.inject.Inject
 
 @Serializable
@@ -41,7 +40,7 @@ enum class RowndEventType {
 @Serializable
 data class RowndEvent (
     var event: RowndEventType,
-    var data: JsonObject?
+    var data: Map<String, String?>
 )
 
 class RowndEventEmitter<T> @Inject constructor() {

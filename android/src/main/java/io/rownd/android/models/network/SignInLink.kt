@@ -32,8 +32,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import javax.inject.Inject
 
 @Serializable
@@ -103,10 +101,10 @@ class SignInLinkApi @Inject constructor(var rowndContext: RowndContext) {
             rowndContext.eventEmitter?.emit(
                 RowndEvent(
                     event = RowndEventType.SignInCompleted,
-                    data = buildJsonObject {
-                        put("method", RowndSignInType.SignInLink.value)
-                        put("user_type", RowndSignInUserType.ExistingUser.value)
-                    }
+                    data = mapOf(
+                        "method" to RowndSignInType.SignInLink.value,
+                        "user_type" to RowndSignInUserType.ExistingUser.value,
+                    )
                 )
             )
 
