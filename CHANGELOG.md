@@ -1,5 +1,12 @@
 
 
+# [3.0.0](https://github.com/rownd/android/compare/2.15.1...3.0.0) (2025-03-31)
+
+
+### Bug Fixes
+
+* play services improvements; network client enhancements; bottom sheet behaviors ([#61](https://github.com/rownd/android/issues/61)) ([3b7160d](https://github.com/rownd/android/commit/3b7160d548f11cd3343ad5d01ea9674425836f1e))
+
 ## [2.15.1](https://github.com/rownd/android/compare/2.15.0...2.15.1) (2025-03-22)
 
 
