@@ -1,5 +1,12 @@
 
 
+## [3.0.1](https://github.com/rownd/android/compare/3.0.0...3.0.1) (2025-03-31)
+
+
+### Bug Fixes
+
+* light/dark mode handling; use a map for event payloads ([#62](https://github.com/rownd/android/issues/62)) ([14ce94d](https://github.com/rownd/android/commit/14ce94d2f72e1f47e286a85094b7890f389dc34e))
+
 # [3.0.0](https://github.com/rownd/android/compare/2.15.1...3.0.0) (2025-03-31)
 
 
