@@ -1,5 +1,12 @@
 
 
+## [3.0.2](https://github.com/rownd/android/compare/3.0.1...3.0.2) (2025-04-01)
+
+
+### Bug Fixes
+
+* **auth:** prevent crash when handling sign-in links ([7d667b0](https://github.com/rownd/android/commit/7d667b07309538ef839e56b50726d55d925d6654))
+
 ## [3.0.1](https://github.com/rownd/android/compare/3.0.0...3.0.1) (2025-03-31)
 
 
