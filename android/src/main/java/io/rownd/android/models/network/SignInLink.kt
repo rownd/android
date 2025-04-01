@@ -26,7 +26,6 @@ import io.rownd.android.util.KtorApiClient
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventType
-import io.rownd.android.util.RowndException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -111,7 +110,6 @@ class SignInLinkApi @Inject constructor(var rowndContext: RowndContext) {
             userRepo.loadUserAsync().await()
         } catch (err: Exception) {
             Log.e("Rownd.SignInLink", "Exception thrown during auto sign-in attempt (url: ${urlObj.path}):", err)
-            throw RowndException(err.message ?: "An unknown auto-sign-in error occurred")
         }
     }
 
