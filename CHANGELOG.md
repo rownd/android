@@ -1,5 +1,12 @@
 
 
+# [2.16.0](https://github.com/rownd/android/compare/3.0.2...2.16.0) (2025-04-05)
+
+
+### Features
+
+* backport sheet and network fixes/changes to v2 ([5d4c3e7](https://github.com/rownd/android/commit/5d4c3e71dfbe6caf3251b09f234135a67c9b7256))
+
 ## [3.0.2](https://github.com/rownd/android/compare/3.0.1...3.0.2) (2025-04-01)
 
 
