@@ -4,6 +4,7 @@ import android.os.Build
 import androidx.compose.ui.graphics.Color
 import io.rownd.android.BuildConfig
 import io.rownd.android.models.SupportedFeature
+import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 internal object Constants {

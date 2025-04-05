@@ -19,8 +19,9 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.lyft.kronos.AndroidClockFactory
 import dagger.Component
-import io.ktor.client.plugins.auth.authProviders
+import io.ktor.client.plugins.auth.Auth
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
+import io.ktor.client.plugins.plugin
 import io.rownd.android.authenticators.passkeys.PasskeysCommon
 import io.rownd.android.models.AuthenticatorType
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
@@ -318,7 +319,7 @@ class RowndClient constructor(
         store.dispatch(StateAction.SetUser(User()))
 
         // Remove any cached access/refresh tokens in authenticatedApi client
-        userRepo.userApi.client.authProviders.filterIsInstance<BearerAuthProvider>()
+        userRepo.userApi.client.plugin(Auth).providers.filterIsInstance<BearerAuthProvider>()
             .firstOrNull()?.clearToken()
 
         val googleSignInMethodConfig =
