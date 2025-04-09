@@ -368,7 +368,7 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
 
         // Don't show Google one tap when the hub is displayed
         val composableBottomSheet = rowndContext.hubView?.get()
-        if (composableBottomSheet != null && composableBottomSheet.isVisible) {
+        if (composableBottomSheet != null) {
             cancel()
             return
         }

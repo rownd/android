@@ -21,14 +21,16 @@
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
+
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
 
-                <!-- If a user clicks on a shared link that uses the "http" scheme, your
-                     app should be able to delegate that traffic to "https". -->
+                <!--
+                     If a user clicks on a shared link that uses the "http" scheme, your
+                     app should be able to delegate that traffic to "https".
+                -->
                 <data android:scheme="http" />
                 <data android:scheme="https" />
 
@@ -36,8 +38,6 @@
                 <data android:host="landmarks.dev.rownd.link" />
             </intent-filter>
         </activity>
-
-        
     </application>
 
 </manifest>

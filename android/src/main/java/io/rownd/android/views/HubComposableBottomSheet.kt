@@ -1,6 +1,5 @@
 package io.rownd.android.views
 
-import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.ViewGroup
@@ -15,121 +14,96 @@ import androidx.lifecycle.ViewModelProvider
 import com.composables.core.SheetDetent
 import io.rownd.android.databinding.HubViewLayoutBinding
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
 
 enum class HubBottomSheetBundleKeys(val key: String) {
     TargetPage("target_page")
 }
 
-class HubComposableBottomSheet : ComposableBottomSheetFragment() {
+class HubComposableBottomSheet(
+    activity: RowndBottomSheetActivity,
+    override val onDismiss: () -> Unit = {},
+    private val targetPage: HubPageSelector = HubPageSelector.Unknown,
+    private val jsFnArgsAsJson: String? = null
+) : ComposableBottomSheet(activity) {
     override val shouldDisplayLoader = true
 
     internal var existingWebView: RowndWebView? = null
     internal var isDismissing: Boolean = false
     private var viewModel: RowndWebViewModel? = null
 
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        viewModel = ViewModelProvider(this.requireActivity())[RowndWebViewModel::class.java]
-        viewModel?.webView()?.observe(this) {
+    init {
+        viewModel = ViewModelProvider(this.activity)[RowndWebViewModel::class.java]
+        viewModel?.webView()?.observe(this.activity) {
             existingWebView = it
         }
     }
+        // Internal dismiss function to recycle web view
+        override fun dismiss() {
+            isDismissing = true
+            viewModel?.webView()?.postValue(null)
 
-    // Internal dismiss function to recycle web view
-    private fun _dismiss() {
-        isDismissing = true
-        viewModel?.webView()?.postValue(null)
-        dismissAllowingStateLoss()
-    }
-
-    @ExperimentalMaterial3Api
-    @Composable
-    override fun Content(
-        requestDetent: (detent: SheetDetent) -> Unit,
-        setIsLoading: (isLoading: Boolean) -> Unit,
-        setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit
-    ) {
-        val bundle = this.arguments
-        val targetPage: HubPageSelector =
-            (bundle?.getSerializable(HubBottomSheetBundleKeys.TargetPage.key)
-                ?: HubPageSelector.Unknown) as HubPageSelector
-        val jsFnArgsAsJson = bundle?.getString(JS_FN_OPTIONS)
-        val coroutineScope = rememberCoroutineScope()
-
-        LaunchedEffect(jsFnArgsAsJson) {
-            Log.d("HubComposableBottomSheet", "jsFnArgsAsJson: $jsFnArgsAsJson")
+            super.dismiss()
         }
 
-        val (hasLoadedUrl, setHasLoadedUrl) = remember { mutableStateOf(false) }
+        @ExperimentalMaterial3Api
+        @Composable
+        override fun Content(
+            requestDetent: (detent: SheetDetent) -> Unit,
+            setIsLoading: (isLoading: Boolean) -> Unit,
+            setCanTouchBackgroundToDismiss: (canTouchBackgroundToDismiss: Boolean) -> Unit
+        ) {
+            val coroutineScope = rememberCoroutineScope()
 
-        val parent = this
-        AndroidViewBinding(
-            factory = { layoutInflater: LayoutInflater, viewGroup: ViewGroup, b: Boolean ->
-                val view = HubViewLayoutBinding.inflate(layoutInflater, viewGroup, b)
-                val rootViewGroup = view.root
-                val currentWebView = view.hubWebview
-
-                if (existingWebView != null && existingWebView?.parent == null) {
-                    val oldWebViewIndex = viewGroup.indexOfChild(currentWebView)
-                    rootViewGroup.removeView(currentWebView)
-                    rootViewGroup.addView(existingWebView, oldWebViewIndex, currentWebView.layoutParams)
-                } else {
-                    viewModel?.webView()?.postValue(currentWebView)
-                }
-
-                return@AndroidViewBinding view
-            },
-            update = {
-                this.hubWebview.dialog = parent
-                this.hubWebview.progressBar = this.hubProgressBar
-                this.hubWebview.setIsLoading = setIsLoading
-
-                this.hubWebview.targetPage = targetPage
-                this.hubWebview.jsFunctionArgsAsJson = jsFnArgsAsJson ?: RowndWebView.DEFAULT_JS_FN_ARGS
-
-                this.hubWebview.animateBottomSheet = {
-                    requestDetent(it)
-                }
-                this.hubWebview.setCanTouchBackgroundToDismiss = {
-                    coroutineScope.launch {
-                        setCanTouchBackgroundToDismiss(it)
-                    }
-                }
-                this.hubWebview.dismiss = {
-                    _dismiss()
-                }
-                if (!hasLoadedUrl) {
-                    val parentScope = this
-                    coroutineScope.launch {
-                        val url = viewModel?.rowndClient?.config?.hubLoaderUrl()
-                        parentScope.hubWebview.loadUrl(url!!)
-                    }
-                    setHasLoadedUrl(true)
-                }
-            }
-        )
-    }
-
-    companion object {
-        const val TAG = "HubComposableBottomSheet"
-
-        val json = Json { encodeDefaults = true }
-        private const val JS_FN_OPTIONS = "JS_FN_OPTIONS"
-
-        fun newInstance(targetPage: HubPageSelector, jsFnOptions: String?): ComposableBottomSheetFragment {
-            val bundle = Bundle()
-            bundle.putSerializable(HubBottomSheetBundleKeys.TargetPage.key, targetPage)
-
-            if (jsFnOptions != null) {
-                bundle.putString(JS_FN_OPTIONS, jsFnOptions)
+            LaunchedEffect(this.jsFnArgsAsJson) {
+                Log.d("HubComposableBottomSheet", "jsFnArgsAsJson: $jsFnArgsAsJson")
             }
 
-            val bottomSheet = HubComposableBottomSheet()
-            bottomSheet.arguments = bundle
+            val (hasLoadedUrl, setHasLoadedUrl) = remember { mutableStateOf(false) }
 
-            return bottomSheet
+            AndroidViewBinding(
+                factory = { layoutInflater: LayoutInflater, viewGroup: ViewGroup, b: Boolean ->
+                    val view = HubViewLayoutBinding.inflate(layoutInflater, viewGroup, b)
+                    val rootViewGroup = view.root
+                    val currentWebView = view.hubWebview
+
+                    if (existingWebView != null && existingWebView?.parent == null) {
+                        val oldWebViewIndex = viewGroup.indexOfChild(currentWebView)
+                        rootViewGroup.removeView(currentWebView)
+                        rootViewGroup.addView(existingWebView, oldWebViewIndex, currentWebView.layoutParams)
+                    } else {
+                        viewModel?.webView()?.postValue(currentWebView)
+                    }
+
+                    return@AndroidViewBinding view
+                },
+                update = {
+                    this.hubWebview.progressBar = this.hubProgressBar
+                    this.hubWebview.setIsLoading = setIsLoading
+
+                    this.hubWebview.animateBottomSheet = {
+                        requestDetent(it)
+                    }
+                    this.hubWebview.setCanTouchBackgroundToDismiss = {
+                        coroutineScope.launch {
+                            setCanTouchBackgroundToDismiss(it)
+                        }
+                    }
+                    this.hubWebview.dismiss = {
+                        onDismiss()
+                    }
+                    if (!hasLoadedUrl) {
+                        this.hubWebview.targetPage = this@HubComposableBottomSheet.targetPage
+                        this.hubWebview.jsFunctionArgsAsJson = this@HubComposableBottomSheet.jsFnArgsAsJson ?: RowndWebView.DEFAULT_JS_FN_ARGS
+
+                        this.let {
+                            coroutineScope.launch {
+                                val url = viewModel?.rowndClient?.config?.hubLoaderUrl()
+                                it.hubWebview.loadUrl(url!!)
+                            }
+                        }
+                        setHasLoadedUrl(true)
+                    }
+                }
+            )
         }
     }
-}

@@ -15,3 +15,6 @@ dependencyResolutionManagement {
 rootProject.name = "Rownd Test Sandbox"
 include ':app'
 include ':android'
+include ':base'
+include ':app_instant'
+include ':app_full'

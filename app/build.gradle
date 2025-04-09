@@ -12,9 +12,9 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId "io.rownd.rowndtestsandbox"
+        applicationId "io.rownd.rowndtestsandbox.app"
         minSdk 26
-        targetSdk 34
+        targetSdk 35
         versionCode 1
         versionName "1.0"
 
@@ -41,19 +41,18 @@ android {
         viewBinding = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion compose_version
-    }
+//    composeOptions {
+//        kotlinCompilerExtensionVersion compose_version
+//    }
 }
 
 dependencies {
     implementation project(':android')
 //    implementation 'io.rownd:android:1.2.0'
 
-    // Test out compose BOM
-//    implementation platform('androidx.compose:compose-bom:2024.03.00')
-//    implementation 'androidx.compose.material:material'
-//    implementation 'androidx.compose.material3:material3'
+    // Google Play instant
+    implementation "com.google.android.gms:play-services-instantapps:17.0.0"
+
     implementation 'androidx.compose.material:material:1.6.8'
 
     implementation 'androidx.core:core-ktx:1.15.0'
@@ -74,6 +73,6 @@ dependencies {
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
 }
 
-kapt {
-    generateStubs = true
-}
+//kapt {
+//    generateStubs = true
+//}

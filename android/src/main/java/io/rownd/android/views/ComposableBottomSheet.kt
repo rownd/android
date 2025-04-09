@@ -1,15 +1,6 @@
 package io.rownd.android.views
 
-import android.app.Dialog
-import android.content.Context
-import android.os.Build
-import android.os.Bundle
-import android.util.Log
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
 import android.view.ViewTreeObserver
-import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
@@ -48,16 +39,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
-import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
-import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.fragment.app.DialogFragment
 import com.airbnb.lottie.LottieComposition
 import com.airbnb.lottie.compose.LottieAnimation
 import com.airbnb.lottie.compose.LottieCompositionSpec
@@ -79,70 +65,77 @@ val Peek = SheetDetent(identifier = "peek") { containerHeight, sheetHeight ->
     containerHeight * 0.6f
 }
 
-abstract class ComposableBottomSheetFragment : DialogFragment() {
+abstract class ComposableBottomSheet(
+    val activity: RowndBottomSheetActivity,
+    open val onDismiss: () -> Unit = {}
+) {
     open val shouldDisplayLoader = false
 
-    override fun onStart() {
-        super.onStart()
-        val dialog: Dialog? = dialog
-        if (dialog != null) {
-            dialog.window?.setDimAmount(0f)
-            val width = ViewGroup.LayoutParams.MATCH_PARENT
-            val height = ViewGroup.LayoutParams.MATCH_PARENT
-            dialog.window?.setLayout(width, height)
-        }
-    }
+//    override fun onStart() {
+//        super.onStart()
+//        val dialog: Dialog? = dialog
+//        if (dialog != null) {
+//            dialog.window?.setDimAmount(0f)
+//            val width = ViewGroup.LayoutParams.MATCH_PARENT
+//            val height = ViewGroup.LayoutParams.MATCH_PARENT
+//            dialog.window?.setLayout(width, height)
+//        }
+//    }
+//
+//    override fun onCreateView(
+//        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
+//    ): View {
+//        dialog?.window?.setBackgroundDrawable(Color.Transparent.toArgb().toDrawable())
+//
+//        dialog?.window?.setFlags(
+//            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+//            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+//        )
+//
+//        dialog?.window?.decorView?.let { decorView ->
+//            try {
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//                    requireActivity().window?.insetsController?.let { controller ->
+//                        decorView.setOnApplyWindowInsetsListener { _, insets ->
+//                            controller.show(WindowInsetsCompat.Type.systemBars())
+//                            insets
+//                        }
+//                    }
+//                } else {
+//                    decorView.systemUiVisibility =
+//                        requireActivity().window?.decorView?.systemUiVisibility ?: 0
+//                }
+//            } catch (e: Exception) {
+//                Log.d("ComposableBottomSheetFragment", "onCreateView: $e")
+//            }
+//        }
+//
+//        dialog?.setOnShowListener { // Clear the not focusable flag from the window
+//            dialog?.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
+//
+//            // Update the WindowManager with the new attributes (no nicer way I know of to do this)..
+//            val wm = activity?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
+//            wm?.updateViewLayout(dialog?.window?.decorView, dialog?.window?.attributes)
+//        }
+//
+//        return ComposeView(requireContext()).apply {
+//            setViewCompositionStrategy(
+//                ViewCompositionStrategy.DisposeOnLifecycleDestroyed(viewLifecycleOwner)
+//            )
+//
+//            setContent {
+//                BottomSheet()
+//            }
+//        }
+//    }
 
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View {
-        dialog?.window?.setBackgroundDrawable(Color.Transparent.toArgb().toDrawable())
-
-        dialog?.window?.setFlags(
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-        )
-
-        dialog?.window?.decorView?.let { decorView ->
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    requireActivity().window?.insetsController?.let { controller ->
-                        decorView.setOnApplyWindowInsetsListener { _, insets ->
-                            controller.show(WindowInsetsCompat.Type.systemBars())
-                            insets
-                        }
-                    }
-                } else {
-                    decorView.systemUiVisibility =
-                        requireActivity().window?.decorView?.systemUiVisibility ?: 0
-                }
-            } catch (e: Exception) {
-                Log.d("ComposableBottomSheetFragment", "onCreateView: $e")
-            }
-        }
-
-        dialog?.setOnShowListener { // Clear the not focusable flag from the window
-            dialog?.window?.clearFlags(WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE)
-
-            // Update the WindowManager with the new attributes (no nicer way I know of to do this)..
-            val wm = activity?.getSystemService(Context.WINDOW_SERVICE) as? WindowManager
-            wm?.updateViewLayout(dialog?.window?.decorView, dialog?.window?.attributes)
-        }
-
-        return ComposeView(requireContext()).apply {
-            setViewCompositionStrategy(
-                ViewCompositionStrategy.DisposeOnLifecycleDestroyed(viewLifecycleOwner)
-            )
-
-            setContent {
-                BottomSheet()
-            }
-        }
+    open fun dismiss() {
+        this.onDismiss()
     }
 
     @Suppress("UnusedBoxWithConstraintsScope")
     @Composable
-    private fun BottomSheet() {
+    internal fun BottomSheet() {
         val coroutineScope = rememberCoroutineScope()
 
         val (isLoading, setIsLoading) = remember { mutableStateOf(shouldDisplayLoader) }
@@ -183,7 +176,7 @@ abstract class ComposableBottomSheetFragment : DialogFragment() {
         ModalBottomSheet(
             state = sheetState,
             onDismiss = {
-                dismiss()
+                this.dismiss()
             },
         ) {
             Scrim(scrimColor = Color.Black.copy(0.3f), enter = fadeIn(), exit = fadeOut())
