@@ -56,8 +56,6 @@ class RowndBottomSheetActivity : ComponentActivity() {
         val targetPage = intent.getSerializableExtra(EXTRA_TARGET_PAGE) as? HubPageSelector ?: HubPageSelector.Unknown
         val jsFnOptions = intent.getStringExtra(EXTRA_JS_FN_OPTIONS)
 
-        bottomSheetHolder
-
         bottomSheetHolder?.existingWebView?.loadNewPage(targetPage, jsFnOptions)
     }
 
