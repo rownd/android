@@ -1,6 +1,7 @@
 package io.rownd.android.util
-import io.ktor.client.plugins.auth.*
-import io.ktor.client.plugins.auth.providers.*
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
 
 
 class AuthenticatedApi constructor(rowndContext: RowndContext): KtorApiClient(rowndContext) {

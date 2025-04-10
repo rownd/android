@@ -24,7 +24,6 @@ import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.models.network.TokenResponse
 import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NetworkConnectionFailureException
-import io.rownd.android.util.NoAccessTokenPresentException
 import io.rownd.android.util.NoRefreshTokenPresentException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
@@ -66,8 +65,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         }
 
         val authState = stateRepo.getStore().currentState.auth
-        val accessToken = authState.accessToken
-            ?: throw NoAccessTokenPresentException("No access token was available. The user is likely not signed in.")
+        val accessToken = authState.accessToken ?: return null
 
         val jwt = JWT(accessToken)
 

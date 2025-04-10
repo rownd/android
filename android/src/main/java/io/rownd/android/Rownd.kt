@@ -354,6 +354,7 @@ class RowndClient constructor(
     suspend fun getAccessToken(throwIfMissing: Boolean = false): String? {
         try {
             return authRepo.getAccessToken()
+                ?: throw NoAccessTokenPresentException("No access token was available. The user is likely not signed in.")
         } catch (ex: RowndException) {
             when (ex) {
                 is InvalidRefreshTokenException,
@@ -369,6 +370,12 @@ class RowndClient constructor(
 
             throw ex
         }
+    }
+
+    @Throws(RowndException::class)
+    suspend fun getAccessTokenAndThrowIfMissing(): String {
+        return authRepo.getAccessToken()
+            ?: throw NoAccessTokenPresentException("No access token was available. The user is likely not signed in.")
     }
 
     @Throws(RowndException::class)
