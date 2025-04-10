@@ -178,9 +178,10 @@ abstract class ComposableBottomSheet(
             onDismiss = {
                 this.dismiss()
             },
+
         ) {
             Scrim(scrimColor = Color.Black.copy(0.3f), enter = fadeIn(), exit = fadeOut())
-            Box() {
+            Box(modifier = Modifier.imePadding()) {
                 Sheet(
                     modifier = Modifier
                         .statusBarsPadding()
