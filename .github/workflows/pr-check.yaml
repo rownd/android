@@ -23,7 +23,7 @@ jobs:
           API_TOKEN: ${{ secrets.API_TOKEN }}
         run: echo API_TOKEN=\"$API_TOKEN\" > ./local.properties
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
