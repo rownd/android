@@ -194,26 +194,6 @@ class RowndClient constructor(
         if (activity != null && appHandleWrapper == null) {
             appHandleWrapper = AppLifecycleListener(activity)
         }
-
-        // Add an activity result callback for Google sign in
-        // TODO: This can be removed once androix.crendential_manager supports all flows
-//        appHandleWrapper?.registerActivityListener(
-//            persistentListOf(Lifecycle.State.CREATED),
-//            immediate = false,
-//            immediateIfBefore = Lifecycle.State.STARTED
-//        ) {
-//            if (it is ActivityResultCaller) {
-//                signInWithGoogle.registerIntentLauncher(it)
-//            }
-//        }
-//
-//        // Remove Google sign-in callbacks if activity is destroyed
-//        appHandleWrapper?.registerActivityListener(
-//            persistentListOf(Lifecycle.State.DESTROYED),
-//            false
-//        ) {
-//            signInWithGoogle.deRegisterIntentLauncher(it.localClassName)
-//        }
     }
 
     private fun isAppConfigLoadingWithCallback(callback: () -> (Unit)): Boolean {
