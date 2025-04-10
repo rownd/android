@@ -139,17 +139,13 @@ class SignInLinkApi @Inject constructor(var rowndContext: RowndContext) {
             return
         }
 
-        var clipboardText = clipboard.primaryClip?.getItemAt(0)?.text.toString() ?: return
+        val clipboardText = clipboard.primaryClip?.getItemAt(0)?.text.toString() ?: return
 
         if (!clipboardText.contains("rownd.link")) {
             return
         }
 
-        if (!clipboardText.startsWith("http")) {
-            clipboardText = "https://${clipboardText}"
-        }
-
-        val potentialSignInLink = Uri.parse(clipboardText) ?: return
+        val potentialSignInLink = clipboardText.toUri() ?: return
 
         dispatchSignInWithLink(potentialSignInLink)
         clipboard.setPrimaryClip(ClipData.newPlainText("", ""))

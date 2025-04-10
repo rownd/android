@@ -4,7 +4,7 @@ import android.app.Activity
 import android.app.Application
 import android.app.Application.ActivityLifecycleCallbacks
 import android.os.Bundle
-import androidx.fragment.app.FragmentActivity
+import androidx.activity.ComponentActivity
 import androidx.lifecycle.Lifecycle.State
 import kotlinx.collections.immutable.PersistentList
 import java.lang.ref.WeakReference
@@ -32,12 +32,12 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         parentApp.registerActivityLifecycleCallbacks(this)
     }
 
-    constructor(currentActivity: FragmentActivity) : this(currentActivity.application) {
+    constructor(currentActivity: Activity) : this(currentActivity.application) {
         activity = WeakReference(currentActivity)
     }
 
     override fun onActivityCreated(activity: Activity, bundle: Bundle?) {
-        if (activity !is FragmentActivity) {
+        if (activity !is Activity) {
             return
         }
 
@@ -51,10 +51,6 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
     }
 
     override fun onActivityStarted(activity: Activity) {
-        if (activity !is FragmentActivity) {
-            return
-        }
-
         this.activity = WeakReference(activity)
 
         val listeners = activityListeners.filter() {
@@ -65,10 +61,6 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
     }
 
     override fun onActivityResumed(activity: Activity) {
-        if (activity !is FragmentActivity) {
-            return
-        }
-
         this.activity = WeakReference(activity)
         isAppInForeground = true
 
@@ -111,7 +103,7 @@ class AppLifecycleListener(parentApp: Application) : ActivityLifecycleCallbacks 
         once: Boolean? = false,
         callback: (activity: Activity) -> Unit
     ) {
-        val activity = this.activity?.get() as FragmentActivity?
+        val activity = this.activity?.get() as ComponentActivity?
         activityListeners.add(Listener(
             states,
             once,

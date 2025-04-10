@@ -17,7 +17,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.widget.ProgressBar
 import android.widget.Toast
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.core.net.toUri
 import androidx.fragment.app.DialogFragment
 import androidx.webkit.WebResourceErrorCompat
@@ -71,7 +70,6 @@ enum class HubPageSelector {
 
 private const val HUB_CLOSE_AFTER_MILLISECONDS: Long = 1500
 
-@OptIn(ExperimentalMaterial3Api::class)
 @SuppressLint("SetJavaScriptEnabled")
 class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, attrs), DialogChild {
     override var dialog: DialogFragment? = null
@@ -141,14 +139,16 @@ class RowndWebView(context: Context, attrs: AttributeSet?) : WebView(context, at
     }
 
     internal fun loadNewPage(targetPage: HubPageSelector = HubPageSelector.SignIn, jsFnOptionsAsJson: String?) {
-        this.jsFunctionArgsAsJson = jsFnOptionsAsJson ?: "{}"
+        this.jsFunctionArgsAsJson = jsFnOptionsAsJson ?: DEFAULT_JS_FN_ARGS
         this.targetPage = targetPage
 
-        val parentScope = this
-        CoroutineScope(Dispatchers.Main).launch {
-            val targetUrl = Rownd.config.hubLoaderUrl()
-            parentScope.loadUrl(targetUrl)
+        this.let {
+            CoroutineScope(Dispatchers.Main).launch {
+                val targetUrl = Rownd.config.hubLoaderUrl()
+                it.loadUrl(targetUrl)
+            }
         }
+
     }
 
     internal fun loadNewPage(targetPage: HubPageSelector = HubPageSelector.SignIn, jsFnOptions: RowndSignInOptionsBase) {

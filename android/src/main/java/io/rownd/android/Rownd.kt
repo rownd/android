@@ -11,7 +11,6 @@ import android.util.DisplayMetrics
 import android.util.Log
 import android.view.WindowManager
 import android.webkit.WebView
-import androidx.activity.result.ActivityResultCaller
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.Lifecycle
@@ -39,14 +38,15 @@ import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NoAccessTokenPresentException
+import io.rownd.android.util.NoRefreshTokenPresentException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventEmitter
 import io.rownd.android.util.RowndException
 import io.rownd.android.util.SignInWithGoogle
 import io.rownd.android.util.Telemetry
-import io.rownd.android.views.HubComposableBottomSheet
 import io.rownd.android.views.HubPageSelector
+import io.rownd.android.views.RowndBottomSheetActivity
 import io.rownd.android.views.RowndWebViewModel
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.CoroutineScope
@@ -58,7 +58,6 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
-import java.lang.ref.WeakReference
 import javax.inject.Singleton
 
 // The default Rownd instance
@@ -160,9 +159,11 @@ class RowndClient constructor(
         }
 
         appHandleWrapper?.registerActivityListener(
-            persistentListOf(
+            states = persistentListOf(
                 Lifecycle.State.RESUMED
-            ), true
+            ),
+            immediate = true,
+            once = true
         ) {
             signInLinkApi.signInWithLinkIfPresentOnIntentOrClipboard(it)
         }
@@ -176,7 +177,7 @@ class RowndClient constructor(
         configure(appKey)
     }
 
-    // Used by Flutter and RN SDKs
+    // Used by Flutter and React Native SDKs Don't make it private!
     fun configure(activity: FragmentActivity, appKey: String) {
         _registerActivityLifecycle(activity)
         configure(appKey)
@@ -193,26 +194,6 @@ class RowndClient constructor(
     fun _registerActivityLifecycle(activity: FragmentActivity?) {
         if (activity != null && appHandleWrapper == null) {
             appHandleWrapper = AppLifecycleListener(activity)
-        }
-
-        // Add an activity result callback for Google sign in
-        // TODO: This can be removed once androix.crendential_manager supports all flows
-        appHandleWrapper?.registerActivityListener(
-            persistentListOf(Lifecycle.State.CREATED),
-            immediate = false,
-            immediateIfBefore = Lifecycle.State.STARTED
-        ) {
-            if (it is ActivityResultCaller) {
-                signInWithGoogle.registerIntentLauncher(it)
-            }
-        }
-
-        // Remove Google sign-in callbacks if activity is destroyed
-        appHandleWrapper?.registerActivityListener(
-            persistentListOf(Lifecycle.State.DESTROYED),
-            false
-        ) {
-            signInWithGoogle.deRegisterIntentLauncher(it.localClassName)
         }
     }
 
@@ -373,9 +354,11 @@ class RowndClient constructor(
     suspend fun getAccessToken(throwIfMissing: Boolean = false): String? {
         try {
             return authRepo.getAccessToken()
+                ?: throw NoAccessTokenPresentException("No access token was available. The user is likely not signed in.")
         } catch (ex: RowndException) {
             when (ex) {
                 is InvalidRefreshTokenException,
+                is NoRefreshTokenPresentException,
                 is NoAccessTokenPresentException -> {
                     if (throwIfMissing) {
                         throw ex
@@ -387,6 +370,12 @@ class RowndClient constructor(
 
             throw ex
         }
+    }
+
+    @Throws(RowndException::class)
+    suspend fun getAccessTokenAndThrowIfMissing(): String {
+        return authRepo.getAccessToken()
+            ?: throw NoAccessTokenPresentException("No access token was available. The user is likely not signed in.")
     }
 
     @Throws(RowndException::class)
@@ -431,7 +420,7 @@ class RowndClient constructor(
         }
 
         try {
-            val activity = appHandleWrapper?.activity?.get() as? FragmentActivity
+            val activity = appHandleWrapper?.activity?.get()
 
             if (activity == null) {
                 appHandleWrapper?.registerActivityListener(
@@ -453,21 +442,9 @@ class RowndClient constructor(
                 jsFnOptionsStr = jsFnOptions.toJsonString()
             }
 
-            try {
-                if (rowndContext.hubView?.get() != null && (rowndContext.hubView?.get() as? HubComposableBottomSheet)?.isDismissing == false) {
-                    rowndContext.hubView?.get()?.dismissNow()
-                }
-            } catch (ex: Exception) {
-                // no-op
+            appHandleWrapper?.app?.get()?.applicationContext?.let {
+                RowndBottomSheetActivity.launch(it, targetPage, jsFnOptionsStr)
             }
-
-            val existingFragment = activity.supportFragmentManager.findFragmentByTag(HubComposableBottomSheet.TAG)
-            if (existingFragment == null) {
-                val bottomSheet = HubComposableBottomSheet.newInstance(targetPage, jsFnOptionsStr)
-                bottomSheet.show(activity.supportFragmentManager, HubComposableBottomSheet.TAG)
-                rowndContext.hubView = WeakReference(bottomSheet)
-            }
-
         } catch (ex: Exception) {
             Log.w("Rownd", "Failed to trigger Rownd bottom sheet for target: $targetPage", ex)
         }

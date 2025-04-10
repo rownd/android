@@ -7,7 +7,7 @@ import io.rownd.android.models.Store
 import io.rownd.android.models.repos.AuthRepo
 import io.rownd.android.models.repos.GlobalState
 import io.rownd.android.models.repos.StateAction
-import io.rownd.android.views.ComposableBottomSheetFragment
+import io.rownd.android.views.ComposableBottomSheet
 import io.rownd.android.views.RowndWebViewModel
 import java.lang.ref.WeakReference
 import javax.inject.Inject
@@ -21,14 +21,14 @@ class RowndContext @Inject constructor() {
     var store: Store<GlobalState, StateAction>? = null
 
     var authRepo: AuthRepo? = null
-    var hubView: WeakReference<ComposableBottomSheetFragment>? = null
+    var hubView: WeakReference<ComposableBottomSheet>? = null
     var hubViewModel: RowndWebViewModel? = null
     var eventEmitter: RowndEventEmitter<RowndEvent>? = null
     var telemetry: Telemetry? = null
 
     fun isDisplayingHub(): Boolean {
         hubView?.get().let {
-            return it?.isVisible == true
+            return it?.activity != null
         }
     }
 }

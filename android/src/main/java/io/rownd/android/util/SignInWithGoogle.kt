@@ -107,7 +107,7 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
         wasUserInitiated: Boolean? = true
     ) {
         val tracer = rowndContext.telemetry?.getTracer()
-        val span = tracer?.spanBuilder("signInWithGoogle")?.startSpan()
+        val span = rowndContext.telemetry?.startSpan("signInWithGoogle")
         currentSpan = span
         span?.setAttribute("wasUserInitiated", wasUserInitiated.toString())
 
@@ -368,7 +368,7 @@ class SignInWithGoogle @Inject constructor(internal val rowndContext: RowndConte
 
         // Don't show Google one tap when the hub is displayed
         val composableBottomSheet = rowndContext.hubView?.get()
-        if (composableBottomSheet != null && composableBottomSheet.isVisible) {
+        if (composableBottomSheet != null) {
             cancel()
             return
         }

@@ -13,6 +13,9 @@ data class AppConfigState @OptIn(ExperimentalSerializationApi::class) constructo
     @Transient
     val isLoading: Boolean = true,
     val id: String = "",
+    @SerialName("variant_id")
+    @JsonNames("variantId")
+    val variantId: String? = null,
     val icon: String = "",
     @SerialName("user_verification_fields")
     @JsonNames("userVerificationFields")
