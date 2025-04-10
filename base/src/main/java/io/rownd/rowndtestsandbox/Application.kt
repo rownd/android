@@ -9,7 +9,7 @@ class RowndBaseApp: Application() {
     override fun onCreate() {
         super.onCreate()
 
-        Rownd.configure(this, "key_c9vkjeiv515pt13d0lf1fyvt")
+        Rownd.configure(this, "key_z53h41zi2e160d6gdv9j08vm")
         Log.d("App.onCreate", "Rownd initialized: ${Rownd.state.value.isInitialized}")
         Rownd.config.apiUrl = "https://api.dev.rownd.io"
         Rownd.config.baseUrl = "https://hub.dev.rownd.io"

@@ -234,9 +234,28 @@ data class GoogleOneTapMobileApp(
 }
 
 @Serializable
-data class AppConfigResponse(
-    var app: AppConfig
+data class AppVariant(
+    var id: String,
+    var name: String
 )
+
+@Serializable
+data class AppConfigResponse(
+    var app: AppConfig,
+    var variant: AppVariant? = null
+) {
+    fun asDomainModel(): AppConfigState {
+        val app = app.asDomainModel()
+
+        variant?.let {
+            return app.copy(
+                variantId = it.id
+            )
+        }
+
+        return app
+    }
+}
 
 class AppConfigApi @Inject constructor(private val rowndContext: RowndContext) {
 

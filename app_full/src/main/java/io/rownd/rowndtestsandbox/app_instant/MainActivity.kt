@@ -20,6 +20,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.rownd.android.Rownd
 import io.rownd.android.models.domain.AuthState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -75,6 +78,15 @@ fun AuthUI(
             Spacer(modifier = Modifier.height(8.dp))
             Button(onClick = onManageAccount) {
                 Text(text = "Manage Account")
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = {
+                CoroutineScope(Dispatchers.IO).launch {
+                    Rownd._refreshToken()
+                }
+            }) {
+                Text(text = "Trigger token refresh")
             }
         }
     }

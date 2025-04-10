@@ -176,7 +176,7 @@ class RowndClient constructor(
         configure(appKey)
     }
 
-    // Used by Flutter and React Native SDKs
+    // Used by Flutter and React Native SDKs Don't make it private!
     fun configure(activity: FragmentActivity, appKey: String) {
         _registerActivityLifecycle(activity)
         configure(appKey)

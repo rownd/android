@@ -8,6 +8,7 @@ import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpStatusCode
+import io.opentelemetry.api.trace.StatusCode
 import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInIntent
 import io.rownd.android.RowndSignInJsOptions
@@ -23,6 +24,7 @@ import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.models.network.TokenResponse
 import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NetworkConnectionFailureException
+import io.rownd.android.util.NoAccessTokenPresentException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
 import io.rownd.android.util.ServerException
@@ -134,12 +136,15 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
 
         refreshTokenJob = CoroutineScope(Dispatchers.IO).async {
             Log.d("Rownd.Auth", "Refreshing tokens: in progress")
+            val span = rowndContext.telemetry?.startSpan("refreshTokenAsync")
+            val refreshToken = stateRepo.state.value.auth.refreshToken ?: throw NoAccessTokenPresentException("No refresh token was available")
+            val jwt = JWT(refreshToken)
 
             try {
                 val authState: Auth = tokenApi.client.post("/hub/auth/token") {
                     setBody(
                         TokenRequestBody(
-                            refreshToken = stateRepo.state.value.auth.refreshToken
+                            refreshToken = refreshToken
                         )
                     )
                 }.body()
@@ -147,9 +152,16 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 stateRepo.getStore().dispatch(StateAction.SetAuth(authState.asDomainModel()))
 
                 Log.d("Rownd.Auth", "Refreshing tokens: complete")
+                span?.setStatus(StatusCode.OK)
                 refreshTokenJob = null
                 return@async authState
             } catch (ex: ClientRequestException) {
+                span?.recordException(ex)
+                span?.setStatus(StatusCode.ERROR, ex.message)
+                span?.setAttribute("http_status_code", ex.response.status.value.toString())
+                jwt.id?.let { span?.setAttribute("jti", it) }
+                jwt.subject?.let { span?.setAttribute("subject", it) }
+
                 if (ex.response.status != HttpStatusCode.BadRequest) {
                     throw ServerException(ex.message)
                 }
@@ -165,13 +177,28 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState()))
                 stateRepo.getStore().dispatch(StateAction.SetUser(User()))
 
+                span?.addEvent("Permanent: Refresh token failure. User was signed out.")
+                span?.setAttribute("error", "invalid_refresh_token")
                 throw InvalidRefreshTokenException(ex.message)
             } catch (ex: ServerResponseException) {
+                span?.recordException(ex)
+                span?.setStatus(StatusCode.ERROR, ex.message)
+                span?.setAttribute("http_status_code", ex.response.status.value.toString())
+                jwt.id?.let { span?.setAttribute("jti", it) }
+                jwt.subject?.let { span?.setAttribute("subject", it) }
+
                 throw ServerException(ex.message)
             } catch (ex: Exception) {
                 refreshTokenJob = null
                 Log.e("Rownd.AuthRepo", "Failed to refresh tokens:", ex)
+                span?.recordException(ex)
+                span?.setStatus(StatusCode.ERROR, ex.message ?: "An unknown refresh token error occurred.")
+                jwt.id?.let { span?.setAttribute("jti", it) }
+                jwt.subject?.let { span?.setAttribute("subject", it) }
+
                 throw NetworkConnectionFailureException(ex.message ?: "An unknown refresh token error occurred.")
+            } finally {
+                span?.end()
             }
         }
 
