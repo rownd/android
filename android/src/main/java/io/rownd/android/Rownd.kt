@@ -38,6 +38,7 @@ import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NoAccessTokenPresentException
+import io.rownd.android.util.NoRefreshTokenPresentException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventEmitter
@@ -356,6 +357,7 @@ class RowndClient constructor(
         } catch (ex: RowndException) {
             when (ex) {
                 is InvalidRefreshTokenException,
+                is NoRefreshTokenPresentException,
                 is NoAccessTokenPresentException -> {
                     if (throwIfMissing) {
                         throw ex
