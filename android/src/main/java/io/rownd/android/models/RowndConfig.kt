@@ -27,6 +27,8 @@ data class RowndConfig(
     var defaultNumApiRetries: Int = 5,
     @Transient
     var subdomainExtension: String = ".rownd.link",
+    @Transient
+    internal var stateFileName: String = "rownd_state.json"
 ) {
     @Inject
     @Transient

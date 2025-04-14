@@ -8,9 +8,14 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.goterl.lazysodium.utils.Key
 import io.rownd.android.util.Encryption
 import io.rownd.android.util.asBase64String
-import org.junit.*
-import org.junit.Assert.*
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.UUID
 
 class RowndTest : Application()
 
@@ -27,6 +32,7 @@ class EncryptionInstrumentedTest {
         instrumentationContext = instrumentation.context
 
         val app = Instrumentation.newApplication(Application::class.java, instrumentationContext)
+        Rownd.config.stateFileName = "test_datastore_${UUID.randomUUID()}.json"
         Rownd.configure(app, "")
     }
 
