@@ -114,6 +114,6 @@ jobs:
       - name: Upload Reports
         uses: actions/upload-artifact@v4
         with:
-          name: Test-Reports
-          path: android/build/reports/${{ matrix.api-level }}/${{ matrix.target }}
+          name: Test-Reports-${{ matrix.api-level }}-${{ matrix.target }}
+          path: android/build/reports
         if: always()
