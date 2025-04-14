@@ -14,8 +14,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class RowndContext @Inject constructor() {
-    lateinit var config: RowndConfig
+class RowndContext @Inject constructor(
+    var config: RowndConfig
+) {
     var client: RowndClient? = null
     var kronosClock: KronosClock? = null
     var store: Store<GlobalState, StateAction>? = null

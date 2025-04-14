@@ -26,9 +26,8 @@ data class RowndConfig(
     var defaultRequestTimeout: Long = 15000L,
     var defaultNumApiRetries: Int = 5,
     @Transient
-    var subdomainExtension: String = ".rownd.link"
+    var subdomainExtension: String = ".rownd.link",
 ) {
-
     @Inject
     @Transient
     lateinit var userRepo: UserRepo

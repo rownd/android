@@ -17,14 +17,12 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStoreOwner
 import com.lyft.kronos.AndroidClockFactory
-import dagger.Component
 import io.ktor.client.plugins.auth.authProviders
 import io.ktor.client.plugins.auth.providers.BearerAuthProvider
-import io.rownd.android.authenticators.passkeys.PasskeysCommon
+import io.rownd.android.di.component.DaggerRowndGraph
+import io.rownd.android.di.component.RowndGraph
 import io.rownd.android.models.AuthenticatorType
 import io.rownd.android.models.RowndAuthenticatorRegistrationOptions
-import io.rownd.android.models.RowndConfig
-import io.rownd.android.models.RowndConnectionAction
 import io.rownd.android.models.Store
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
@@ -39,12 +37,8 @@ import io.rownd.android.util.AppLifecycleListener
 import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NoAccessTokenPresentException
 import io.rownd.android.util.NoRefreshTokenPresentException
-import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
-import io.rownd.android.util.RowndEventEmitter
 import io.rownd.android.util.RowndException
-import io.rownd.android.util.SignInWithGoogle
-import io.rownd.android.util.Telemetry
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndBottomSheetActivity
 import io.rownd.android.views.RowndWebViewModel
@@ -58,32 +52,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import kotlinx.serialization.json.Json
-import javax.inject.Singleton
 
 // The default Rownd instance
 val Rownd = RowndClient(DaggerRowndGraph.create())
 
-@Singleton
-@Component()
-interface RowndGraph {
-    fun stateRepo(): StateRepo
-    fun userRepo(): UserRepo
-    fun authRepo(): AuthRepo
-    fun connectionAction(): RowndConnectionAction
-    fun signInRepo(): SignInRepo
-    fun signInLinkApi(): SignInLinkApi
-    fun rowndContext(): RowndContext
-    fun passkeyAuthenticator(): PasskeysCommon
-    fun rowndEventEmitter(): RowndEventEmitter<RowndEvent>
-    fun signInWithGoogle(): SignInWithGoogle
-    fun telemetry(): Telemetry
-    fun inject(rowndConfig: RowndConfig)
-}
-
-class RowndClient constructor(
+class RowndClient(
     graph: RowndGraph,
-    val config: RowndConfig = RowndConfig()
 ) {
+    var config = graph.config()
+
     internal var appHandleWrapper: AppLifecycleListener? = null
 
     internal lateinit var store: Store<GlobalState, StateAction>
@@ -299,7 +276,7 @@ class RowndClient constructor(
         store.dispatch(StateAction.SetUser(User()))
 
         // Remove any cached access/refresh tokens in authenticatedApi client
-        userRepo.userApi.client.authProviders.filterIsInstance<BearerAuthProvider>()
+        userRepo.authenticatedApiClient.client.authProviders.filterIsInstance<BearerAuthProvider>()
             .firstOrNull()?.clearToken()
 
         val googleSignInMethodConfig =

@@ -1,14 +1,19 @@
 package io.rownd.android.authenticators.passkeys
 
-import io.rownd.android.util.AuthenticatedApi
+import io.rownd.android.util.AuthenticatedApiClient
 import io.rownd.android.util.KtorApiClient
 import io.rownd.android.util.RowndContext
 import javax.inject.Inject
 
-class PasskeysCommon @Inject constructor(internal val rowndContext: RowndContext) {
+class PasskeysCommon @Inject constructor() {
+    @Inject
+    lateinit var rowndContext: RowndContext
 
-    internal val api: KtorApiClient by lazy { KtorApiClient(rowndContext) }
-    internal val authenticatedApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
+    @Inject
+    lateinit var api: KtorApiClient
+
+    @Inject
+    lateinit var authenticatedApiClient: AuthenticatedApiClient
 
     val registration: PasskeyRegistration by lazy { PasskeyRegistration(this) }
     val authentication: PasskeyAuthentication by lazy { PasskeyAuthentication(this) }

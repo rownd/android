@@ -8,7 +8,7 @@ import io.ktor.client.request.put
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpStatusCode
 import io.rownd.android.models.domain.User
-import io.rownd.android.util.AuthenticatedApi
+import io.rownd.android.util.AuthenticatedApiClient
 import io.rownd.android.util.Encryption
 import io.rownd.android.util.EncryptionException
 import io.rownd.android.util.RowndContext
@@ -23,8 +23,16 @@ import kotlin.collections.set
 import io.rownd.android.models.network.User as NetworkUser
 
 @Singleton
-class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndContext: RowndContext) {
-    internal val userApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
+class UserRepo @Inject constructor() {
+    @Inject
+    lateinit var rowndContext: RowndContext
+
+    @Inject
+    lateinit var stateRepo: StateRepo
+
+    @Inject
+    lateinit var authenticatedApiClient: AuthenticatedApiClient
+
     internal fun setIsLoading(value: Boolean) {
         stateRepo.getStore().dispatch(StateAction.SetUserIsLoading(value))
     }
@@ -33,7 +41,7 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
         return CoroutineScope(Dispatchers.IO).async {
             try {
                 setIsLoading(value = true)
-                val user: NetworkUser = userApi.client.get("me/applications/${stateRepo.state.value.appConfig.id}/data").body()
+                val user: NetworkUser = authenticatedApiClient.client.get("me/applications/${stateRepo.state.value.appConfig.id}/data").body()
                 Log.i("RowndUsersApi", "Successfully loaded user data: $user")
                 stateRepo.getStore().dispatch(StateAction.SetUser(user.asDomainModel(stateRepo, this@UserRepo)))
                 setIsLoading(value = false)
@@ -63,7 +71,7 @@ class UserRepo @Inject constructor(val stateRepo: StateRepo, private val rowndCo
             try {
                 setIsLoading(value = true)
                 val savedUser: NetworkUser =
-                    userApi.client.put("me/applications/${stateRepo.state.value.appConfig.id}/data") {
+                    authenticatedApiClient.client.put("me/applications/${stateRepo.state.value.appConfig.id}/data") {
                         setBody(
                             networkUser
                         )

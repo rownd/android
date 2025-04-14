@@ -5,7 +5,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.rownd.android.models.repos.StateRepo
-import io.rownd.android.util.AuthenticatedApi
+import io.rownd.android.util.AuthenticatedApiClient
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
 import kotlinx.coroutines.CoroutineScope
@@ -22,12 +22,17 @@ data class ConnectionActionPayload constructor(
     val actionType: String,
 )
 
-class RowndConnectionAction @Inject constructor(private val rowndContext: RowndContext) {
+class RowndConnectionAction @Inject constructor() {
+
+    @Inject
+    lateinit var rowndContext: RowndContext
 
     @Inject
     lateinit var stateRepo: StateRepo
 
-    private val connectionActionApi: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
+    @Inject
+    lateinit var authenticatedApiClient: AuthenticatedApiClient
+
     internal fun getFirebaseIdToken(): Deferred<String?> {
         if (!stateRepo.state.value.auth.isAuthenticated) {
             throw RowndException("User needs to be authenticated to generate a firebase *ID token*")
@@ -35,7 +40,7 @@ class RowndConnectionAction @Inject constructor(private val rowndContext: RowndC
 
         return CoroutineScope(Dispatchers.IO).async {
             try {
-                val response: FirebaseGetIdTokenResponse = connectionActionApi.client.post("/hub/connection_action") {
+                val response: FirebaseGetIdTokenResponse = authenticatedApiClient.client.post("/hub/connection_action") {
                     setBody(
                         ConnectionActionPayload(
                             actionType = "firebase-auth.get-firebase-token"

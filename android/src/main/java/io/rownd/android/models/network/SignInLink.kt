@@ -20,7 +20,7 @@ import io.rownd.android.RowndSignInUserType
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.UserRepo
-import io.rownd.android.util.AuthenticatedApi
+import io.rownd.android.util.AuthenticatedApiClient
 import io.rownd.android.util.Encryption
 import io.rownd.android.util.KtorApiClient
 import io.rownd.android.util.RowndContext
@@ -52,14 +52,21 @@ data class SignInAuthenticationResponse(
     val appUserId: String
 )
 
-class SignInLinkApi @Inject constructor(var rowndContext: RowndContext) {
-    @Inject lateinit var userRepo: UserRepo
+class SignInLinkApi @Inject constructor() {
+    @Inject
+    lateinit var userRepo: UserRepo
 
-    private val authApiClient: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
-    private val apiClient: KtorApiClient by lazy { KtorApiClient(rowndContext) }
+    @Inject
+    lateinit var rowndContext: RowndContext
+
+    @Inject
+    lateinit var authenticatedApiClient: AuthenticatedApiClient
+
+    @Inject
+    lateinit var apiClient: KtorApiClient
 
     suspend fun createSignInLink() : SignInLink {
-        return authApiClient.client.post("me/auth/magic").body()
+        return authenticatedApiClient.client.post("me/auth/magic").body()
     }
 
     suspend fun authenticateWithSignInLink(url: String) : SignInAuthenticationResponse {

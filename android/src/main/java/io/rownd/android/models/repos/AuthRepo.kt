@@ -17,18 +17,18 @@ import io.rownd.android.RowndSignInUserType
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.Auth
-import io.rownd.android.models.network.AuthApi
 import io.rownd.android.models.network.SignOutRequestBody
 import io.rownd.android.models.network.SignOutResponse
 import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.models.network.TokenResponse
+import io.rownd.android.util.AuthenticatedApiClient
 import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NetworkConnectionFailureException
 import io.rownd.android.util.NoRefreshTokenPresentException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
 import io.rownd.android.util.ServerException
-import io.rownd.android.util.TokenApi
+import io.rownd.android.util.TokenApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -40,9 +40,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
+class AuthRepo @Inject constructor() {
     @Inject
-    lateinit var authApi: AuthApi
+    lateinit var rowndContext: RowndContext
 
     @Inject
     lateinit var stateRepo: StateRepo
@@ -53,8 +53,11 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     @Inject
     lateinit var signInRepo: SignInRepo
 
-    // TODO: Should be able to use Dagger to inject this
-    private val tokenApi: TokenApi by lazy { TokenApi(rowndContext) }
+    @Inject
+    lateinit var authenticatedApiClient: AuthenticatedApiClient
+
+    @Inject
+    lateinit var tokenApiClient: TokenApiClient
 
     private var refreshTokenJob: Deferred<Auth?>? = null
 
@@ -117,7 +120,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     internal fun signOutUserAsync(appId: String, signOutRequest: SignOutRequestBody): Deferred<SignOutResponse?>{
         return CoroutineScope(Dispatchers.IO).async {
             try {
-                authApi.signOutUser(appId, signOutRequest)
+                signOutUser(appId, signOutRequest)
                 Rownd.signOut()
                 return@async null
             } catch(ex: Exception) {
@@ -140,7 +143,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
             val jwt = JWT(refreshToken)
 
             try {
-                val authState: Auth = tokenApi.client.post("/hub/auth/token") {
+                val authState: Auth = tokenApiClient.client.post("/hub/auth/token") {
                     setBody(
                         TokenRequestBody(
                             refreshToken = refreshToken
@@ -208,7 +211,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     internal fun fetchTokenAsync(tokenRequest: TokenRequestBody, intent: RowndSignInIntent?, type: AccessTokenType): Deferred<TokenResponse?> {
         return CoroutineScope(Dispatchers.IO).async {
             try {
-                val tokenResponse = authApi.exchangeToken(tokenRequest)
+                val tokenResponse = exchangeToken(tokenRequest)
 
                 if (type != AccessTokenType.default) {
                     if (tokenResponse.userType === RowndSignInUserType.NewUser && intent === RowndSignInIntent.SignIn) {
@@ -273,5 +276,17 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         val currentDateWithMargin = Date(currentTime + (60 * 1000)) // Add 60 sec margin to current Date
 
         return currentDateWithMargin.after(jwt.expiresAt)
+    }
+
+    suspend fun exchangeToken(requestBody: TokenRequestBody) : TokenResponse {
+        return tokenApiClient.client.post("hub/auth/token") {
+            setBody(requestBody)
+        }.body()
+    }
+
+    suspend fun signOutUser(appId: String, requestBody: SignOutRequestBody) : SignOutResponse {
+        return authenticatedApiClient.client.post("me/applications/$appId/signout") {
+            setBody(requestBody)
+        }.body()
     }
 }
