@@ -22,6 +22,6 @@
       }
     },
     "hooks": {
-        "after:bump": "./gradlew build && ./gradlew :android:publishReleasePublicationToSonatypeRepository closeAndReleaseSonatypeStagingRepository"
+        "after:bump": "./gradlew :android:build && ./gradlew :android:publishReleasePublicationToSonatypeRepository closeAndReleaseSonatypeStagingRepository"
     }
   }
