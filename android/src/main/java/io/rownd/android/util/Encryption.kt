@@ -64,10 +64,11 @@ object Encryption {
         try {
             val inputStream = keyFile.openFileInput()
             val byteArrayOutputStream = ByteArrayOutputStream()
-            var nextByte: Int = inputStream.read()
-            while (nextByte != -1) {
-                byteArrayOutputStream.write(nextByte)
-                nextByte = inputStream.read()
+
+            val buffer = ByteArray(1024)
+            var bytesRead: Int
+            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                byteArrayOutputStream.write(buffer, 0, bytesRead)
             }
 
             val keyBytes = byteArrayOutputStream.toByteArray()

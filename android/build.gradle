@@ -105,11 +105,12 @@ dependencies {
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.compose.material:material:1.7.8'
     implementation 'androidx.compose.ui:ui-viewbinding:1.7.8'
+    implementation("androidx.activity:activity-compose:1.10.1")
 
     implementation "androidx.lifecycle:lifecycle-common:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version"
-    implementation 'androidx.compose.foundation:foundation:1.6.8'
+    implementation 'androidx.compose.foundation:foundation:1.7.8'
     implementation 'androidx.fragment:fragment-ktx:1.8.6'
 
     // Animation
@@ -146,7 +147,8 @@ dependencies {
 
     // For instrumentation tests
     androidTestImplementation 'androidx.test.ext:junit-ktx:1.2.1'
-//    androidTestImplementation 'com.squareup.okhttp3:mockwebserver:4.9.3'
+    testImplementation("io.ktor:ktor-client-mock:$ktor_version")
+    androidTestImplementation("io.ktor:ktor-client-mock:$ktor_version")
     androidTestImplementation 'com.nimbusds:nimbus-jose-jwt:7.8.1'
 
     androidTestImplementation "com.google.dagger:dagger:$dagger_version"

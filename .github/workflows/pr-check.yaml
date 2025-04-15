@@ -23,7 +23,7 @@ jobs:
           API_TOKEN: ${{ secrets.API_TOKEN }}
         run: echo API_TOKEN=\"$API_TOKEN\" > ./local.properties
 
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -48,7 +48,7 @@ jobs:
         with:
           name: debug apk
           path: app/build/outputs/apk/debug/app-debug.apk
-          
+
       - name: Upload aar
         uses: actions/upload-artifact@v4
         with:
@@ -57,11 +57,11 @@ jobs:
 
 
   test:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     needs: build
     strategy:
       matrix:
-        api-level: [26, 29, 33]
+        api-level: [26, 29, 33, 35]
         target: [playstore]
 
     steps:
@@ -73,7 +73,13 @@ jobs:
           API_TOKEN: ${{ secrets.API_TOKEN }}
         run: echo API_TOKEN=\"$API_TOKEN\" > ./local.properties
 
-      - uses: actions/cache@v2
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.gradle/caches
@@ -108,6 +114,6 @@ jobs:
       - name: Upload Reports
         uses: actions/upload-artifact@v4
         with:
-          name: Test-Reports
+          name: Test-Reports-${{ matrix.api-level }}-${{ matrix.target }}
           path: android/build/reports
         if: always()

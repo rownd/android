@@ -107,7 +107,6 @@ class StateRepo @Inject constructor() {
 
     fun setup(ds: DataStore<GlobalState>): Store<GlobalState, StateAction> {
         dataStore = ds
-
         // Re-inflate store from persistence
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -169,10 +168,16 @@ class StateRepo @Inject constructor() {
     }
 
     companion object {
+        private var dataStore: DataStore<GlobalState>? = null
         fun defaultDataStore(context: Context): DataStore<GlobalState> {
+            // DataStore must be a singleton
+            dataStore?.let {
+                return it
+            }
+
             return DataStoreFactory.create(
                 storage = FileStorage(GlobalStateSerializer) {
-                    context.dataStoreFile("rownd_state.json")
+                    context.dataStoreFile(Rownd.config.stateFileName)
                 },
                 corruptionHandler = ReplaceFileCorruptionHandler { ex ->
                     // Handle cases where on-device state has become corrupt.

@@ -8,6 +8,7 @@ import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpStatusCode
+import io.opentelemetry.api.trace.StatusCode
 import io.rownd.android.Rownd
 import io.rownd.android.RowndSignInIntent
 import io.rownd.android.RowndSignInJsOptions
@@ -16,17 +17,18 @@ import io.rownd.android.RowndSignInUserType
 import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.User
 import io.rownd.android.models.network.Auth
-import io.rownd.android.models.network.AuthApi
 import io.rownd.android.models.network.SignOutRequestBody
 import io.rownd.android.models.network.SignOutResponse
 import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.models.network.TokenResponse
+import io.rownd.android.util.AuthenticatedApiClient
 import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NetworkConnectionFailureException
+import io.rownd.android.util.NoRefreshTokenPresentException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
 import io.rownd.android.util.ServerException
-import io.rownd.android.util.TokenApi
+import io.rownd.android.util.TokenApiClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
@@ -38,9 +40,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
+class AuthRepo @Inject constructor() {
     @Inject
-    lateinit var authApi: AuthApi
+    lateinit var rowndContext: RowndContext
 
     @Inject
     lateinit var stateRepo: StateRepo
@@ -51,8 +53,11 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     @Inject
     lateinit var signInRepo: SignInRepo
 
-    // TODO: Should be able to use Dagger to inject this
-    private val tokenApi: TokenApi by lazy { TokenApi(rowndContext) }
+    @Inject
+    lateinit var authenticatedApiClient: AuthenticatedApiClient
+
+    @Inject
+    lateinit var tokenApiClient: TokenApiClient
 
     private var refreshTokenJob: Deferred<Auth?>? = null
 
@@ -63,8 +68,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         }
 
         val authState = stateRepo.getStore().currentState.auth
-        val accessToken = authState.accessToken
-            ?: return null
+        val accessToken = authState.accessToken ?: return null
 
         val jwt = JWT(accessToken)
 
@@ -116,7 +120,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     internal fun signOutUserAsync(appId: String, signOutRequest: SignOutRequestBody): Deferred<SignOutResponse?>{
         return CoroutineScope(Dispatchers.IO).async {
             try {
-                authApi.signOutUser(appId, signOutRequest)
+                signOutUser(appId, signOutRequest)
                 Rownd.signOut()
                 return@async null
             } catch(ex: Exception) {
@@ -134,12 +138,15 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
 
         refreshTokenJob = CoroutineScope(Dispatchers.IO).async {
             Log.d("Rownd.Auth", "Refreshing tokens: in progress")
+            val span = rowndContext.telemetry?.startSpan("refreshTokenAsync")
+            val refreshToken = stateRepo.state.value.auth.refreshToken ?: throw NoRefreshTokenPresentException("No refresh token was available")
+            val jwt = JWT(refreshToken)
 
             try {
-                val authState: Auth = tokenApi.client.post("/hub/auth/token") {
+                val authState: Auth = tokenApiClient.client.post("/hub/auth/token") {
                     setBody(
                         TokenRequestBody(
-                            refreshToken = stateRepo.state.value.auth.refreshToken
+                            refreshToken = refreshToken
                         )
                     )
                 }.body()
@@ -147,9 +154,16 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 stateRepo.getStore().dispatch(StateAction.SetAuth(authState.asDomainModel()))
 
                 Log.d("Rownd.Auth", "Refreshing tokens: complete")
+                span?.setStatus(StatusCode.OK)
                 refreshTokenJob = null
                 return@async authState
             } catch (ex: ClientRequestException) {
+                span?.recordException(ex)
+                span?.setStatus(StatusCode.ERROR, ex.message)
+                span?.setAttribute("http_status_code", ex.response.status.value.toString())
+                jwt.id?.let { span?.setAttribute("jti", it) }
+                jwt.subject?.let { span?.setAttribute("subject", it) }
+
                 if (ex.response.status != HttpStatusCode.BadRequest) {
                     throw ServerException(ex.message)
                 }
@@ -165,13 +179,28 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
                 stateRepo.getStore().dispatch(StateAction.SetAuth(AuthState()))
                 stateRepo.getStore().dispatch(StateAction.SetUser(User()))
 
+                span?.addEvent("Permanent: Refresh token failure. User was signed out.")
+                span?.setAttribute("error", "invalid_refresh_token")
                 throw InvalidRefreshTokenException(ex.message)
             } catch (ex: ServerResponseException) {
+                span?.recordException(ex)
+                span?.setStatus(StatusCode.ERROR, ex.message)
+                span?.setAttribute("http_status_code", ex.response.status.value.toString())
+                jwt.id?.let { span?.setAttribute("jti", it) }
+                jwt.subject?.let { span?.setAttribute("subject", it) }
+
                 throw ServerException(ex.message)
             } catch (ex: Exception) {
                 refreshTokenJob = null
                 Log.e("Rownd.AuthRepo", "Failed to refresh tokens:", ex)
+                span?.recordException(ex)
+                span?.setStatus(StatusCode.ERROR, ex.message ?: "An unknown refresh token error occurred.")
+                jwt.id?.let { span?.setAttribute("jti", it) }
+                jwt.subject?.let { span?.setAttribute("subject", it) }
+
                 throw NetworkConnectionFailureException(ex.message ?: "An unknown refresh token error occurred.")
+            } finally {
+                span?.end()
             }
         }
 
@@ -182,7 +211,7 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
     internal fun fetchTokenAsync(tokenRequest: TokenRequestBody, intent: RowndSignInIntent?, type: AccessTokenType): Deferred<TokenResponse?> {
         return CoroutineScope(Dispatchers.IO).async {
             try {
-                val tokenResponse = authApi.exchangeToken(tokenRequest)
+                val tokenResponse = exchangeToken(tokenRequest)
 
                 if (type != AccessTokenType.default) {
                     if (tokenResponse.userType === RowndSignInUserType.NewUser && intent === RowndSignInIntent.SignIn) {
@@ -247,5 +276,17 @@ class AuthRepo @Inject constructor(private val rowndContext: RowndContext) {
         val currentDateWithMargin = Date(currentTime + (60 * 1000)) // Add 60 sec margin to current Date
 
         return currentDateWithMargin.after(jwt.expiresAt)
+    }
+
+    suspend fun exchangeToken(requestBody: TokenRequestBody) : TokenResponse {
+        return tokenApiClient.client.post("hub/auth/token") {
+            setBody(requestBody)
+        }.body()
+    }
+
+    suspend fun signOutUser(appId: String, requestBody: SignOutRequestBody) : SignOutResponse {
+        return authenticatedApiClient.client.post("me/applications/$appId/signout") {
+            setBody(requestBody)
+        }.body()
     }
 }

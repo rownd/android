@@ -2,7 +2,7 @@ package io.rownd.android.util
 
 import android.util.Log
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.android.Android
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.plugins.HttpRequestRetry
 import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.UserAgent
@@ -18,6 +18,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
+import javax.inject.Inject
 
 private object CustomAndroidHttpLogger : Logger {
     private const val logTag = "Rownd.ApiClient"
@@ -27,8 +28,8 @@ private object CustomAndroidHttpLogger : Logger {
     }
 }
 
-open class KtorApiClient constructor(rowndContext: RowndContext)  {
-    private val base = HttpClient(Android) {
+open class KtorApiClient @Inject constructor(engine: HttpClientEngine, rowndContext: RowndContext)  {
+    private val base = HttpClient(engine) {
         install(Logging) {
             level = LogLevel.ALL
             logger = CustomAndroidHttpLogger

@@ -33,7 +33,7 @@ class PasskeyRegistration constructor(private val passkeys: PasskeysCommon) {
     private val TAG = "Rownd.PasskeyAuthenticator"
 
     private val rowndContext = passkeys.rowndContext
-    private val authenticatedApi = passkeys.authenticatedApi
+    private val authenticatedApi = passkeys.authenticatedApiClient
 
     private fun modifyRequestJson(requestJsonString: String): String {
         val requestJsonElement = json.parseToJsonElement(requestJsonString)

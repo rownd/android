@@ -20,7 +20,7 @@ class AppConfigRepo @Inject constructor() {
         return CoroutineScope(Dispatchers.IO).async {
             try {
                 val result = appConfigApi.getAppConfig()
-                stateRepo.getStore().dispatch(StateAction.SetAppConfig(result.app.asDomainModel()))
+                stateRepo.getStore().dispatch(StateAction.SetAppConfig(result.asDomainModel()))
 
                 return@async result.app.asDomainModel()
             } catch (ex: ClientRequestException) {

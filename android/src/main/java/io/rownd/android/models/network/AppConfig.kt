@@ -3,7 +3,7 @@ package io.rownd.android.models.network
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.rownd.android.models.domain.AppConfigState
-import io.rownd.android.util.AuthenticatedApi
+import io.rownd.android.util.AuthenticatedApiClient
 import io.rownd.android.util.RowndContext
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -234,16 +234,38 @@ data class GoogleOneTapMobileApp(
 }
 
 @Serializable
-data class AppConfigResponse(
-    var app: AppConfig
+data class AppVariant(
+    var id: String,
+    var name: String
 )
 
-class AppConfigApi @Inject constructor(private val rowndContext: RowndContext) {
+@Serializable
+data class AppConfigResponse(
+    var app: AppConfig,
+    var variant: AppVariant? = null
+) {
+    fun asDomainModel(): AppConfigState {
+        val app = app.asDomainModel()
 
-    private val api: AuthenticatedApi by lazy { AuthenticatedApi(rowndContext) }
+        variant?.let {
+            return app.copy(
+                variantId = it.id
+            )
+        }
+
+        return app
+    }
+}
+
+class AppConfigApi @Inject constructor() {
+    @Inject
+    lateinit var rowndContext: RowndContext
+
+    @Inject
+    lateinit var authenticatedApiClient: AuthenticatedApiClient
 
     suspend fun getAppConfig(): AppConfigResponse {
-        val appConfig: AppConfigResponse = api.client.get("hub/app-config").body()
+        val appConfig: AppConfigResponse = authenticatedApiClient.client.get("hub/app-config").body()
         return appConfig
     }
 
