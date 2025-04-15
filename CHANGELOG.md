@@ -1,5 +1,12 @@
 
 
+# [3.1.0](https://github.com/rownd/android/compare/3.0.2...3.1.0) (2025-04-15)
+
+
+### Features
+
+* support for android instant apps ([#63](https://github.com/rownd/android/issues/63)) ([3a4a9e4](https://github.com/rownd/android/commit/3a4a9e40f3f1d591d1dc4ba576f70b61acfadac4))
+
 ## [3.0.2](https://github.com/rownd/android/compare/3.0.1...3.0.2) (2025-04-01)
 
 
