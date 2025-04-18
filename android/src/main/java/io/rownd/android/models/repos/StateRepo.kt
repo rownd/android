@@ -11,8 +11,10 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStoreFile
 import io.opentelemetry.api.trace.StatusCode
 import io.rownd.android.Rownd
+import io.rownd.android.RowndSignInIntent
 import io.rownd.android.RowndSignInJsOptions
 import io.rownd.android.RowndSignInLoginStep
+import io.rownd.android.RowndSignInOptions
 import io.rownd.android.models.Action
 import io.rownd.android.models.State
 import io.rownd.android.models.Store
@@ -180,7 +182,12 @@ class StateRepo @Inject constructor() {
                         isAuthenticated &&
                         user.authLevel == AuthLevel.Instant
                     ) {
-                        Rownd.requestSignIn()
+                        val signInOptions = RowndSignInOptions(
+                            intent = RowndSignInIntent.SignUp,
+                            title = "Add a sign-in method",
+                            subtitle = "To ensure you can always access your account, please add a sign-in method."
+                        )
+                        Rownd.requestSignIn(signInOptions)
                     }
                 }
         }
