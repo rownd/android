@@ -21,6 +21,7 @@ import io.rownd.android.models.network.SignOutRequestBody
 import io.rownd.android.models.network.SignOutResponse
 import io.rownd.android.models.network.TokenRequestBody
 import io.rownd.android.models.network.TokenResponse
+import io.rownd.android.util.AuthLevel
 import io.rownd.android.util.AuthenticatedApiClient
 import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NetworkConnectionFailureException
@@ -96,6 +97,11 @@ class AuthRepo @Inject constructor() {
             idToken = idToken,
             intent = intent
         )
+
+        if (stateRepo.state.value.user.authLevel == AuthLevel.Instant) {
+            tokenRequest.instantUserId = stateRepo.state.value.user.data["user_id"]?.toString()
+        }
+
         return fetchTokenAsync(tokenRequest, intent, type).await()
     }
 

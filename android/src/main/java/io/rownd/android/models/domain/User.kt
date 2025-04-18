@@ -4,6 +4,7 @@ import android.util.Log
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AnyValueSerializer
+import io.rownd.android.util.AuthLevel
 import io.rownd.android.util.Encryption
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -15,7 +16,7 @@ data class User(
     val redacted: MutableList<String> = mutableListOf(),
     val state: String? = "enabled",
     @SerialName("auth_level")
-    val authLevel: String? = "unverified",
+    val authLevel: AuthLevel? = AuthLevel.Unverified,
     var isLoading: Boolean = false
 ) {
     fun asNetworkModel(stateRepo: StateRepo, userRepo: UserRepo): NetworkUser {
