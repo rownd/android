@@ -164,7 +164,6 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
     private var timeout: Boolean = true
 
     init {
-
         CoroutineScope(Dispatchers.IO).launch {
             delay(20000)
             if (timeout) {
@@ -294,6 +293,7 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
         }
 
         setFeatureFlagJs()
+        setDebugFlags()
 
         view.setLayerType(WebView.LAYER_TYPE_HARDWARE, null)
 
@@ -359,6 +359,16 @@ class RowndWebViewClient(private val webView: RowndWebView, private val context:
             }
         """
         evaluateJavascript(code)
+    }
+
+    private fun setDebugFlags() {
+        if (Rownd.config.enableDebugMode) {
+            evaluateJavascript("""
+                if (rownd?.setLogLevel) {
+                    rownd.setLogLevel('default', 'debug');
+                }
+            """.trimIndent())
+        }
     }
 
     private fun handleScriptReturn(value: String) {
@@ -488,9 +498,9 @@ class RowndJavascriptInterface constructor(
                     val authChallengeMessage = (interopMessage as AuthChallengeInitiatedMessage)
                     Rownd.store.dispatch(
                         StateAction.SetAuth(
-                            AuthState(
+                            parentWebView.rowndClient.stateRepo.state.value.auth.copy(
                                 challengeId = authChallengeMessage.payload.challengeId,
-                                userIdentifier = authChallengeMessage.payload.userIdentifier
+                                userIdentifier = authChallengeMessage.payload.userIdentifier,
                             )
                         )
                     )
@@ -500,9 +510,9 @@ class RowndJavascriptInterface constructor(
                     parentWebView.rowndClient.store.currentState.auth.let {
                         Rownd.store.dispatch(
                             StateAction.SetAuth(
-                                AuthState(
-                                    accessToken = it.accessToken,
-                                    refreshToken = it.refreshToken,
+                                it.copy(
+                                    challengeId = null,
+                                    userIdentifier = null,
                                 )
                             )
                         )

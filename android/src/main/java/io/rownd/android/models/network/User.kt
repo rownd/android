@@ -5,6 +5,7 @@ import io.rownd.android.models.domain.AppSchemaEncryptionState
 import io.rownd.android.models.repos.StateRepo
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AnyValueSerializer
+import io.rownd.android.util.AuthLevel
 import io.rownd.android.util.Encryption
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -16,12 +17,14 @@ data class User(
     val redacted: List<String> = listOf(),
     val state: String? = "enabled",
     @SerialName("auth_level")
-    val authLevel: String? = null
+    val authLevel: AuthLevel? = null
 ) {
     fun asDomainModel(stateRepo: StateRepo, userRepo: UserRepo): DomainUser {
         return DomainUser(
             data = dataAsDecrypted(stateRepo, userRepo),
-            redacted = redacted.toMutableList()
+            redacted = redacted.toMutableList(),
+            state = state,
+            authLevel = authLevel
         )
     }
 

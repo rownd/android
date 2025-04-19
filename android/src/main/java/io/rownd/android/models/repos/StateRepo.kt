@@ -11,8 +11,10 @@ import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
 import androidx.datastore.dataStoreFile
 import io.opentelemetry.api.trace.StatusCode
 import io.rownd.android.Rownd
+import io.rownd.android.RowndSignInIntent
 import io.rownd.android.RowndSignInJsOptions
 import io.rownd.android.RowndSignInLoginStep
+import io.rownd.android.RowndSignInOptions
 import io.rownd.android.models.Action
 import io.rownd.android.models.State
 import io.rownd.android.models.Store
@@ -21,9 +23,12 @@ import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.domain.SignInState
 import io.rownd.android.models.domain.User
 import io.rownd.android.util.AppLifecycleListener
+import io.rownd.android.util.AuthLevel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -150,6 +155,8 @@ class StateRepo @Inject constructor() {
                 userRepo.loadUserAsync().await()
             }
 
+            tmpForceInstantUserConversionIfRequested(CoroutineScope(Dispatchers.IO))
+
             // Persist all state updates to cache when changes occur
             store.stateAsStateFlow().collect {
                 val updatedState = it
@@ -160,6 +167,31 @@ class StateRepo @Inject constructor() {
         }
 
         return store
+    }
+
+    private fun tmpForceInstantUserConversionIfRequested(scope: CoroutineScope) {
+        if (!Rownd.config.forceInstantUserConversion) {
+            return
+        }
+
+        scope.launch {
+            Rownd.state
+                .map { it.auth.isAuthenticated to it.user }
+                .distinctUntilChanged()
+                .collect { (isAuthenticated, user) ->
+                    if (
+                        isAuthenticated &&
+                        user.authLevel == AuthLevel.Instant
+                    ) {
+                        val signInOptions = RowndSignInOptions(
+                            intent = RowndSignInIntent.SignUp,
+                            title = "Add a sign-in method",
+                            subtitle = "To ensure you can always access your account, please add a sign-in method."
+                        )
+                        Rownd.requestSignIn(signInOptions)
+                    }
+                }
+        }
     }
 
     val state = store.stateAsStateFlow()

@@ -41,6 +41,8 @@ data class TokenRequestBody internal constructor(
     val appId: String? = null,
     @SerialName("intent")
     val intent: RowndSignInIntent? = null,
+    @SerialName("instant_user_id")
+    var instantUserId: String? = null,
 )
 
 @Serializable
