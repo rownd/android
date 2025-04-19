@@ -456,7 +456,9 @@ abstract class RowndSignInOptionsBase() {
 data class RowndSignInOptions(
     @SerialName("post_login_redirect")
     var postSignInRedirect: String? = Rownd.config.postSignInRedirect,
-    var intent: RowndSignInIntent? = null
+    var intent: RowndSignInIntent? = null,
+    var title: String? = null,
+    var subtitle: String? = null,
 ) : RowndSignInOptionsBase() {
     override fun toJsonString(): String {
         return json.encodeToString(serializer(), this)

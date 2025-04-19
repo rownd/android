@@ -28,6 +28,12 @@ data class RowndConfig(
     @Transient
     var subdomainExtension: String = ".rownd.link",
     @Transient
+    var forceInstantUserConversion: Boolean = false,
+    @Transient
+    var enableDebugMode: Boolean = false,
+
+    // Internals
+    @Transient
     internal var stateFileName: String = "rownd_state.json"
 ) {
     @Inject
