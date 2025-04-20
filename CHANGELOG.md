@@ -1,5 +1,12 @@
 
 
+## [2.16.1](https://github.com/rownd/android/compare/2.16.0...2.16.1) (2025-04-20)
+
+
+### Bug Fixes
+
+* **instant:** option to force instant users to add an identity ([#64](https://github.com/rownd/android/issues/64)) ([d7b6f1f](https://github.com/rownd/android/commit/d7b6f1fbc51d3087de769a62367babb42e84c38e))
+
 # [2.16.0](https://github.com/rownd/android/compare/3.0.2...2.16.0) (2025-04-05)
 
 
