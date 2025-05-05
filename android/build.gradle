@@ -114,7 +114,7 @@ dependencies {
     implementation 'androidx.fragment:fragment-ktx:1.8.6'
 
     // Animation
-    implementation 'com.airbnb.android:lottie-compose:5.2.0'
+    implementation 'com.airbnb.android:lottie-compose:6.6.6'
 
     // Network requests
     implementation "io.ktor:ktor-client-core:$ktor_version"
