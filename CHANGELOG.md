@@ -1,5 +1,7 @@
 
 
+## [3.1.2](https://github.com/rownd/android/compare/3.1.1...3.1.2) (2025-05-07)
+
 ## [3.1.1](https://github.com/rownd/android/compare/3.1.0...3.1.1) (2025-04-20)
 
 
