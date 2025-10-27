@@ -65,6 +65,9 @@ class SignInLinkApi @Inject constructor() {
     @Inject
     lateinit var apiClient: KtorApiClient
 
+    @Inject
+    lateinit var config: io.rownd.android.models.RowndConfig
+
     suspend fun createSignInLink() : SignInLink {
         return authenticatedApiClient.client.post("me/auth/magic").body()
     }
@@ -129,13 +132,15 @@ class SignInLinkApi @Inject constructor() {
 
         if (action == ACTION_VIEW && isRowndSignInLink(ctx.intent?.data)) {
             dispatchSignInWithLink(ctx.intent?.data)
-        } else if (ctx.hasWindowFocus()) {
-            // Look on the clipboard
-            signInWithLinkFromClipboardIfPresent(ctx)
-        } else {
-            val rootView = ctx.findViewById<View>(android.R.id.content)
-            rootView.doOnLayout {
+        } else if (config.enableSmartLinkPasteBehavior) {
+            if (ctx.hasWindowFocus()) {
+                // Look on the clipboard
                 signInWithLinkFromClipboardIfPresent(ctx)
+            } else {
+                val rootView = ctx.findViewById<View>(android.R.id.content)
+                rootView.doOnLayout {
+                    signInWithLinkFromClipboardIfPresent(ctx)
+                }
             }
         }
     }
