@@ -1,5 +1,12 @@
 
 
+# [3.2.0](https://github.com/rownd/android/compare/3.1.2...3.2.0) (2025-10-27)
+
+
+### Features
+
+* allow disabling sign-in link behavior ([#66](https://github.com/rownd/android/issues/66)) ([cdf26ce](https://github.com/rownd/android/commit/cdf26ce25b0caaf92e1ae763a9b41dc358476f5d))
+
 ## [3.1.2](https://github.com/rownd/android/compare/3.1.1...3.1.2) (2025-05-07)
 
 ## [3.1.1](https://github.com/rownd/android/compare/3.1.0...3.1.1) (2025-04-20)
