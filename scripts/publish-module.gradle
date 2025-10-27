@@ -78,6 +78,34 @@ afterEvaluate {
                         developerConnection = 'scm:git:ssh://github.com/rownd/android.git'
                         url = 'https://github.com/rownd/android/tree/main'
                     }
+
+                    // Resolve actual versions for BOM-managed dependencies
+                    withXml {
+                        def dependenciesNode = asNode().dependencies[0]
+                        if (dependenciesNode != null) {
+                            // Build a map of resolved versions
+                            def resolvedVersions = [:]
+                            project.configurations.implementation.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+                                def id = artifact.moduleVersion.id
+                                resolvedVersions["${id.group}:${id.name}"] = id.version
+                            }
+
+                            // Update dependency nodes with resolved versions
+                            dependenciesNode.dependency.each { dep ->
+                                def groupId = dep.groupId[0]?.text()
+                                def artifactId = dep.artifactId[0]?.text()
+                                def version = dep.version[0]?.text()
+
+                                // Add resolved version if missing
+                                if (groupId && artifactId && (version == null || version.isEmpty())) {
+                                    def resolvedVersion = resolvedVersions["${groupId}:${artifactId}"]
+                                    if (resolvedVersion) {
+                                        dep.appendNode('version', resolvedVersion)
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
