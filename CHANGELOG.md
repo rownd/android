@@ -1,5 +1,12 @@
 
 
+# [2.17.0](https://github.com/rownd/android/compare/2.16.2...2.17.0) (2025-10-27)
+
+
+### Features
+
+* allow disabling sign-in link behavior ([#66](https://github.com/rownd/android/issues/66)) ([03be7d0](https://github.com/rownd/android/commit/03be7d0cdf1e8ed733cb5b8253d763bb04883965))
+
 ## [2.16.1](https://github.com/rownd/android/compare/2.16.0...2.16.1) (2025-04-20)
 
 
