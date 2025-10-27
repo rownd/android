@@ -83,11 +83,18 @@ afterEvaluate {
                     withXml {
                         def dependenciesNode = asNode().dependencies[0]
                         if (dependenciesNode != null) {
-                            // Build a map of resolved versions
+                            // Build a map of resolved versions using a resolvable configuration
                             def resolvedVersions = [:]
-                            project.configurations.implementation.resolvedConfiguration.resolvedArtifacts.each { artifact ->
-                                def id = artifact.moduleVersion.id
-                                resolvedVersions["${id.group}:${id.name}"] = id.version
+
+                            // Use releaseRuntimeClasspath for Android library projects
+                            def runtimeConfig = project.configurations.findByName('releaseRuntimeClasspath') ?:
+                                                project.configurations.findByName('runtimeClasspath')
+
+                            if (runtimeConfig) {
+                                runtimeConfig.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+                                    def id = artifact.moduleVersion.id
+                                    resolvedVersions["${id.group}:${id.name}"] = id.version
+                                }
                             }
 
                             // Update dependency nodes with resolved versions
