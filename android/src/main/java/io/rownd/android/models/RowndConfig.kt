@@ -31,6 +31,8 @@ data class RowndConfig(
     var forceInstantUserConversion: Boolean = false,
     @Transient
     var enableDebugMode: Boolean = false,
+    @Transient
+    var enableSmartLinkPasteBehavior: Boolean = true,
 
     // Internals
     @Transient
@@ -74,4 +76,3 @@ data class RowndConfig(
         return uriBuilder.build().toString()
     }
 }
-
