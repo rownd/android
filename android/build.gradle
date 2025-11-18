@@ -142,10 +142,11 @@ dependencies {
     kapt "com.google.dagger:dagger-compiler:$dagger_version"
 
     // For instrumentation tests
-    androidTestImplementation 'androidx.test.ext:junit-ktx:1.2.1'
+    androidTestImplementation 'androidx.test.ext:junit-ktx:1.3.0'
     testImplementation("io.ktor:ktor-client-mock:$ktor_version")
     androidTestImplementation("io.ktor:ktor-client-mock:$ktor_version")
-    androidTestImplementation 'com.nimbusds:nimbus-jose-jwt:7.8.1'
+    androidTestImplementation 'com.nimbusds:nimbus-jose-jwt:10.6'
+    androidTestImplementation 'com.google.crypto.tink:tink-android:1.19.0'
 
     androidTestImplementation "com.google.dagger:dagger:$dagger_version"
     kaptAndroidTest "com.google.dagger:dagger-compiler:$dagger_version"
