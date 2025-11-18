@@ -42,11 +42,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_21
-        targetCompatibility JavaVersion.VERSION_21
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = '21'
+        jvmTarget = '17'
     }
 
     buildFeatures {
@@ -130,9 +130,6 @@ dependencies {
     // JWTs
     implementation 'com.auth0.android:jwtdecode:2.0.2'
     implementation 'com.lyft.kronos:kronos-android:0.0.1-alpha11'
-
-    implementation "com.goterl:lazysodium-android:5.2.0@aar"
-    implementation "net.java.dev.jna:jna:5.18.1@aar"
 
     // Passkeys & Google sign-in
     implementation "androidx.credentials:credentials:1.5.0"

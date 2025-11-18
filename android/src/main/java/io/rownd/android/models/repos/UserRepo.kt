@@ -9,8 +9,6 @@ import io.ktor.client.request.setBody
 import io.ktor.http.HttpStatusCode
 import io.rownd.android.models.domain.User
 import io.rownd.android.util.AuthenticatedApiClient
-import io.rownd.android.util.Encryption
-import io.rownd.android.util.EncryptionException
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndException
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.collections.set
 import io.rownd.android.models.network.User as NetworkUser
 
 @Singleton
@@ -120,43 +117,6 @@ class UserRepo @Inject constructor() {
         )
         stateRepo.getStore().dispatch(StateAction.SetUser(updatedUser))
         return saveUserAsync(updatedUser)
-    }
-
-    fun getKeyId(user: User): String {
-        return get("user_id")
-            ?: throw EncryptionException("An encryption key was requested, but the user has not been loaded yet. Are you signed in?")
-    }
-
-    internal fun ensureEncryptionKey(user: User): String? {
-        try {
-            val keyId = getKeyId(user)
-
-            var key = Encryption.loadKey(keyId)
-
-            if (key == null) {
-                key = Encryption.generateKey()
-                Encryption.storeKey(key, keyId)
-                return keyId
-            }
-
-            return keyId
-        } catch (error: Exception) {
-            Log.e(
-                "RowndUser",
-                "Failed to ensure that an encryption key exists: ${error.message}"
-            )
-            return null
-        }
-    }
-
-    fun isEncryptionPossible(): Boolean {
-        try {
-            val key = Encryption.loadKey(getKeyId(stateRepo.state.value.user)) ?: return false
-
-            return true
-        } catch (error: Exception) {
-            return false
-        }
     }
 
 }
