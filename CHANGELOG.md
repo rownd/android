@@ -1,5 +1,24 @@
 
 
+# [4.0.0](https://github.com/rownd/android/compare/3.2.0...4.0.0) (2025-11-18)
+
+
+* BREAKING CHANGE: support android 16kb page size + dep updates (#68) ([6a7cef9](https://github.com/rownd/android/commit/6a7cef908992554ff8fc3bc91fb2c3f74360c5db)), closes [#68](https://github.com/rownd/android/issues/68)
+
+
+### BREAKING CHANGES
+
+* bump jvm target to 21
+* remove unused client-side encryption
+
+* chore: update connected check
+
+* chore: remove encryption test
+
+* chore: ensure tink is installed for jwt tests
+
+* chore: test fixups
+
 # [3.2.0](https://github.com/rownd/android/compare/3.1.2...3.2.0) (2025-10-27)
 
 
