@@ -37,7 +37,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           cache: 'gradle'
 
       - name: Build the app
@@ -93,7 +93,7 @@ jobs:
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
           cache: 'gradle'
 
 #       - name: Run detekt
@@ -109,7 +109,7 @@ jobs:
           target: ${{ matrix.target }}
           arch: ${{ matrix.api-level > 27 && 'x86_64' || 'x86' }}
           profile: pixel_3a
-          script: ./gradlew :android:connectedDebugAndroidTest --stacktrace
+          script: ./gradlew connectedCheck
 
       - name: Upload Reports
         uses: actions/upload-artifact@v4

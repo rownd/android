@@ -370,10 +370,6 @@ class RowndClient(
         }
     }
 
-    fun isEncryptionPossible(): Boolean {
-        return userRepo.isEncryptionPossible()
-    }
-
     // Internal stuff
     internal fun displayHub(
         targetPage: HubPageSelector,

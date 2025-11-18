@@ -21,7 +21,6 @@ import io.rownd.android.models.domain.AuthState
 import io.rownd.android.models.repos.StateAction
 import io.rownd.android.models.repos.UserRepo
 import io.rownd.android.util.AuthenticatedApiClient
-import io.rownd.android.util.Encryption
 import io.rownd.android.util.KtorApiClient
 import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
@@ -79,10 +78,8 @@ class SignInLinkApi @Inject constructor() {
     internal suspend fun signInWithLink(url: String) {
         var signInUrl = url
         val urlObj = url.toUri()
-        var encKey: String? = null
 
         if (urlObj.fragment != null) {
-            encKey = urlObj.fragment
             signInUrl = signInUrl.replace("#${urlObj.fragment}", "")
         }
 
@@ -92,11 +89,6 @@ class SignInLinkApi @Inject constructor() {
 
         try {
             val authBody = authenticateWithSignInLink(signInUrl)
-
-            if (encKey != null) {
-                Encryption.deleteKey(authBody.appUserId)
-                Encryption.storeKey(encKey, authBody.appUserId)
-            }
 
             Rownd.store.dispatch(
                 StateAction.SetAuth(
