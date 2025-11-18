@@ -1,9 +1,9 @@
 package io.rownd.android.util
 
 import android.content.Context
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
 import android.util.Log
-import androidx.security.crypto.EncryptedFile
-import androidx.security.crypto.MasterKeys
 import com.goterl.lazysodium.LazySodiumAndroid
 import com.goterl.lazysodium.SodiumAndroid
 import com.goterl.lazysodium.exceptions.SodiumException
@@ -11,46 +11,78 @@ import com.goterl.lazysodium.interfaces.SecretBox
 import com.goterl.lazysodium.utils.Base64MessageEncoder
 import com.goterl.lazysodium.utils.Key
 import io.rownd.android.Rownd
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.IOException
+import java.io.*
+import java.security.KeyStore
 import java.util.*
+import javax.crypto.Cipher
+import javax.crypto.CipherInputStream
+import javax.crypto.CipherOutputStream
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
 
 
 object Encryption {
+    private const val ANDROID_KEYSTORE = "AndroidKeyStore"
+    private const val KEY_ALIAS = "io.rownd.android.keystore.v1"
+    private const val ENCRYPTION_ALGORITHM = KeyProperties.KEY_ALGORITHM_AES
+    private const val ENCRYPTION_BLOCK_MODE = KeyProperties.BLOCK_MODE_GCM
+    private const val ENCRYPTION_PADDING = KeyProperties.ENCRYPTION_PADDING_NONE
+    private const val TRANSFORMATION_STRING = "$ENCRYPTION_ALGORITHM/$ENCRYPTION_BLOCK_MODE/$ENCRYPTION_PADDING"
+    private const val GCM_IV_LENGTH = 12 // GCM recommended IV size
+    private const val AES_KEY_SIZE = 256
+
     private val messageEncoder = Base64MessageEncoder()
     private val ls: LazySodiumAndroid = LazySodiumAndroid(SodiumAndroid(), messageEncoder)
     private val context: Context
         get() = Rownd.appHandleWrapper?.app?.get()?.applicationContext ?: throw EncryptionException("No context available. Did you call Rownd.configure()?")
 
+    private val keyStore: KeyStore by lazy {
+        KeyStore.getInstance(ANDROID_KEYSTORE).apply {
+            load(null)
+        }
+    }
+
+    private fun getOrCreateSecretKey(): SecretKey {
+        if (!keyStore.containsAlias(KEY_ALIAS)) {
+            val keyGenerator = KeyGenerator.getInstance(ENCRYPTION_ALGORITHM, ANDROID_KEYSTORE)
+            val spec = KeyGenParameterSpec.Builder(
+                KEY_ALIAS,
+                KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
+            )
+                .setBlockModes(ENCRYPTION_BLOCK_MODE)
+                .setEncryptionPaddings(ENCRYPTION_PADDING)
+                .setKeySize(AES_KEY_SIZE)
+                .build()
+            keyGenerator.init(spec)
+            return keyGenerator.generateKey()
+        }
+        return keyStore.getKey(KEY_ALIAS, null) as SecretKey
+    }
+
     private fun keyName(keyId: String?): String {
         return "io.rownd.key.${keyId ?: "default"}"
     }
 
-    private fun getKeyFile(keyId: String): EncryptedFile {
-        val keyGenParameterSpec = MasterKeys.AES256_GCM_SPEC
-        val mainKeyAlias = MasterKeys.getOrCreate(keyGenParameterSpec)
-        return EncryptedFile.Builder(
-            File(context.filesDir, keyId),
-            context,
-            mainKeyAlias,
-            EncryptedFile.FileEncryptionScheme.AES256_GCM_HKDF_4KB
-        ).build()
-    }
-
     fun doesKeyExist(keyId: String): Boolean {
         val keyFile = File(context.filesDir, keyName(keyId))
-
         return keyFile.exists()
     }
 
     fun storeKey(key: Key, keyId: String) {
-        val keyFile = getKeyFile(keyName(keyId))
+        val file = File(context.filesDir, keyName(keyId))
 
-        keyFile.openFileOutput().apply {
-            write(key.asBytes)
-            flush()
-            close()
+        val secretKey = getOrCreateSecretKey()
+        val cipher = Cipher.getInstance(TRANSFORMATION_STRING)
+        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+
+        // The IV is written to the start of the file
+        val iv = cipher.iv
+        FileOutputStream(file).use { fileOut ->
+            fileOut.write(iv)
+            CipherOutputStream(fileOut, cipher).use {
+                it.write(key.asBytes)
+            }
         }
     }
 
@@ -59,25 +91,34 @@ object Encryption {
     }
 
     fun loadKey(keyId: String): Key? {
-        val keyFile = getKeyFile(keyName(keyId))
+        val file = File(context.filesDir, keyName(keyId))
+        if (!file.exists()) {
+            return null
+        }
 
         try {
-            val inputStream = keyFile.openFileInput()
-            val byteArrayOutputStream = ByteArrayOutputStream()
+            FileInputStream(file).use { fileIn ->
+                // Read the IV from the start of the file
+                val iv = ByteArray(GCM_IV_LENGTH)
+                fileIn.read(iv)
 
-            val buffer = ByteArray(1024)
-            var bytesRead: Int
-            while (inputStream.read(buffer).also { bytesRead = it } != -1) {
-                byteArrayOutputStream.write(buffer, 0, bytesRead)
+                val secretKey = getOrCreateSecretKey()
+                val cipher = Cipher.getInstance(TRANSFORMATION_STRING)
+                val spec = GCMParameterSpec(128, iv)
+                cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
+
+                CipherInputStream(fileIn, cipher).use { cipherIn ->
+                    val keyBytes = cipherIn.readBytes()
+                    return Key.fromBytes(keyBytes)
+                }
             }
-
-            val keyBytes = byteArrayOutputStream.toByteArray()
-
-            return Key.fromBytes(keyBytes)
         } catch (error: IOException) {
+            Log.e("Rownd", "Failed to load encryption key (IO): ${error.message}", error)
             return null
         } catch (error: Exception) {
-            Log.e("Rownd", "Failed to load encryption key: ${error.message}")
+            Log.e("Rownd", "Failed to load encryption key: ${error.message}", error)
+            // It's possible the key is corrupt or something changed, delete it
+            file.delete()
             return null
         }
     }
