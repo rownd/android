@@ -1,5 +1,12 @@
 
 
+# [4.1.0](https://github.com/rownd/android/compare/4.0.0...4.1.0) (2026-01-19)
+
+
+### Bug Fixes
+
+* update Composables Core to 1.37.0 for Expo DevClient compatibility ([#72](https://github.com/rownd/android/issues/72)) ([3b41b4b](https://github.com/rownd/android/commit/3b41b4bbc5d07a31692492a932cc765b79036dc2))
+
 # [4.0.0](https://github.com/rownd/android/compare/3.2.0...4.0.0) (2025-11-18)
 
 
