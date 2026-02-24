@@ -207,7 +207,7 @@ class StateRepo @Inject constructor() {
                 return it
             }
 
-            return DataStoreFactory.create(
+            dataStore = DataStoreFactory.create(
                 storage = FileStorage(GlobalStateSerializer) {
                     context.dataStoreFile(Rownd.config.stateFileName)
                 },
@@ -225,6 +225,7 @@ class StateRepo @Inject constructor() {
                     return@ReplaceFileCorruptionHandler GlobalState()
                 }
             )
+            return dataStore!!
         }
     }
 }
