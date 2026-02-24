@@ -201,15 +201,17 @@ class StateRepo @Inject constructor() {
 
     companion object {
         private var dataStore: DataStore<GlobalState>? = null
+        
+        @Synchronized
         fun defaultDataStore(context: Context): DataStore<GlobalState> {
             // DataStore must be a singleton
             dataStore?.let {
                 return it
             }
 
-            dataStore = DataStoreFactory.create(
+            val ds = DataStoreFactory.create(
                 storage = FileStorage(GlobalStateSerializer) {
-                    context.dataStoreFile(Rownd.config.stateFileName)
+                    context.applicationContext.dataStoreFile(Rownd.config.stateFileName)
                 },
                 corruptionHandler = ReplaceFileCorruptionHandler { ex ->
                     // Handle cases where on-device state has become corrupt.
@@ -225,7 +227,8 @@ class StateRepo @Inject constructor() {
                     return@ReplaceFileCorruptionHandler GlobalState()
                 }
             )
-            return dataStore!!
+            dataStore = ds
+            return ds
         }
     }
 }
