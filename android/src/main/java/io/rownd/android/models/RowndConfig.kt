@@ -16,6 +16,31 @@ import javax.inject.Inject
 val json = Json { encodeDefaults = true }
 
 @Serializable
+data class SuperTokensAppInfo(
+    val appName: String,
+    val apiDomain: String,
+    val apiBasePath: String = "/auth"
+) {
+    val normalizedApiDomain: String
+        get() = apiDomain.trimEnd('/')
+
+    val normalizedApiBasePath: String
+        get() {
+            val basePath = apiBasePath.trim().trim('/')
+            return if (basePath.isEmpty()) "" else "/$basePath"
+        }
+
+    fun migrationUrl(): String {
+        return "${normalizedApiDomain}${normalizedApiBasePath}/plugin/rownd/migrate"
+    }
+}
+
+@Serializable
+data class SuperTokensConfig(
+    val appInfo: SuperTokensAppInfo
+)
+
+@Serializable
 data class RowndConfig(
     var appKey: String? = null,
     var baseUrl: String = "https://hub.rownd.io",
@@ -33,6 +58,9 @@ data class RowndConfig(
     var enableDebugMode: Boolean = false,
     @Transient
     var enableSmartLinkPasteBehavior: Boolean = true,
+
+    @Transient
+    var supertokens: SuperTokensConfig? = null,
 
     // Internals
     @Transient

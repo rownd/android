@@ -19,6 +19,7 @@ import io.rownd.android.util.RowndContext
 import io.rownd.android.util.RowndEvent
 import io.rownd.android.util.RowndEventEmitter
 import io.rownd.android.util.SignInWithGoogle
+import io.rownd.android.util.SuperTokensSync
 import io.rownd.android.util.Telemetry
 import io.rownd.android.util.TokenApiClient
 import javax.inject.Singleton
@@ -44,6 +45,7 @@ interface RowndGraph {
     fun rowndEventEmitter(): RowndEventEmitter<RowndEvent>
     fun signInWithGoogle(): SignInWithGoogle
     fun telemetry(): Telemetry
+    fun superTokensSync(): SuperTokensSync
     fun tokenApiClient(): TokenApiClient
     fun authenticatedApiClient(): AuthenticatedApiClient
     fun httpEngine(): HttpClientEngine

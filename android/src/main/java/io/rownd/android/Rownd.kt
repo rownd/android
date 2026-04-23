@@ -38,6 +38,7 @@ import io.rownd.android.util.InvalidRefreshTokenException
 import io.rownd.android.util.NoAccessTokenPresentException
 import io.rownd.android.util.NoRefreshTokenPresentException
 import io.rownd.android.util.RowndEvent
+import io.rownd.android.util.RowndEventType
 import io.rownd.android.util.RowndException
 import io.rownd.android.views.HubPageSelector
 import io.rownd.android.views.RowndBottomSheetActivity
@@ -76,6 +77,7 @@ class RowndClient(
     internal var eventEmitter = graph.rowndEventEmitter()
     internal var signInWithGoogle = graph.signInWithGoogle()
     internal var telemetry = graph.telemetry()
+    internal var superTokensSync = graph.superTokensSync()
 
     var state = stateRepo.state
     var user = userRepo
@@ -88,6 +90,23 @@ class RowndClient(
         rowndContext.store = stateRepo.getStore()
         rowndContext.eventEmitter = eventEmitter
         rowndContext.telemetry = telemetry
+
+        eventEmitter.addListener { event ->
+            if (event.event != RowndEventType.SignInCompleted || event.data["user_type"] != "new_user") {
+                return@addListener
+            }
+
+            if (!this::store.isInitialized) {
+                return@addListener
+            }
+
+            val accessToken = store.currentState.auth.accessToken ?: return@addListener
+            val appInfo = config.supertokens?.appInfo ?: return@addListener
+
+            CoroutineScope(Dispatchers.IO).launch {
+                superTokensSync.syncUser(accessToken = accessToken, appInfo = appInfo)
+            }
+        }
 
         stateRepo.userRepo = userRepo
         stateRepo.authRepo = authRepo
