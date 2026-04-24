@@ -1,5 +1,7 @@
 
 
+# [5.0.0](https://github.com/rownd/android/compare/4.1.1...5.0.0) (2026-04-24)
+
 # [4.1.0](https://github.com/rownd/android/compare/4.0.0...4.1.0) (2026-01-19)
 
 
